@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmerAssist - Your Smart Farming Partner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .grain {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+        
+        /* Dotted Surface Canvas */
+        #dotted-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden bg-white">
+    <div id="root"></div>
+    <div class="grain"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, createContext, useContext } = React;
+        const { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } = window.Motion;
+
+        // Theme Context (simulating next-themes)
+        const ThemeContext = createContext({ theme: 'light', setTheme: () => {} });
+        
+        function ThemeProvider({ children }) {
+            const [theme, setTheme] = useState('light');
+            return (
+                <ThemeContext.Provider value={{ theme, setTheme }}>
+                    {children}
+                </ThemeContext.Provider>
+            );
+        }
+        
+        function useTheme() {
+            return useContext(ThemeContext);
+        }
+
+        // Utility function
+        function cn(...classes) {
+            return classes.filter(Boolean).join(' ');
+        }
+
+        // ============================================
+        // DOTTED SURFACE COMPONENT (Three.js)
+        // ============================================
+        function DottedSurface({ className, ...props }) {
+            const { theme } = useTheme();
+            const containerRef = useRef(null);
+            const sceneRef = useRef(null);
+
+            useEffect(() => {
+                if (!containerRef.current) return;
+
+                const SEPARATION = 150;
+                const AMOUNTX = 40;
+                const AMOUNTY = 60;
+
+                const scene = new THREE.Scene();
+                scene.fog = new THREE.Fog(0xffffff, 2000, 10000);
+
+                const camera = new THREE.PerspectiveCamera(
+                    60,
+                    window.innerWidth / window.innerHeight,
+                    1,
+                    10000,
+                );
+                camera.position.set(0, 355, 1220);
+
+                const renderer = new THREE.WebGLRenderer({
+                    alpha: true,
+                    antialias: true,
+                });
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setClearColor(scene.fog.color, 0);
+
+                containerRef.current.appendChild(renderer.domElement);
+
+                const particles = [];
+                const positions = [];
+                const colors = [];
+
+                const geometry = new THREE.BufferGeometry();
+
+                for (let ix = 0; ix < AMOUNTX; ix++) {
+                    for (let iy = 0; iy < AMOUNTY; iy++) {
+                        const x = ix * SEPARATION - (AMOUNTX * SEPARATION) / 2;
+                        const y = 0;
+                        const z = iy * SEPARATION - (AMOUNTY * SEPARATION) / 2;
+
+                        positions.push(x, y, z);
+                        if (theme === 'dark') {
+                            colors.push(0.78, 0.78, 0.78);
+                        } else {
+                            colors.push(0, 0, 0);
+                        }
+                    }
+                }
+
+                geometry.setAttribute(
+                    'position',
+                    new THREE.Float32BufferAttribute(positions, 3),
+                );
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+                const material = new THREE.PointsMaterial({
+                    size: 8,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.8,
+                    sizeAttenuation: true,
+                });
+
+                const points = new THREE.Points(geometry, material);
+                scene.add(points);
+
+                let count = 0;
+                let animationId;
+
+                const animate = () => {
+                    animationId = requestAnimationFrame(animate);
+                    const positionAttribute = geometry.attributes.position;
+                    const posArray = positionAttribute.array;
+
+                    let i = 0;
+                    for (let ix = 0; ix < AMOUNTX; ix++) {
+                        for (let iy = 0; iy < AMOUNTY; iy++) {
+                            const index = i * 3;
+                            posArray[index + 1] =
+                                Math.sin((ix + count) * 0.3) * 50 +
+                                Math.sin((iy + count) * 0.5) * 50;
+                            i++;
+                        }
+                    }
+
+                    positionAttribute.needsUpdate = true;
+                    renderer.render(scene, camera);
+                    count += 0.1;
+                };
+
+                const handleResize = () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+
+                window.addEventListener('resize', handleResize);
+                animate();
+
+                sceneRef.current = {
+                    scene,
+                    camera,
+                    renderer,
+                    particles: [points],
+                    animationId,
+                    count,
+                };
+
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    if (sceneRef.current) {
+                        cancelAnimationFrame(sceneRef.current.animationId);
+                        sceneRef.current.scene.traverse((object) => {
+                            if (object instanceof THREE.Points) {
+                                object.geometry.dispose();
+                                if (Array.isArray(object.material)) {
+                                    object.material.forEach((mat) => mat.dispose());
+                                } else {
+                                    object.material.dispose();
+                                }
+                            }
+                        });
+                        sceneRef.current.renderer.dispose();
+                        if (containerRef.current && sceneRef.current.renderer.domElement) {
+                            containerRef.current.removeChild(sceneRef.current.renderer.domElement);
+                        }
+                    }
+                };
+            }, [theme]);
+
+            return (
+                <div
+                    ref={containerRef}
+                    className={cn('pointer-events-none fixed inset-0 -z-10', className)}
+                    {...props}
+                />
+            );
+        }
+
+        // ============================================
+        // CUTE FARMER CHARACTER (SVG-based)
+        // ============================================
+        function CuteFarmer({ expression = 'happy', pose = 'idle', tool = null, message = '', className = '', size = 120 }) {
+            const getEyePaths = () => {
+                switch(expression) {
+                    case 'happy':
+                        return {
+                            leftEye: "M 35 42 Q 40 38 45 42",
+                            rightEye: "M 55 42 Q 60 38 65 42",
+                            leftEyeFill: "none",
+                            rightEyeFill: "none"
+                        };
+                    case 'surprised':
+                        return {
+                            leftEye: "M 38 40 A 3 3 0 1 1 38 46 A 3 3 0 1 1 38 40",
+                            rightEye: "M 58 40 A 3 3 0 1 1 58 46 A 3 3 0 1 1 58 40",
+                            leftEyeFill: "#1a1a2e",
+                            rightEyeFill: "#1a1a2e"
+                        };
+                    case 'thinking':
+                        return {
+                            leftEye: "M 36 42 L 44 42",
+                            rightEye: "M 56 42 L 64 42",
+                            leftEyeFill: "none",
+                            rightEyeFill: "none"
+                        };
+                    case 'wink':
+                        return {
+                            leftEye: "M 35 42 Q 40 38 45 42",
+                            rightEye: "M 56 42 L 64 42",
+                            leftEyeFill: "none",
+                            rightEyeFill: "none"
+                        };
+                    default:
+                        return {
+                            leftEye: "M 38 40 A 3 3 0 1 1 38 46 A 3 3 0 1 1 38 40",
+                            rightEye: "M 58 40 A 3 3 0 1 1 58 46 A 3 3 0 1 1 58 40",
+                            leftEyeFill: "#1a1a2e",
+                            rightEyeFill: "#1a1a2e"
+                        };
+                }
+            };
+
+            const getMouthPath = () => {
+                switch(expression) {
+                    case 'happy': return "M 42 52 Q 50 58 58 52";
+                    case 'surprised': return "M 47 52 A 3 3 0 1 1 47 58 A 3 3 0 1 1 47 52";
+                    case 'thinking': return "M 45 55 L 55 55";
+                    case 'wink': return "M 42 52 Q 50 58 58 52";
+                    default: return "M 42 52 Q 50 58 58 52";
+                }
+            };
+
+            const getArmTransforms = () => {
+                switch(pose) {
+                    case 'wave': return { leftArm: "rotate(-20 30 70)", rightArm: "rotate(-40 70 70)" };
+                    case 'point': return { leftArm: "rotate(10 30 70)", rightArm: "rotate(-50 70 70)" };
+                    case 'think': return { leftArm: "rotate(140 30 70)", rightArm: "rotate(-140 70 70)" };
+                    case 'plant': return { leftArm: "rotate(-30 30 70)", rightArm: "rotate(30 70 70)" };
+                    case 'harvest': return { leftArm: "rotate(-10 30 70)", rightArm: "rotate(-70 70 70)" };
+                    default: return { leftArm: "rotate(0 30 70)", rightArm: "rotate(0 70 70)" };
+                }
+            };
+
+            const eyes = getEyePaths();
+            const mouth = getMouthPath();
+            const arms = getArmTransforms();
+
+            const toolEmoji = tool || (expression === 'happy' ? '🌱' : expression === 'surprised' ? '❗' : expression === 'thinking' ? '💭' : '🌾');
+
+            return (
+                <motion.div 
+                    className={`relative ${className}`}
+                    style={{ width: size, height: size * 1.3 }}
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                >
+                    {/* Speech Bubble */}
+                    <AnimatePresence>
+                        {message && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                                className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white px-3 py-1.5 rounded-xl shadow-lg border border-emerald-100 whitespace-nowrap z-20"
+                            >
+                                <span className="text-xs font-bold text-emerald-700">{message}</span>
+                                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-emerald-100 rotate-45"></div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Tool floating */}
+                    {tool && (
+                        <motion.div 
+                            className="absolute -right-2 top-4 text-2xl z-20"
+                            animate={{ y: [0, -5, 0], rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                        >
+                            {tool}
+                        </motion.div>
+                    )}
+
+                    <svg viewBox="0 0 100 130" className="w-full h-full drop-shadow-xl">
+                        {/* Shadow */}
+                        <ellipse cx="50" cy="125" rx="25" ry="5" fill="rgba(0,0,0,0.1)" />
+                        
+                        {/* Legs */}
+                        <rect x="35" y="95" width="10" height="25" rx="5" fill="#374151" />
+                        <rect x="55" y="95" width="10" height="25" rx="5" fill="#374151" />
+                        
+                        {/* Boots */}
+                        <path d="M 33 115 L 47 115 L 47 120 Q 47 125 40 125 Q 33 125 33 120 Z" fill="#1f2937" />
+                        <path d="M 53 115 L 67 115 L 67 120 Q 67 125 60 125 Q 53 125 53 120 Z" fill="#1f2937" />
+                        
+                        {/* Body/Overalls */}
+                        <rect x="30" y="60" width="40" height="40" rx="12" fill="#3b82f6" />
+                        <rect x="35" y="65" width="30" height="30" rx="8" fill="#2563eb" />
+                        
+                        {/* Overalls straps */}
+                        <rect x="32" y="50" width="6" height="15" rx="3" fill="#3b82f6" />
+                        <rect x="62" y="50" width="6" height="15" rx="3" fill="#3b82f6" />
+                        
+                        {/* Pocket */}
+                        <rect x="42" y="75" width="16" height="14" rx="4" fill="#1d4ed8" />
+                        
+                        {/* Arms */}
+                        <g transform={arms.leftArm}>
+                            <rect x="20" y="65" width="12" height="30" rx="6" fill="#fca5a5" />
+                            <circle cx="26" cy="92" r="5" fill="#fca5a5" />
+                        </g>
+                        <g transform={arms.rightArm}>
+                            <rect x="68" y="65" width="12" height="30" rx="6" fill="#fca5a5" />
+                            <circle cx="74" cy="92" r="5" fill="#fca5a5" />
+                        </g>
+                        
+                        {/* Head */}
+                        <circle cx="50" cy="35" r="22" fill="#fca5a5" />
+                        
+                        {/* Ears */}
+                        <circle cx="28" cy="35" r="5" fill="#fca5a5" />
+                        <circle cx="72" cy="35" r="5" fill="#fca5a5" />
+                        
+                        {/* Hat */}
+                        <path d="M 25 22 Q 50 5 75 22 L 78 25 Q 50 18 22 25 Z" fill="#d97706" />
+                        <path d="M 30 22 Q 50 8 70 22 L 70 28 Q 50 20 30 28 Z" fill="#f59e0b" />
+                        <rect x="20" y="24" width="60" height="4" rx="2" fill="#b45309" />
+                        
+                        {/* Face */}
+                        {/* Eyes */}
+                        <path d={eyes.leftEye} stroke="#1a1a2e" strokeWidth="2.5" fill={eyes.leftEyeFill} strokeLinecap="round" />
+                        <path d={eyes.rightEye} stroke="#1a1a2e" strokeWidth="2.5" fill={eyes.rightEyeFill} strokeLinecap="round" />
+                        
+                        {/* Eye shine */}
+                        {expression !== 'thinking' && expression !== 'wink' && (
+                            <>
+                                <circle cx="39" cy="41" r="1.5" fill="white" />
+                                <circle cx="59" cy="41" r="1.5" fill="white" />
+                            </>
+                        )}
+                        
+                        {/* Cheeks */}
+                        <ellipse cx="36" cy="45" rx="4" ry="2.5" fill="rgba(239,68,68,0.15)" />
+                        <ellipse cx="64" cy="45" rx="4" ry="2.5" fill="rgba(239,68,68,0.15)" />
+                        
+                        {/* Mouth */}
+                        <path d={mouth} stroke="#1a1a2e" strokeWidth="2" fill="none" strokeLinecap="round" />
+                        
+                        {/* Freckles */}
+                        <circle cx="38" cy="48" r="0.8" fill="rgba(180,83,9,0.3)" />
+                        <circle cx="42" cy="49" r="0.8" fill="rgba(180,83,9,0.3)" />
+                        <circle cx="58" cy="48" r="0.8" fill="rgba(180,83,9,0.3)" />
+                        <circle cx="62" cy="49" r="0.8" fill="rgba(180,83,9,0.3)" />
+                    </svg>
+                </motion.div>
+            );
+        }
+
+        // Floating Farmer Guide
+        function FloatingFarmerGuide() {
+            const [scrollY, setScrollY] = useState(0);
+            const [message, setMessage] = useState('Hey there! 👋');
+            const [expression, setExpression] = useState('happy');
+            const [pose, setPose] = useState('wave');
+            const [tool, setTool] = useState('🌱');
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    const y = window.scrollY;
+                    setScrollY(y);
+                    
+                    if (y < 500) {
+                        setMessage('Welcome! 🌾');
+                        setExpression('happy');
+                        setPose('wave');
+                        setTool('🌱');
+                    } else if (y < 1200) {
+                        setMessage('Cool features! ✨');
+                        setExpression('surprised');
+                        setPose('point');
+                        setTool('⭐');
+                    } else if (y < 2000) {
+                        setMessage('So easy! 🚀');
+                        setExpression('thinking');
+                        setPose('think');
+                        setTool('💡');
+                    } else if (y < 3000) {
+                        setMessage('Love them! ❤️');
+                        setExpression('happy');
+                        setPose('harvest');
+                        setTool('🌾');
+                    } else {
+                        setMessage('Join us! 🎉');
+                        setExpression('wink');
+                        setPose('wave');
+                        setTool('🎁');
+                    }
+                };
+
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            return (
+                <motion.div 
+                    className="fixed bottom-8 right-8 z-50 hidden lg:block"
+                    initial={{ x: 200, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 1, type: "spring" }}
+                >
+                    <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        <CuteFarmer 
+                            expression={expression}
+                            pose={pose}
+                            message={message}
+                            size={100}
+                            tool={tool}
+                        />
+                    </motion.div>
+                </motion.div>
+            );
+        }
+
+        // Scroll Progress Bar
+        function ScrollProgress() {
+            const { scrollYProgress } = useScroll();
+            const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+            return (
+                <motion.div
+                    className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-green-600 origin-left z-[60]"
+                    style={{ scaleX }}
+                />
+            );
+        }
+
+        // Navbar
+        function Navbar() {
+            const [scrolled, setScrolled] = useState(false);
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+            useEffect(() => {
+                const handleScroll = () => setScrolled(window.scrollY > 50);
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            return (
+                <motion.nav
+                    initial={{ y: -100 }}
+                    animate={{ y: 0 }}
+                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                    className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+                        scrolled ? 'glass shadow-lg border-b border-emerald-100/50' : 'bg-transparent'
+                    }`}
+                >
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-20">
+                            <motion.div className="flex items-center gap-3" whileHover={{ scale: 1.05 }}>
+                                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                                    <i className="fas fa-leaf text-white text-lg"></i>
+                                </div>
+                                <span className="text-2xl font-bold text-gray-900">Farmer<span className="text-emerald-600">Assist</span></span>
+                            </motion.div>
+
+                            <div className="hidden md:flex items-center gap-8">
+                                {['Features', 'How It Works', 'Pricing', 'Testimonials'].map((link) => (
+                                    <a key={link} href={`#${link.toLowerCase().replace(/ /g, '-')}`} className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">
+                                        {link}
+                                    </a>
+                                ))}
+                            </div>
+
+                            <div className="hidden md:flex items-center gap-4">
+                                <button className="text-gray-700 font-medium hover:text-emerald-600">Sign In</button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-2.5 rounded-full font-semibold shadow-lg"
+                                >
+                                    Get Started
+                                </motion.button>
+                            </div>
+
+                            <button className="md:hidden text-gray-700 text-2xl" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                                <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <AnimatePresence>
+                        {mobileMenuOpen && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="md:hidden glass border-t overflow-hidden">
+                                <div className="px-6 py-4 space-y-3">
+                                    {['Features', 'How It Works', 'Pricing', 'Testimonials'].map(link => (
+                                        <a key={link} href={`#${link.toLowerCase().replace(/ /g, '-')}`} className="block py-2 text-gray-700">{link}</a>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.nav>
+            );
+        }
+
+        // Hero Section
+        function Hero() {
+            const ref = useRef(null);
+            const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+            const y = useTransform(scrollYProgress, [0, 1], [0, 200]);
+            const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+
+            return (
+                <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+                    <DottedSurface />
+                    
+                    <motion.div style={{ y, opacity }} className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 text-center">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8 }}
+                            className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-emerald-200/50 rounded-full px-5 py-2 mb-8 shadow-sm"
+                        >
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span className="text-emerald-700 font-medium text-sm">Trusted by 50,000+ Farmers Worldwide</span>
+                        </motion.div>
+
+                        <motion.h1
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="font-display text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 leading-tight mb-6"
+                        >
+                            Grow Smarter,<br />
+                            <span className="text-gradient">Harvest Better</span>
+                        </motion.h1>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.4 }}
+                            className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed"
+                        >
+                            AI-powered farming assistant that helps you monitor crops, predict weather, 
+                            and maximize yields with data-driven insights.
+                        </motion.p>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.6 }}
+                            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                        >
+                            <motion.button
+                                whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(5, 150, 105, 0.5)" }}
+                                whileTap={{ scale: 0.95 }}
+                                className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-10 py-4 rounded-full text-lg font-bold shadow-xl flex items-center gap-3"
+                            >
+                                <span>Start Free Trial</span>
+                                <i className="fas fa-arrow-right"></i>
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="bg-white/80 backdrop-blur-sm border-2 border-emerald-200 text-emerald-700 px-10 py-4 rounded-full text-lg font-bold hover:bg-emerald-50 transition-colors flex items-center gap-3"
+                            >
+                                <i className="fas fa-play-circle text-2xl"></i>
+                                <span>Watch Demo</span>
+                            </motion.button>
+                        </motion.div>
+
+                        {/* Stats */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.8 }}
+                            className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
+                        >
+                            {[
+                                { value: "50K+", label: "Active Farmers" },
+                                { value: "2M+", label: "Acres Monitored" },
+                                { value: "98%", label: "Accuracy Rate" },
+                                { value: "35%", label: "Yield Increase" }
+                            ].map((stat) => (
+                                <motion.div key={stat.label} whileHover={{ y: -5 }} className="text-center">
+                                    <div className="text-3xl md:text-4xl font-black text-emerald-600 mb-1">{stat.value}</div>
+                                    <div className="text-gray-500 font-medium text-sm">{stat.label}</div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </motion.div>
+
+                    {/* Hero Farmer */}
+                    <motion.div
+                        className="absolute bottom-20 left-10 lg:left-20 hidden md:block"
+                        initial={{ x: -200, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.5, type: "spring", stiffness: 100 }}
+                    >
+                        <CuteFarmer expression="happy" pose="wave" message="Let's grow! 🌱" size={140} tool="🌱" />
+                    </motion.div>
+
+                    <div className="absolute bottom-0 left-0 right-0">
+                        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white"/>
+                        </svg>
+                    </div>
+                </section>
+            );
+        }
+
+        // Feature Card
+        function FeatureCard({ icon, title, description, delay, color, farmerPose, farmerExpression, farmerTool, farmerMessage }) {
+            const ref = useRef(null);
+            const isInView = useInView(ref, { once: true, margin: "-100px" });
+            const [isHovered, setIsHovered] = useState(false);
+
+            return (
+                <motion.div
+                    ref={ref}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+                    transition={{ duration: 0.6, delay: delay * 0.1 }}
+                    onHoverStart={() => setIsHovered(true)}
+                    onHoverEnd={() => setIsHovered(false)}
+                    className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-500 overflow-hidden"
+                >
+                    <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700`}></div>
+                    
+                    <AnimatePresence>
+                        {isHovered && (
+                            <motion.div
+                                initial={{ x: 100, opacity: 0, rotate: 20 }}
+                                animate={{ x: 0, opacity: 1, rotate: 0 }}
+                                exit={{ x: 100, opacity: 0, rotate: 20 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                                className="absolute -right-2 -bottom-2 z-20"
+                            >
+                                <CuteFarmer expression={farmerExpression} pose={farmerPose} tool={farmerTool} message={farmerMessage} size={80} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    
+                    <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                        <i className={`fas ${icon} text-white text-2xl`}></i>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors">{title}</h3>
+                    <p className="text-gray-500 leading-relaxed">{description}</p>
+                </motion.div>
+            );
+        }
+
+        // Features Section
+        function Features() {
+            const features = [
+                { icon: "fa-cloud-sun", title: "Weather Intelligence", description: "Hyper-local weather forecasts with AI-powered predictions tailored to your specific farm location.", color: "bg-blue-500", farmerPose: 'think', farmerExpression: 'thinking', farmerTool: '☁️', farmerMessage: 'Sunny! 🌤️' },
+                { icon: "fa-seedling", title: "Crop Monitoring", description: "Real-time satellite imagery and drone data to track crop health, growth stages, and detect issues early.", color: "bg-emerald-500", farmerPose: 'plant', farmerExpression: 'happy', farmerTool: '🌱', farmerMessage: 'Growing! 🌿' },
+                { icon: "fa-bug", title: "Pest & Disease Alert", description: "Early warning system that identifies pest threats and diseases before they spread to your crops.", color: "bg-red-500", farmerPose: 'point', farmerExpression: 'surprised', farmerTool: '🔍', farmerMessage: 'Found one! 🐛' },
+                { icon: "fa-droplet", title: "Smart Irrigation", description: "Optimize water usage with soil moisture sensors and automated irrigation scheduling recommendations.", color: "bg-cyan-500", farmerPose: 'harvest', farmerExpression: 'happy', farmerTool: '💧', farmerMessage: 'Perfect! 💦' },
+                { icon: "fa-chart-line", title: "Yield Prediction", description: "Machine learning models that predict harvest yields with 98% accuracy to help plan your sales.", color: "bg-violet-500", farmerPose: 'think', farmerExpression: 'thinking', farmerTool: '📊', farmerMessage: 'Great! 📈' },
+                { icon: "fa-hand-holding-dollar", title: "Market Prices", description: "Live commodity prices and market trends to help you sell at the best possible time for maximum profit.", color: "bg-amber-500", farmerPose: 'happy', farmerExpression: 'wink', farmerTool: '💰', farmerMessage: 'Profit! 💵' },
+            ];
+
+            return (
+                <section id="features" className="py-24 bg-white relative">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="text-center mb-20">
+                            <motion.h2
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                            >
+                                Everything You Need to<br /><span className="text-gradient">Farm Successfully</span>
+                            </motion.h2>
+                            
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                whileInView={{ scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.3, type: "spring" }}
+                                className="mt-8 flex justify-center"
+                            >
+                                <CuteFarmer expression="happy" pose="plant" message="Check these! 👇" size={100} />
+                            </motion.div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {features.map((feature, i) => (
+                                <FeatureCard key={feature.title} {...feature} delay={i} />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        }
+
+        // How It Works
+        function HowItWorks() {
+            const steps = [
+                { num: "01", title: "Set Up Your Farm", desc: "Map your fields and input crop details in minutes using our intuitive interface.", icon: "fa-map-location-dot", farmerPose: "think", farmerExpression: "thinking", farmerMessage: "Where? 🤔" },
+                { num: "02", title: "Connect Sensors", desc: "Link weather stations, soil sensors, and drones for real-time data collection.", icon: "fa-wifi", farmerPose: "point", farmerExpression: "surprised", farmerMessage: "So cool! 📡" },
+                { num: "03", title: "Get Insights", desc: "Receive AI-powered recommendations and alerts directly on your phone.", icon: "fa-brain", farmerPose: "happy", farmerExpression: "happy", farmerMessage: "Aha! 💡" },
+                { num: "04", title: "Harvest Better", desc: "Act on data-driven decisions to increase yields and reduce costs.", icon: "fa-tractor", farmerPose: "harvest", farmerExpression: "wink", farmerMessage: "Success! 🎉" },
+            ];
+
+            return (
+                <section id="how-it-works" className="py-24 bg-gray-50 relative overflow-hidden">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+                        <div className="text-center mb-20">
+                            <motion.h2
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                            >
+                                Simple Steps to <span className="text-gradient">Smart Farming</span>
+                            </motion.h2>
+                            
+                            <motion.div
+                                initial={{ x: -100, opacity: 0 }}
+                                whileInView={{ x: 0, opacity: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.2, type: "spring" }}
+                                className="mt-8 flex justify-center"
+                            >
+                                <CuteFarmer expression="happy" pose="wave" message="Follow me! 🚶" size={100} />
+                            </motion.div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {steps.map((step, i) => (
+                                <motion.div
+                                    key={step.num}
+                                    initial={{ opacity: 0, y: 50 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.15 }}
+                                    className="relative"
+                                >
+                                    {i < steps.length - 1 && (
+                                        <div className="hidden lg:block absolute top-16 left-[60%] w-full h-0.5 bg-gradient-to-r from-emerald-300 to-transparent"></div>
+                                    )}
+                                    <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100 relative z-10 h-full hover:shadow-2xl transition-shadow duration-300">
+                                        <div className="text-6xl font-black text-emerald-100 absolute top-4 right-4">{step.num}</div>
+                                        
+                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                                            <CuteFarmer expression={step.farmerExpression} pose={step.farmerPose} message={step.farmerMessage} size={80} tool={i === 3 ? '🌾' : '🌱'} />
+                                        </div>
+                                        
+                                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg mt-8">
+                                            <i className={`fas ${step.icon} text-white text-2xl`}></i>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
+                                        <p className="text-gray-500">{step.desc}</p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        }
+
+        // Testimonials
+        function Testimonials() {
+            const testimonials = [
+                { name: "John Mitchell", role: "Wheat Farmer", location: "Kansas, USA", text: "FarmerAssist helped me increase my wheat yield by 40% in just one season. The weather predictions are incredibly accurate." },
+                { name: "Maria Santos", role: "Organic Farmer", location: "California, USA", text: "The pest detection feature saved my entire tomato crop. I got an alert 3 days before the infestation became visible." },
+                { name: "Raj Patel", role: "Rice Grower", location: "Punjab, India", text: "Smart irrigation recommendations reduced my water usage by 30% while maintaining the same yield. Amazing technology!" },
+            ];
+
+            return (
+                <section id="testimonials" className="py-24 bg-white">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="text-center mb-20">
+                            <motion.h2
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                            >
+                                Loved by Farmers <span className="text-gradient">Worldwide</span>
+                            </motion.h2>
+                            
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                whileInView={{ scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.2, type: "spring" }}
+                                className="mt-8 flex justify-center"
+                            >
+                                <CuteFarmer expression="happy" pose="wave" message="We love them! ❤️" size={100} tool="❤️" />
+                            </motion.div>
+                        </div>
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {testimonials.map((t, i) => (
+                                <motion.div
+                                    key={t.name}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    whileInView={{ opacity: 1, scale: 1 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1 }}
+                                    whileHover={{ y: -5 }}
+                                    className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100 relative overflow-hidden"
+                                >
+                                    <div className="absolute -top-2 -right-2 opacity-50">
+                                        <CuteFarmer expression="happy" pose="wave" size={60} tool="👍" />
+                                    </div>
+                                    <div className="flex items-center gap-1 mb-4">
+                                        {[1,2,3,4,5].map(star => <i key={star} className="fas fa-star text-yellow-400 text-sm"></i>)}
+                                    </div>
+                                    <p className="text-gray-600 mb-6 leading-relaxed italic">"{t.text}"</p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                            {t.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-gray-900">{t.name}</div>
+                                            <div className="text-sm text-gray-500">{t.role}, {t.location}</div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        }
+
+        // Pricing
+        function Pricing() {
+            const plans = [
+                { name: "Starter", price: "0", desc: "Perfect for hobby farmers", features: ["Weather forecasts", "Basic crop tracking", "Community support", "Mobile app access"], highlighted: false },
+                { name: "Professional", price: "29", desc: "For serious commercial farms", features: ["Everything in Starter", "AI yield predictions", "Pest & disease alerts", "Priority support", "API access", "Multi-field management"], highlighted: true },
+                { name: "Enterprise", price: "99", desc: "Large scale operations", features: ["Everything in Pro", "Dedicated account manager", "Custom integrations", "On-site training", "SLA guarantee", "White-label option"], highlighted: false },
+            ];
+
+            return (
+                <section id="pricing" className="py-24 bg-gradient-to-b from-gray-50 to-white">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="text-center mb-20">
+                            <motion.h2
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                            >
+                                Simple, Transparent <span className="text-gradient">Pricing</span>
+                            </motion.h2>
+                            
+                            <motion.div
+                                initial={{ y: 50, opacity: 0 }}
+                                whileInView={{ y: 0, opacity: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.2, type: "spring" }}
+                                className="mt-8 flex justify-center"
+                            >
+                                <CuteFarmer expression="thinking" pose="think" message="Worth it! 💰" size={100} tool="💰" />
+                            </motion.div>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                            {plans.map((plan, i) => (
+                                <motion.div
+                                    key={plan.name}
+                                    initial={{ opacity: 0, y: 50 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.15 }}
+                                    whileHover={{ y: -10 }}
+                                    className={`relative rounded-3xl p-8 ${plan.highlighted ? 'bg-gradient-to-b from-emerald-500 to-green-600 text-white shadow-2xl scale-105' : 'bg-white border border-gray-200'}`}
+                                >
+                                    {plan.highlighted && (
+                                        <>
+                                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-gray-900 px-4 py-1 rounded-full text-sm font-bold">Most Popular</div>
+                                            <motion.div className="absolute -top-16 right-4" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                                                <CuteFarmer expression="happy" pose="jump" message="Best deal! ⭐" size={80} tool="⭐" />
+                                            </motion.div>
+                                        </>
+                                    )}
+                                    
+                                    <h3 className={`text-xl font-bold mb-2 ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>{plan.name}</h3>
+                                    <div className="flex items-baseline gap-1 mb-2">
+                                        <span className={`text-4xl font-black ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>${plan.price}</span>
+                                        <span className={`text-sm ${plan.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>/month</span>
+                                    </div>
+                                    <p className={`text-sm mb-6 ${plan.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>{plan.desc}</p>
+                                    <ul className="space-y-3 mb-8">
+                                        {plan.features.map(f => (
+                                            <li key={f} className="flex items-center gap-3">
+                                                <i className={`fas fa-check ${plan.highlighted ? 'text-emerald-200' : 'text-emerald-500'}`}></i>
+                                                <span className={`text-sm ${plan.highlighted ? 'text-white' : 'text-gray-600'}`}>{f}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <button className={`w-full py-3 rounded-full font-bold transition-all ${plan.highlighted ? 'bg-white text-emerald-600 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'}`}>
+                                        Get Started
+                                    </button>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        }
+
+        // CTA
+        function CTA() {
+            return (
+                <section className="py-24 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-green-800 to-teal-900"></div>
+                    
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="relative z-10 max-w-4xl mx-auto px-6 text-center"
+                    >
+                        <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            whileInView={{ scale: 1, rotate: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                            className="mb-8 flex justify-center"
+                        >
+                            <CuteFarmer expression="happy" pose="wave" message="Join us! 🎉" size={140} tool="🎊" />
+                        </motion.div>
+                        
+                        <h2 className="font-display text-4xl md:text-6xl font-bold text-white mb-6">
+                            Ready to Transform<br />Your Farm?
+                        </h2>
+                        <p className="text-emerald-100 text-xl mb-10 max-w-2xl mx-auto">
+                            Join thousands of farmers who are already growing smarter with FarmerAssist.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-white text-emerald-700 px-10 py-4 rounded-full text-lg font-bold shadow-xl">
+                                Start Free Trial
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="border-2 border-emerald-400 text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-emerald-800/50">
+                                Contact Sales
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                </section>
+            );
+        }
+
+        // Footer
+        function Footer() {
+            return (
+                <footer className="bg-gray-900 text-gray-400 py-16">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="grid md:grid-cols-4 gap-12 mb-12">
+                            <div>
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center">
+                                        <i className="fas fa-leaf text-white"></i>
+                                    </div>
+                                    <span className="text-2xl font-bold text-white">Farmer<span className="text-emerald-500">Assist</span></span>
+                                </div>
+                                <p className="text-sm leading-relaxed">Empowering farmers with cutting-edge technology to grow more, waste less, and farm sustainably.</p>
+                                <div className="mt-4 opacity-50">
+                                    <CuteFarmer expression="happy" pose="wave" size={60} tool="👋" />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-4">Product</h4>
+                                <ul className="space-y-2 text-sm">
+                                    <li><a href="#" className="hover:text-emerald-400 transition-colors">Features</a></li>
+                                    <li><a href="#" className="hover:text-emerald-400 transition-colors">Pricing</a></li>
+                                    <li><a href="#" className="hover:text-emerald-400 transition-colors">API</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-4">Company</h4>
+                                <ul className="space-y-2 text-sm">
+                                    <li><a href="#" className="hover:text-emerald-400 transition-colors">About</a></li>
+                                    <li><a href="#" className="hover:text-emerald-400 transition-colors">Blog</a></li>
+                                    <li><a href="#" className="hover:text-emerald-400 transition-colors">Careers</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-4">Stay Updated</h4>
+                                <div className="flex gap-2">
+                                    <input type="email" placeholder="Enter your email" className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:border-emerald-500" />
+                                    <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"><i className="fas fa-paper-plane"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p className="text-sm"> 2026 FarmerAssist. All rights reserved.</p>
+                            <div className="flex gap-6">
+                                <a href="#" className="hover:text-emerald-400"><i className="fab fa-twitter text-xl"></i></a>
+                                <a href="#" className="hover:text-emerald-400"><i className="fab fa-linkedin text-xl"></i></a>
+                                <a href="#" className="hover:text-emerald-400"><i className="fab fa-instagram text-xl"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        }
+
+        // Main App
+        function App() {
+            return (
+                <ThemeProvider>
+                    <div className="relative">
+                        <ScrollProgress />
+                        <Navbar />
+                        <Hero />
+                        <Features />
+                        <HowItWorks />
+                        <Testimonials />
+                        <Pricing />
+                        <CTA />
+                        <Footer />
+                        <FloatingFarmerGuide />
+                    </div>
+                </ThemeProvider>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

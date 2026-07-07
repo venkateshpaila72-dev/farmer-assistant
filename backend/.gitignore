@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+saved_models/*.pkl
+saved_models/*.pt
+.venv/
+venv/
+*.egg-info/
+.DS_Store

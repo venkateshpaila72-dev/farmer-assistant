@@ -1,0 +1,283 @@
+{
+  "classes": [
+    "Apple___Apple_scab",
+    "Apple___Black_rot",
+    "Apple___Cedar_apple_rust",
+    "Apple___healthy",
+    "Cherry_(including_sour)___Powdery_mildew",
+    "Cherry_(including_sour)___healthy",
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+    "Corn_(maize)___Common_rust_",
+    "Corn_(maize)___Northern_Leaf_Blight",
+    "Corn_(maize)___healthy",
+    "Grape___Black_rot",
+    "Grape___Esca_(Black_Measles)",
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+    "Grape___healthy",
+    "Peach___Bacterial_spot",
+    "Peach___healthy",
+    "Pepper,_bell___Bacterial_spot",
+    "Pepper,_bell___healthy",
+    "Potato___Early_blight",
+    "Potato___Late_blight",
+    "Potato___healthy",
+    "Soybean___healthy",
+    "Strawberry___Leaf_scorch",
+    "Strawberry___healthy",
+    "Tomato___Bacterial_spot",
+    "Tomato___Early_blight",
+    "Tomato___Late_blight",
+    "Tomato___Leaf_Mold",
+    "Tomato___Septoria_leaf_spot",
+    "Tomato___Spider_mites Two-spotted_spider_mite",
+    "Tomato___Target_Spot",
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "Tomato___Tomato_mosaic_virus",
+    "Tomato___healthy"
+  ],
+  "class_indices": {
+    "Apple___Apple_scab": 0,
+    "Apple___Black_rot": 1,
+    "Apple___Cedar_apple_rust": 2,
+    "Apple___healthy": 3,
+    "Cherry_(including_sour)___Powdery_mildew": 4,
+    "Cherry_(including_sour)___healthy": 5,
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": 6,
+    "Corn_(maize)___Common_rust_": 7,
+    "Corn_(maize)___Northern_Leaf_Blight": 8,
+    "Corn_(maize)___healthy": 9,
+    "Grape___Black_rot": 10,
+    "Grape___Esca_(Black_Measles)": 11,
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": 12,
+    "Grape___healthy": 13,
+    "Peach___Bacterial_spot": 14,
+    "Peach___healthy": 15,
+    "Pepper,_bell___Bacterial_spot": 16,
+    "Pepper,_bell___healthy": 17,
+    "Potato___Early_blight": 18,
+    "Potato___Late_blight": 19,
+    "Potato___healthy": 20,
+    "Soybean___healthy": 21,
+    "Strawberry___Leaf_scorch": 22,
+    "Strawberry___healthy": 23,
+    "Tomato___Bacterial_spot": 24,
+    "Tomato___Early_blight": 25,
+    "Tomato___Late_blight": 26,
+    "Tomato___Leaf_Mold": 27,
+    "Tomato___Septoria_leaf_spot": 28,
+    "Tomato___Spider_mites Two-spotted_spider_mite": 29,
+    "Tomato___Target_Spot": 30,
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": 31,
+    "Tomato___Tomato_mosaic_virus": 32,
+    "Tomato___healthy": 33
+  },
+  "num_classes": 34,
+  "img_size": 224,
+  "model_type": "MobileNetV2",
+  "treatments": {
+    "Apple___Apple_scab": {
+      "status": "Apple \u2014 Apple scab",
+      "treatment": "Consult local agricultural officer.",
+      "severity": "Unknown",
+      "prevention": "Monitor crop regularly."
+    },
+    "Apple___Black_rot": {
+      "status": "Black Rot",
+      "treatment": "Apply copper fungicide. Prune infected parts.",
+      "severity": "High",
+      "prevention": "Good drainage. Remove infected debris."
+    },
+    "Apple___Cedar_apple_rust": {
+      "status": "Rust Disease",
+      "treatment": "Apply Propiconazole fungicide immediately.",
+      "severity": "High",
+      "prevention": "Remove crop debris. Use resistant varieties."
+    },
+    "Apple___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Cherry_(including_sour)___Powdery_mildew": {
+      "status": "Powdery Mildew",
+      "treatment": "Apply sulfur fungicide every 10 days.",
+      "severity": "Medium",
+      "prevention": "Improve air circulation. Avoid wet leaves."
+    },
+    "Cherry_(including_sour)___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+      "status": "Gray Leaf Spot",
+      "treatment": "Apply Strobilurin fungicide.",
+      "severity": "Medium",
+      "prevention": "Tillage. Crop rotation recommended."
+    },
+    "Corn_(maize)___Common_rust_": {
+      "status": "Rust Disease",
+      "treatment": "Apply Propiconazole fungicide immediately.",
+      "severity": "High",
+      "prevention": "Remove crop debris. Use resistant varieties."
+    },
+    "Corn_(maize)___Northern_Leaf_Blight": {
+      "status": "Northern Leaf Blight",
+      "treatment": "Apply Propiconazole or Azoxystrobin.",
+      "severity": "High",
+      "prevention": "Crop rotation. Use resistant varieties."
+    },
+    "Corn_(maize)___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Grape___Black_rot": {
+      "status": "Black Rot",
+      "treatment": "Apply copper fungicide. Prune infected parts.",
+      "severity": "High",
+      "prevention": "Good drainage. Remove infected debris."
+    },
+    "Grape___Esca_(Black_Measles)": {
+      "status": "Grape \u2014 Esca (Black Measles)",
+      "treatment": "Consult local agricultural officer.",
+      "severity": "Unknown",
+      "prevention": "Monitor crop regularly."
+    },
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": {
+      "status": "Grape \u2014 Leaf blight (Isariopsis Leaf Spot)",
+      "treatment": "Consult local agricultural officer.",
+      "severity": "Unknown",
+      "prevention": "Monitor crop regularly."
+    },
+    "Grape___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Peach___Bacterial_spot": {
+      "status": "Bacterial Spot",
+      "treatment": "Apply copper bactericide. Remove infected leaves.",
+      "severity": "High",
+      "prevention": "Use disease-free seeds. Avoid overhead watering."
+    },
+    "Peach___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Pepper,_bell___Bacterial_spot": {
+      "status": "Bacterial Spot",
+      "treatment": "Apply copper bactericide. Remove infected leaves.",
+      "severity": "High",
+      "prevention": "Use disease-free seeds. Avoid overhead watering."
+    },
+    "Pepper,_bell___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Potato___Early_blight": {
+      "status": "Early Blight",
+      "treatment": "Apply Mancozeb 2g/litre every 7 days.",
+      "severity": "Medium",
+      "prevention": "Avoid overhead irrigation. Crop rotation."
+    },
+    "Potato___Late_blight": {
+      "status": "Late Blight",
+      "treatment": "Apply Metalaxyl + Mancozeb immediately.",
+      "severity": "High",
+      "prevention": "Use resistant varieties. Avoid wet conditions."
+    },
+    "Potato___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Soybean___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Strawberry___Leaf_scorch": {
+      "status": "Leaf Scorch",
+      "treatment": "Improve irrigation. Apply potassium fertilizer.",
+      "severity": "Medium",
+      "prevention": "Avoid water stress. Mulch around plants."
+    },
+    "Strawberry___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    },
+    "Tomato___Bacterial_spot": {
+      "status": "Bacterial Spot",
+      "treatment": "Apply copper bactericide. Remove infected leaves.",
+      "severity": "High",
+      "prevention": "Use disease-free seeds. Avoid overhead watering."
+    },
+    "Tomato___Early_blight": {
+      "status": "Early Blight",
+      "treatment": "Apply Mancozeb 2g/litre every 7 days.",
+      "severity": "Medium",
+      "prevention": "Avoid overhead irrigation. Crop rotation."
+    },
+    "Tomato___Late_blight": {
+      "status": "Late Blight",
+      "treatment": "Apply Metalaxyl + Mancozeb immediately.",
+      "severity": "High",
+      "prevention": "Use resistant varieties. Avoid wet conditions."
+    },
+    "Tomato___Leaf_Mold": {
+      "status": "Leaf Mold",
+      "treatment": "Apply copper fungicide. Improve ventilation.",
+      "severity": "Medium",
+      "prevention": "Reduce humidity. Space plants properly."
+    },
+    "Tomato___Septoria_leaf_spot": {
+      "status": "Septoria Leaf Spot",
+      "treatment": "Apply Chlorothalonil fungicide.",
+      "severity": "Medium",
+      "prevention": "Rotate crops. Remove plant debris."
+    },
+    "Tomato___Spider_mites Two-spotted_spider_mite": {
+      "status": "Spider Mites",
+      "treatment": "Apply Abamectin or neem oil spray.",
+      "severity": "Medium",
+      "prevention": "Maintain humidity. Use predatory mites."
+    },
+    "Tomato___Target_Spot": {
+      "status": "Target Spot",
+      "treatment": "Apply Azoxystrobin fungicide.",
+      "severity": "Medium",
+      "prevention": "Proper spacing. Avoid leaf wetness."
+    },
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+      "status": "Yellow Leaf Curl Virus",
+      "treatment": "Remove infected plants. Control whiteflies.",
+      "severity": "High",
+      "prevention": "Use virus-resistant varieties."
+    },
+    "Tomato___Tomato_mosaic_virus": {
+      "status": "Mosaic Virus",
+      "treatment": "Remove infected plants immediately.",
+      "severity": "High",
+      "prevention": "Control aphids with neem oil spray."
+    },
+    "Tomato___healthy": {
+      "status": "Healthy",
+      "treatment": "No treatment needed. Keep monitoring.",
+      "severity": "None",
+      "prevention": "Maintain good crop hygiene."
+    }
+  }
+}

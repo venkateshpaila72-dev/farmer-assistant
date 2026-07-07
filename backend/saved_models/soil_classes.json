@@ -1,0 +1,19 @@
+{
+  "classes": [
+    "Black Soil",
+    "Cinder Soil",
+    "Laterite Soil",
+    "Peat Soil",
+    "Yellow Soil"
+  ],
+  "class_indices": {
+    "Black Soil": 0,
+    "Cinder Soil": 1,
+    "Laterite Soil": 2,
+    "Peat Soil": 3,
+    "Yellow Soil": 4
+  },
+  "num_classes": 5,
+  "img_size": 224,
+  "model_type": "MobileNetV2"
+}

@@ -1,0 +1,230 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+
+
+# ── AUTH ──────────────────────────────────────────────────────────────────────
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    username: str
+
+
+# ── FARMER ───────────────────────────────────────────────────────────────────
+
+class UserRegister(BaseModel):
+    username: str
+    password: str
+    phone: str
+    door_no: str
+    village: str
+    city: str
+    state: str
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    username: str
+    phone: str
+    village: str
+    city: str
+    state: str
+    role: str = "user"
+    created_at: Optional[datetime] = None
+
+
+# ── ADMIN ─────────────────────────────────────────────────────────────────────
+
+class AdminRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+
+class AdminLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class AdminResponse(BaseModel):
+    name: str
+    email: str
+    role: str = "admin"
+
+
+# ── ONBOARDING ────────────────────────────────────────────────────────────────
+
+class LocationData(BaseModel):
+    state: str
+    district: str
+    village: str
+    lat: float
+    lng: float
+
+
+class OnboardingData(BaseModel):
+    username: str
+    soil_type: str
+    soil_image_url: Optional[str] = None
+    farm_acres: float
+    preferred_crops: List[str]
+    irrigation_type: str          # rainfall / canal / borewell
+    main_problem: str             # pests / water / price / disease
+    chat_language: str = "English"
+    home_location: LocationData
+
+
+class OnboardingResponse(BaseModel):
+    message: str
+    username: str
+    onboarding_complete: bool = True
+
+
+# ── LOCATION ──────────────────────────────────────────────────────────────────
+
+class LocationCheckRequest(BaseModel):
+    username: str
+    current_lat: float
+    current_lng: float
+
+
+class LocationUpdateRequest(BaseModel):
+    username: str
+    new_lat: float
+    new_lng: float
+    new_state: str
+    new_district: str
+    is_temporary: bool = False
+
+
+# ── MARKET PRICES (admin uploads CSV dataset) ─────────────────────────────────
+
+class MarketPriceUpload(BaseModel):
+    uploaded_by: str
+    week_start: str               # e.g. "2026-06-16"
+    week_end: str                 # e.g. "2026-06-22"
+    record_count: int
+
+
+# ── CHAT ──────────────────────────────────────────────────────────────────────
+
+class ChatMessage(BaseModel):
+    username: str
+    message: str
+    language: Optional[str] = "English"
+
+
+class ChatResponse(BaseModel):
+    response: str
+    sources: Optional[List[str]] = []
+
+
+# ── ML — CROP RECOMMENDATION ─────────────────────────────────────────────────
+
+class CropRecommendRequest(BaseModel):
+    username: str
+    # All fields below are auto-loaded from farmer profile + live weather
+    # Frontend only sends username — backend fills the rest
+    N: Optional[float] = None
+    P: Optional[float] = None
+    K: Optional[float] = None
+    temperature: Optional[float] = None
+    humidity: Optional[float] = None
+    ph: Optional[float] = None
+    rainfall: Optional[float] = None
+
+
+class CropRecommendResponse(BaseModel):
+    top_crops: List[dict]         # [{"crop": "Rice", "confidence": 94.2}, ...]
+    season: str
+    location: str
+    soil_type: str
+    shap_explanation: Optional[str] = None
+
+
+# ── ML — FERTILIZER ───────────────────────────────────────────────────────────
+
+class FertilizerRecommendRequest(BaseModel):
+    username: str
+    crop_type: str                # farmer selects crop from dropdown
+
+
+class FertilizerRecommendResponse(BaseModel):
+    fertilizer: str
+    confidence: float
+    dosage: str
+    method: str
+
+
+# ── ML — YIELD PREDICTION ─────────────────────────────────────────────────────
+
+class YieldPredictRequest(BaseModel):
+    username: str
+    crop: str
+    season: str
+    year: int
+    area_hectares: float
+    rainfall: Optional[float] = None
+
+
+class YieldPredictResponse(BaseModel):
+    crop: str
+    area_hectares: float
+    yield_per_hectare: float
+    total_yield_quintals: float
+    unit: str = "quintals"
+
+
+# ── VISION — DISEASE DETECTION ────────────────────────────────────────────────
+
+class DiseaseDetectionResponse(BaseModel):
+    disease: str
+    severity: str
+    confidence: float
+    treatment: str
+    prevention: str
+    image_url: str
+
+
+# ── VISION — SOIL CLASSIFICATION ─────────────────────────────────────────────
+
+class SoilClassificationResponse(BaseModel):
+    soil_type: str
+    confidence: float
+    image_url: str
+    all_probabilities: dict
+
+
+# ── AGENT — DAILY FARM REPORT ─────────────────────────────────────────────────
+
+class FarmReportResponse(BaseModel):
+    username: str
+    date: str
+    soil_report: dict
+    weather_report: dict
+    disease_report: dict
+    market_report: dict
+    unified_summary: str
+    language: str
+    whatsapp_sent: bool
+
+
+# ── ADMIN — ANNOUNCEMENT ──────────────────────────────────────────────────────
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    content: str
+    posted_by: str
+
+
+# ── GENERIC ───────────────────────────────────────────────────────────────────
+
+class MessageResponse(BaseModel):
+    message: str
+    success: bool = True

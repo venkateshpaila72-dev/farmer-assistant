@@ -1,0 +1,72 @@
+# ================================================================
+#         FARMER ASSISTANT BACKEND — requirements.txt
+# ================================================================
+
+# Core Framework
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+
+# Database — MongoDB
+motor
+pymongo
+
+# Data Validation
+pydantic
+pydantic-settings
+pydantic[email]
+
+# Authentication & Security
+python-jose[cryptography]
+passlib[bcrypt]
+
+# LLM — Groq (Primary)
+groq
+langchain-groq
+
+
+# LLM — NVIDIA NIM (Embeddings + Vision)
+openai
+
+# Agentic AI — LangChain + LangGraph + CrewAI
+langchain
+langchain-pinecone
+langgraph
+crewai
+
+# Vector DB — Pinecone (RAG)
+pinecone-client
+sentence-transformers
+
+# ML Models
+scikit-learn
+xgboost
+shap
+
+
+Pillow
+
+# Data Science
+pandas
+numpy
+
+# HTTP Requests
+httpx
+requests
+
+# Image Storage — Cloudinary
+cloudinary
+
+# WhatsApp Alerts — Twilio
+twilio
+
+# Task Scheduler — Daily Agent 6 AM
+apscheduler
+
+# PDF Reading — RAG Ingestion
+PyPDF2
+pypdf
+
+# WebSocket
+websockets
