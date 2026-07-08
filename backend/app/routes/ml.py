@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION
@@ -9,6 +9,13 @@ from app.db.schemas import (
 )
 from app.utils.weather_utils import get_current_weather, get_season_from_month
 from app.ml_models import crop_recommender, fertilizer_suggester, yield_predictor
+from app.core.security import get_current_user
+
+
+def _check_owner(current_user: dict, username: str):
+    """Shared ownership check — admins can act on any username, farmers only their own."""
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
 
 router = APIRouter()
 
@@ -64,12 +71,13 @@ async def get_farmer_context(username: str) -> dict:
 # ── Crop Recommendation ────────────────────────────────────────────────────────
 
 @router.post("/recommend-crop")
-async def recommend_crop(data: CropRecommendRequest):
+async def recommend_crop(data: CropRecommendRequest, current_user: dict = Depends(get_current_user)):
     """
     Recommend best crops for farmer.
     Auto-loads soil + weather from farmer profile — farmer enters nothing.
     Optionally accepts manual soil values if farmer has soil test report.
     """
+    _check_owner(current_user, data.username)
     ctx = await get_farmer_context(data.username)
 
     # Use provided values OR auto-loaded from profile + weather
@@ -102,8 +110,9 @@ async def recommend_crop(data: CropRecommendRequest):
 
 
 @router.get("/recommend-crop/{username}")
-async def recommend_crop_get(username: str):
+async def recommend_crop_get(username: str, current_user: dict = Depends(get_current_user)):
     """GET version — auto-loads everything from farmer profile."""
+    _check_owner(current_user, username)
     ctx = await get_farmer_context(username)
     n   = ctx["nutrients"]
 
@@ -129,12 +138,13 @@ async def recommend_crop_get(username: str):
 # ── Fertilizer Recommendation ─────────────────────────────────────────────────
 
 @router.post("/recommend-fertilizer")
-async def recommend_fertilizer(data: FertilizerRecommendRequest):
+async def recommend_fertilizer(data: FertilizerRecommendRequest, current_user: dict = Depends(get_current_user)):
     """
     Recommend best fertilizer for farmer's crop.
     Auto-loads soil type, temperature, humidity from farmer profile.
     Farmer only selects the crop.
     """
+    _check_owner(current_user, data.username)
     ctx      = await get_farmer_context(data.username)
     n        = ctx["nutrients"]
     soil     = ctx["soil_type"]
@@ -178,12 +188,13 @@ async def get_fertilizer_types():
 # ── Yield Prediction ──────────────────────────────────────────────────────────
 
 @router.post("/predict-yield")
-async def predict_yield(data: YieldPredictRequest):
+async def predict_yield(data: YieldPredictRequest, current_user: dict = Depends(get_current_user)):
     """
     Predict crop yield for farmer.
     Farmer provides crop, season, year and area.
     Rainfall auto-loaded from live weather if not provided.
     """
+    _check_owner(current_user, data.username)
     ctx      = await get_farmer_context(data.username)
     rainfall = data.rainfall or ctx["rainfall"] or 1000.0
 

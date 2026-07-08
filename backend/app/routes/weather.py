@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from app.utils.weather_utils import get_current_weather, get_season_from_month
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION
+from app.core.security import get_current_user
 
 router = APIRouter()
 
@@ -21,11 +22,14 @@ async def current_weather(lat: float, lng: float):
 
 
 @router.get("/farmer/{username}")
-async def farmer_weather(username: str):
+async def farmer_weather(username: str, current_user: dict = Depends(get_current_user)):
     """
     Get weather for farmer's current location.
     Auto-loads lat/lng from farmer's profile — no manual input needed.
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one({"username": username})

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import (
@@ -13,6 +13,7 @@ from app.utils.groq_utils import (
     chat_with_groq,
     detect_language_override
 )
+from app.core.security import get_current_user, decode_token
 
 router = APIRouter()
 
@@ -101,7 +102,7 @@ async def load_history(username: str, db, limit: int = 10) -> list:
 
 
 @router.websocket("/ws/chat/{username}")
-async def websocket_chat(websocket: WebSocket, username: str):
+async def websocket_chat(websocket: WebSocket, username: str, token: str = None):
     """
     WebSocket chatbot — now agentic:
     ✅ Full farmer profile context (always injected — cheap, almost always relevant)
@@ -112,7 +113,25 @@ async def websocket_chat(websocket: WebSocket, username: str):
     ✅ Language preference from profile, with session override if farmer asks to switch
     ✅ Live weather + news (injected); market prices for preferred crops shown
        as a quick snapshot, but agent can look up ANY crop on demand via tools
+
+    Auth: browsers can't send custom headers on a WebSocket handshake, so the
+    JWT is passed as a query param instead: /ws/chat/{username}?token=<jwt>.
+    We verify it decodes to this same username before accepting anything.
     """
+    # Verify the token BEFORE accepting the connection — reject bad/missing
+    # tokens or a mismatched username with a clean close instead of a crash.
+    if not token:
+        await websocket.close(code=4401, reason="Missing auth token")
+        return
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+        await websocket.close(code=4401, reason="Invalid or expired token")
+        return
+    if payload.get("sub") != username and payload.get("role") != "admin":
+        await websocket.close(code=4403, reason="Token does not match this account")
+        return
+
     await websocket.accept()
     db = get_db()
 
@@ -218,8 +237,11 @@ async def websocket_chat(websocket: WebSocket, username: str):
 
 
 @router.get("/chat/history/{username}")
-async def get_chat_history(username: str, limit: int = 20):
-    """Get farmer's chat history. (unchanged)"""
+async def get_chat_history(username: str, limit: int = 20, current_user: dict = Depends(get_current_user)):
+    """Get farmer's chat history."""
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your account")
+
     db  = get_db()
     doc = await db[CHAT_HISTORY_COLLECTION].find_one(
         {"username": username}, {"_id": 0}
@@ -236,8 +258,11 @@ async def get_chat_history(username: str, limit: int = 20):
 
 
 @router.delete("/chat/history/{username}")
-async def clear_chat_history(username: str):
-    """Clear farmer's chat history. (unchanged)"""
+async def clear_chat_history(username: str, current_user: dict = Depends(get_current_user)):
+    """Clear farmer's chat history."""
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your account")
+
     db = get_db()
     await db[CHAT_HISTORY_COLLECTION].update_one(
         {"username": username},

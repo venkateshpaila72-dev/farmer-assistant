@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import (
@@ -7,11 +7,17 @@ from app.db.models import (
     ANNOUNCEMENTS_COLLECTION
 )
 from app.db.schemas import AdminRegister, AdminResponse, MessageResponse, AnnouncementCreate
-from app.core.security import hash_password
+from app.core.security import hash_password, get_current_admin
 
 router = APIRouter()
 
 
+# NOTE: addnewadmin is intentionally left OPEN (no auth) so the very first
+# admin account can be created on a fresh deployment. Once at least one
+# admin exists, protect this in production by either:
+#   (a) disabling this route after first use, or
+#   (b) requiring an ADMIN_SIGNUP_SECRET passed alongside the request
+# Everything else below requires a valid admin token.
 @router.post("/addnewadmin", response_model=MessageResponse)
 async def register_admin(data: AdminRegister):
     db = get_db()
@@ -41,7 +47,7 @@ async def register_admin(data: AdminRegister):
 
 
 @router.get("/all-farmers")
-async def get_all_farmers():
+async def get_all_farmers(admin: dict = Depends(get_current_admin)):
     """Admin — view all registered farmers."""
     db = get_db()
 
@@ -57,7 +63,7 @@ async def get_all_farmers():
 
 
 @router.get("/analytics")
-async def get_analytics():
+async def get_analytics(admin: dict = Depends(get_current_admin)):
     """Admin — platform usage stats."""
     db = get_db()
 
@@ -71,7 +77,7 @@ async def get_analytics():
 
 
 @router.post("/announcement", response_model=MessageResponse)
-async def post_announcement(data: AnnouncementCreate):
+async def post_announcement(data: AnnouncementCreate, admin: dict = Depends(get_current_admin)):
     """Admin — post a government scheme or farming announcement."""
     db = get_db()
 

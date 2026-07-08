@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.utils.news_utils import get_farming_news, get_pest_alerts
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION
+from app.core.security import get_current_user
 
 router = APIRouter()
 
@@ -23,12 +24,15 @@ async def news_feed(state: str = None, max_results: int = 10):
 
 
 @router.get("/farmer/{username}")
-async def farmer_news(username: str):
+async def farmer_news(username: str, current_user: dict = Depends(get_current_user)):
     """
     Get news personalized to farmer's state.
     Auto-loads state from farmer profile.
     Falls back to general India news if state-specific unavailable.
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one({"username": username})

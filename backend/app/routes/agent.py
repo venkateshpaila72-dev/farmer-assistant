@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION, USERS_COLLECTION
 from app.agents.weather_agent import check_weather
@@ -9,12 +9,17 @@ from app.agents.supervisor import generate_daily_report
 from app.utils.whatsapp_utils import send_whatsapp_message
 from app.utils.scheduler import scheduler, run_daily_reports_for_all_farmers
 from app.core.config import settings
+from app.core.security import get_current_admin
 
 router = APIRouter()
 
+# Every route below is an internal/admin operational tool — it can read any
+# farmer's full profile + agent findings, or trigger a real WhatsApp send.
+# All gated behind admin auth.
+
 
 @router.get("/debug/{username}")
-async def debug_agents(username: str):
+async def debug_agents(username: str, admin: dict = Depends(get_current_admin)):
     """
     Run all 4 deterministic agents for one farmer and return RAW findings,
     split into notable (daily report) and dangerous (alert) tiers.
@@ -52,7 +57,7 @@ async def debug_agents(username: str):
 
 
 @router.post("/run-report/{username}")
-async def run_report(username: str, send_report: bool = True, send_alert: bool = True):
+async def run_report(username: str, send_report: bool = True, send_alert: bool = True, admin: dict = Depends(get_current_admin)):
     """
     Generate the daily report (and alert, if applicable) for ONE farmer
     right now. Daily report is ALWAYS generated. Alert is only generated
@@ -96,7 +101,7 @@ async def run_report(username: str, send_report: bool = True, send_alert: bool =
 
 
 @router.post("/run-report-all")
-async def run_report_all():
+async def run_report_all(admin: dict = Depends(get_current_admin)):
     """
     Manually trigger the full daily report run for ALL onboarded farmers
     right now — same job the scheduler runs automatically at 6 AM.
@@ -106,7 +111,7 @@ async def run_report_all():
 
 
 @router.get("/scheduler-status")
-async def scheduler_status():
+async def scheduler_status(admin: dict = Depends(get_current_admin)):
     """Check whether the daily report scheduler is registered and running."""
     jobs = scheduler.get_jobs()
     job_info = [
@@ -123,7 +128,7 @@ async def scheduler_status():
 
 
 @router.post("/test-whatsapp/{username}")
-async def test_whatsapp(username: str, message: str = "Test message from Farmer Assistant agents."):
+async def test_whatsapp(username: str, message: str = "Test message from Farmer Assistant agents.", admin: dict = Depends(get_current_admin)):
     """
     Quick isolated test — send an arbitrary message to a farmer's WhatsApp
     without running any agents. Confirms phone number + Twilio setup work.

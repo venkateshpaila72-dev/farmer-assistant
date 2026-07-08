@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends
 from app.rag.ingest import ingest_pdf
 from app.rag.retriever import retrieve_context
 from app.rag.pinecone_client import get_index, get_index_stats
@@ -6,6 +6,7 @@ from app.utils.groq_utils import chat_with_groq, build_system_prompt
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION
 from app.utils.weather_utils import get_current_weather, get_season_from_month
+from app.core.security import get_current_admin
 from datetime import datetime
 
 router = APIRouter()
@@ -16,7 +17,8 @@ router = APIRouter()
 @router.post("/ingest")
 async def ingest_document(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    admin: dict = Depends(get_current_admin)
 ):
     """Admin uploads ICAR PDF → Pinecone."""
     if file.content_type != "application/pdf":
@@ -57,7 +59,7 @@ async def rag_status():
 # ── DEBUG — See raw Pinecone search results ───────────────────────────────────
 
 @router.get("/debug-search")
-async def debug_search(question: str):
+async def debug_search(question: str, admin: dict = Depends(get_current_admin)):
     """
     DEBUG endpoint — shows raw Pinecone search results with scores.
     Use this to understand why RAG is or isn't matching.

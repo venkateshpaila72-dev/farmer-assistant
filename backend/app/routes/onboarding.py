@@ -1,19 +1,26 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION
 from app.db.schemas import OnboardingData, OnboardingResponse
+from app.core.security import get_current_user
 
 router = APIRouter()
 
 
 @router.post("/save", response_model=OnboardingResponse)
-async def save_onboarding(data: OnboardingData):
+async def save_onboarding(data: OnboardingData, current_user: dict = Depends(get_current_user)):
     """
     Save farmer's one-time onboarding profile.
     Called once after registration — never again unless farmer wants to update.
     Stores: soil type, farm size, preferred crops, irrigation, language, GPS location.
     """
+    if current_user["role"] != "admin" and current_user["username"] != data.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own onboarding profile"
+        )
+
     db = get_db()
 
     # Check if profile already exists
@@ -78,8 +85,14 @@ async def save_onboarding(data: OnboardingData):
 
 
 @router.get("/profile/{username}")
-async def get_onboarding_profile(username: str):
+async def get_onboarding_profile(username: str, current_user: dict = Depends(get_current_user)):
     """Get farmer's full onboarding profile."""
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own onboarding profile"
+        )
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one(

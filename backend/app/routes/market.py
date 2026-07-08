@@ -1,8 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, BackgroundTasks, Depends
 from datetime import datetime, timedelta
 from app.db.database import get_db
 from app.db.models import MARKET_PRICES_COLLECTION, FARMER_PROFILES_COLLECTION
 from app.utils.market_utils import get_prices_from_db, get_trending_from_db
+from app.core.security import get_current_user, get_current_admin
 import csv
 import io
 
@@ -104,7 +105,8 @@ async def process_csv(content: bytes, uploaded_by: str):
 async def upload_market_dataset(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    uploaded_by: str = Form(default="admin")
+    uploaded_by: str = Form(default="admin"),
+    admin: dict = Depends(get_current_admin)
 ):
     """
     Admin uploads market price CSV from data.gov.in AGMARKNET.
@@ -194,11 +196,14 @@ async def get_prices(
 # ── Farmer prices ──────────────────────────────────────────────────────────────
 
 @router.get("/farmer/{username}")
-async def get_farmer_prices(username: str):
+async def get_farmer_prices(username: str, current_user: dict = Depends(get_current_user)):
     """
     Get prices for farmer's preferred crops in their state.
     Auto-loads everything from farmer profile.
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one({"username": username})

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION, DISEASE_LOGS_COLLECTION
 from app.utils.cloudinary_utils import upload_image
 from app.ml_models import soil_classifier, disease_detector
+from app.core.security import get_current_user
 
 router = APIRouter()
 
@@ -13,13 +14,17 @@ router = APIRouter()
 @router.post("/classify-soil")
 async def classify_soil(
     username: str,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Classify soil type from uploaded photo.
     Saves result to farmer profile in MongoDB.
     Supported: JPEG, PNG, JPG, WEBP
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
     if file.content_type not in allowed:
         raise HTTPException(status_code=400, detail="Only image files allowed")
@@ -69,13 +74,17 @@ async def classify_soil(
 @router.post("/detect-disease")
 async def detect_disease(
     username: str,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Detect crop disease from leaf photo.
     Saves detection log to MongoDB for agent to reference.
     Returns disease name, severity, treatment and prevention.
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
     if file.content_type not in allowed:
         raise HTTPException(status_code=400, detail="Only image files allowed")
@@ -128,11 +137,14 @@ async def detect_disease(
 
 
 @router.get("/disease-history/{username}")
-async def get_disease_history(username: str, limit: int = 10):
+async def get_disease_history(username: str, limit: int = 10, current_user: dict = Depends(get_current_user)):
     """
     Get farmer's past disease detections.
     Used by disease agent to track crop health over time.
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     db = get_db()
 
     logs = await db[DISEASE_LOGS_COLLECTION].find(

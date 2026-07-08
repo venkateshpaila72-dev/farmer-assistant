@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from groq import Groq
 from app.core.config import settings
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION, MARKET_PRICES_COLLECTION
 from app.utils.weather_utils import get_current_weather, get_season_from_month
+from app.core.security import get_current_user
 
 router = APIRouter()
 
@@ -82,11 +83,14 @@ Return only valid JSON, no extra text."""
 # ── State-wise Crop Advisory ──────────────────────────────────────────────────
 
 @router.get("/advisory/{username}")
-async def get_crop_advisory(username: str):
+async def get_crop_advisory(username: str, current_user: dict = Depends(get_current_user)):
     """
     Generate personalized state-wise crop advisory for farmer.
     Combines live weather + soil + season + farmer profile → Groq advisory.
     """
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one({"username": username})

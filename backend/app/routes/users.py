@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import USERS_COLLECTION, FARMER_PROFILES_COLLECTION
 from app.db.schemas import UserRegister, UserResponse, MessageResponse
-from app.core.security import hash_password, get_current_farmer
+from app.core.security import hash_password, get_current_user
 
 router = APIRouter()
 
@@ -52,7 +52,14 @@ async def register_farmer(data: UserRegister):
 
 
 @router.get("/profile/{username}", response_model=UserResponse)
-async def get_farmer_profile(username: str):
+async def get_farmer_profile(username: str, current_user: dict = Depends(get_current_user)):
+    # A farmer can only view their own profile; admins can view any profile.
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own profile"
+        )
+
     db = get_db()
 
     farmer = await db[USERS_COLLECTION].find_one({"username": username})

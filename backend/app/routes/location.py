@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION
 from app.db.schemas import LocationCheckRequest, LocationUpdateRequest, MessageResponse
+from app.core.security import get_current_user
 
 router = APIRouter()
 
@@ -22,12 +23,15 @@ def haversine_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> fl
 
 
 @router.post("/check")
-async def check_location(data: LocationCheckRequest):
+async def check_location(data: LocationCheckRequest, current_user: dict = Depends(get_current_user)):
     """
     Compare farmer's current GPS with saved home location.
     Returns whether farmer has moved and how far.
     Frontend uses this to ask farmer: 'Temporary visit or moved permanently?'
     """
+    if current_user["role"] != "admin" and current_user["username"] != data.username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one(
@@ -63,12 +67,15 @@ async def check_location(data: LocationCheckRequest):
 
 
 @router.post("/update", response_model=MessageResponse)
-async def update_location(data: LocationUpdateRequest):
+async def update_location(data: LocationUpdateRequest, current_user: dict = Depends(get_current_user)):
     """
     Update farmer's current location.
     is_temporary=True  → only used for today, home location unchanged
     is_temporary=False → permanently moved, update home location too
     """
+    if current_user["role"] != "admin" and current_user["username"] != data.username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one(
@@ -129,8 +136,11 @@ async def update_location(data: LocationUpdateRequest):
 
 
 @router.get("/current/{username}")
-async def get_current_location(username: str):
+async def get_current_location(username: str, current_user: dict = Depends(get_current_user)):
     """Get farmer's current active location."""
+    if current_user["role"] != "admin" and current_user["username"] != username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your account")
+
     db = get_db()
 
     profile = await db[FARMER_PROFILES_COLLECTION].find_one(
