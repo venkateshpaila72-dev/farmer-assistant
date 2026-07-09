@@ -3,11 +3,11 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/verifyuser")
+oauth2_scheme = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
@@ -50,9 +50,9 @@ def decode_token(token: str) -> dict:
         )
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(oauth2_scheme)) -> dict:
     """Dependency — extracts current user from JWT token."""
-    payload = decode_token(token)
+    payload = decode_token(creds.credentials)
     username = payload.get("sub")
     role = payload.get("role")
     if not username:

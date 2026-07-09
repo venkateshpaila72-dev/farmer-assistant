@@ -7,7 +7,7 @@ from app.agents.disease_agent import check_disease_status
 from app.agents.market_agent import check_market_signal
 from app.agents.supervisor import generate_daily_report
 from app.utils.whatsapp_utils import send_whatsapp_message
-from app.utils.scheduler import scheduler, run_daily_reports_for_all_farmers
+from app.utils.scheduler import scheduler, run_daily_reports_for_all_farmers, sync_daily_market_prices
 from app.core.config import settings
 from app.core.security import get_current_admin
 
@@ -107,6 +107,16 @@ async def run_report_all(admin: dict = Depends(get_current_admin)):
     right now — same job the scheduler runs automatically at 6 AM.
     """
     result = await run_daily_reports_for_all_farmers()
+    return result
+
+
+@router.post("/run-market-sync")
+async def run_market_sync(admin: dict = Depends(get_current_admin)):
+    """
+    Manually trigger the AGMARKNET market price sync right now —
+    same job the scheduler runs automatically at 5 AM.
+    """
+    result = await sync_daily_market_prices()
     return result
 
 
