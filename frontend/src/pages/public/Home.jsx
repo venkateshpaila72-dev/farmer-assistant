@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Sprout, ArrowRight, MessageSquare, ScanLine, TrendingUp, CloudSun, LineChart, Droplets, Clock, Bug } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicLayout } from "../../layouts/PublicLayout";
@@ -7,8 +8,53 @@ import { Ledger, LedgerRow } from "../../components/ui/Ledger";
 import { Panel } from "../../components/ui/Panel";
 import { FadeUp } from "../../components/motion/FadeUp";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
+import { useGeolocation } from "../../hooks/useGeolocation";
+import { getCurrentWeather } from "../../api/weather";
+import { formatTemp, weatherCodeToLabel } from "../../utils/formatters";
+
+function useLiveWeather() {
+  const { lat, lng, loading: geoLoading, error: geoError } = useGeolocation();
+  const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+
+  useEffect(() => {
+    if (geoLoading || geoError || lat == null || lng == null) return;
+
+    let cancelled = false;
+    setWeatherLoading(true);
+
+    getCurrentWeather(lat, lng)
+      .then((data) => {
+        if (!cancelled) setWeather(data);
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherError("unavailable");
+      })
+      .finally(() => {
+        if (!cancelled) setWeatherLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lat, lng, geoLoading, geoError]);
+
+  return {
+    weather,
+    loading: geoLoading || weatherLoading,
+    error: geoError || weatherError,
+  };
+}
 
 export default function Home() {
+  const { weather, loading, error } = useLiveWeather();
+
+  const temp = weather?.current?.temperature;
+  const humidity = weather?.current?.humidity;
+  const condition = weatherCodeToLabel(weather?.current?.weather_code);
+  const alert = weather?.alerts?.[0];
+
   return (
     <PublicLayout>
       {/* Hero */}
@@ -42,22 +88,41 @@ export default function Home() {
         <FadeUp delay={0.2} className="max-w-[320px] mx-auto w-full">
           <Panel className="p-4">
             <div className="bg-bg rounded-md p-4">
-              <div className="flex items-start gap-2 bg-danger-tint text-danger rounded-sm px-3 py-2.5 text-[13px] font-semibold mb-3.5">
-                <Bug size={16} className="mt-0.5 shrink-0" />
-                Leaf spot risk rising in Kurnool this week
-              </div>
+              {alert ? (
+                <div className="flex items-start gap-2 bg-danger-tint text-danger rounded-sm px-3 py-2.5 text-[13px] font-semibold mb-3.5">
+                  <Bug size={16} className="mt-0.5 shrink-0" />
+                  {alert}
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 bg-accent-tint text-accent rounded-sm px-3 py-2.5 text-[13px] font-semibold mb-3.5">
+                  <Sprout size={16} className="mt-0.5 shrink-0" />
+                  {error ? "Live weather for your area" : "No weather alerts for your area right now"}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2.5 mb-3.5">
                 <Panel className="p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-1">Today</div>
-                  <div className="font-display text-xl font-semibold">31&deg;C</div>
-                  <div className="text-xs text-accent font-semibold mt-0.5">Light rain, 6pm</div>
+                  <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-1">
+                    {loading ? "Loading…" : error ? "Weather" : "Right now"}
+                  </div>
+                  <div className="font-display text-xl font-semibold">
+                    {loading ? "—" : error ? "Enable location" : formatTemp(temp)}
+                  </div>
+                  <div className="text-xs text-accent font-semibold mt-0.5">
+                    {loading
+                      ? ""
+                      : error
+                      ? "to see live weather"
+                      : `${condition}${humidity != null ? `, ${Math.round(humidity)}% humidity` : ""}`}
+                  </div>
                 </Panel>
                 <Panel className="p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-1">Tomato, local</div>
-                  <div className="font-display text-xl font-semibold">&#8377;1,840</div>
-                  <div className="text-xs text-accent font-semibold mt-0.5">&uarr; 6% this week</div>
+                  <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-1">Market</div>
+                  <div className="font-display text-xl font-semibold">Live prices</div>
+                  <div className="text-xs text-accent font-semibold mt-0.5">Updated daily</div>
                 </Panel>
               </div>
+
               <div className="grid grid-cols-2 gap-2.5">
                 <Panel className="p-3 flex flex-col gap-2">
                   <span className="w-7 h-7 rounded-lg bg-primary-tint text-primary flex items-center justify-center">
@@ -169,7 +234,7 @@ export default function Home() {
         <RevealOnScroll>
           <Panel className="overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <strong className="font-display text-base">Ramesh&rsquo;s dashboard &mdash; Anantapur</strong>
+              <strong className="font-display text-base">Example dashboard &mdash; your farm</strong>
               <span className="text-xs font-semibold text-accent bg-accent-tint px-2.5 py-1 rounded-full">
                 Season: Kharif
               </span>
@@ -177,7 +242,7 @@ export default function Home() {
             <div className="grid md:grid-cols-[1.3fr_1fr] gap-5 p-6">
               <div className="bg-bg border border-border rounded-sm p-4.5">
                 <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-3">
-                  Groundnut price, last 7 weeks
+                  Sample price trend, last 7 weeks
                 </div>
                 <div className="flex items-end gap-2 h-28">
                   {[52, 61, 58, 70, 66, 78, 90].map((h, i) => (

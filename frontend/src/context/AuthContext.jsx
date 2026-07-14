@@ -8,8 +8,11 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = useCallback((token, userData) => {
-    localStorage.setItem("token", token);
+  // Called after a successful /auth/verifyuser or /auth/verifyadmin response.
+  // tokenData = { access_token, role, username }
+  const login = useCallback((tokenData) => {
+    const userData = { username: tokenData.username, role: tokenData.role };
+    localStorage.setItem("token", tokenData.access_token);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
   }, []);
@@ -21,7 +24,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isAuthenticated: !!user,
+        isAdmin: user?.role === "admin",
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
