@@ -42,7 +42,8 @@ def get_treatment(class_name: str) -> dict:
         "status":     class_name.replace("___", " — ").replace("_", " ").title(),
         "severity":   "Unknown",
         "treatment":  "Consult your local agricultural officer for diagnosis.",
-        "prevention": "Monitor crops regularly and maintain good field hygiene."
+        "prevention": "Monitor crops regularly and maintain good field hygiene.",
+        "fertilizer": {"applicable": False, "note": "No fertilizer data available for this class."}
     }
 
 
@@ -87,6 +88,7 @@ def detect_disease(image_bytes: bytes) -> dict:
         "confidence":  round(confidence, 2),
         "treatment":   treatment_info.get("treatment", ""),
         "prevention":  treatment_info.get("prevention", ""),
+        "fertilizer":  treatment_info.get("fertilizer", {"applicable": False, "note": "No fertilizer data available."}),
         "top3":        top3,
         "is_healthy":  "healthy" in class_name.lower()
     }

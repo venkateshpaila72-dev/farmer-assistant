@@ -1,40 +1,53 @@
 import { useState, useEffect } from "react";
 
-/**
- * Reads the browser's current position once on mount.
- * Returns { lat, lng, loading, error }.
- * error is a short string ("denied" | "unsupported" | "unavailable") so callers
- * can show a graceful fallback instead of a raw browser error message.
- */
+// Fallback used only if the browser denies/lacks geolocation, or never calls
+// back at all — New Delhi as a neutral default so the hero still shows real
+// weather instead of hanging forever.
+const FALLBACK = { lat: 28.6139, lng: 77.209 };
+const HARD_TIMEOUT_MS = 6000;
+
 export function useGeolocation() {
-  const [state, setState] = useState({ lat: null, lng: null, loading: true, error: null });
+  const [coords, setCoords] = useState(null);
+  const [source, setSource] = useState("pending"); // pending | gps | fallback
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    let settled = false;
+
+    function settle(value, src, err) {
+      if (settled) return; // browser callback and hard-timeout can't both win
+      settled = true;
+      setCoords(value);
+      setSource(src);
+      if (err) setError(err);
+    }
+
     if (!("geolocation" in navigator)) {
-      setState({ lat: null, lng: null, loading: false, error: "unsupported" });
+      settle(FALLBACK, "fallback", "Geolocation not supported by this browser.");
       return;
     }
 
+    // Belt-and-suspenders: some browsers/permission states never invoke
+    // either callback below (observed in practice, not just theoretical) —
+    // this guarantees we always end up with *some* coordinates.
+    const hardTimeout = setTimeout(() => {
+      settle(FALLBACK, "fallback", "Location request timed out.");
+    }, HARD_TIMEOUT_MS);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setState({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          loading: false,
-          error: null,
-        });
+        clearTimeout(hardTimeout);
+        settle({ lat: pos.coords.latitude, lng: pos.coords.longitude }, "gps", null);
       },
       (err) => {
-        setState({
-          lat: null,
-          lng: null,
-          loading: false,
-          error: err.code === err.PERMISSION_DENIED ? "denied" : "unavailable",
-        });
+        clearTimeout(hardTimeout);
+        settle(FALLBACK, "fallback", err.message);
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 }
+      { timeout: HARD_TIMEOUT_MS }
     );
+
+    return () => clearTimeout(hardTimeout);
   }, []);
 
-  return state;
+  return { coords, source, error };
 }

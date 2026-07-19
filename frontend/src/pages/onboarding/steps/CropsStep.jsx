@@ -1,9 +1,13 @@
+import { useTranslation } from "react-i18next";
+
 const CROPS = [
   "Rice", "Wheat", "Cotton", "Sugarcane", "Maize", "Groundnut",
   "Soybean", "Tomato", "Onion", "Chilli", "Mustard", "Gram",
 ];
 
 export function CropsStep({ value = [], onChange }) {
+  const { t } = useTranslation();
+
   function toggle(crop) {
     if (value.includes(crop)) {
       onChange(value.filter((c) => c !== crop));
@@ -14,8 +18,8 @@ export function CropsStep({ value = [], onChange }) {
 
   return (
     <div>
-      <h2 className="text-xl mb-1">What do you usually grow?</h2>
-      <p className="text-sm text-ink-soft mb-5">Pick as many as apply. This shapes your market prices and advice.</p>
+      <h2 className="text-xl mb-1">{t("cropsStep.title")}</h2>
+      <p className="text-sm text-ink-soft mb-5">{t("cropsStep.subtitle")}</p>
       <div className="flex flex-wrap gap-2">
         {CROPS.map((crop) => (
           <button
@@ -26,11 +30,11 @@ export function CropsStep({ value = [], onChange }) {
               value.includes(crop) ? "border-primary bg-primary-tint text-primary" : "border-border bg-surface text-ink hover:border-ink-soft"
             }`}
           >
-            {crop}
+            {t(`crops.${crop}`)}
           </button>
         ))}
       </div>
-      {value.length === 0 && <p className="text-xs text-ink-soft mt-3">Select at least one crop to continue.</p>}
+      {value.length === 0 && <p className="text-xs text-ink-soft mt-3">{t("cropsStep.selectAtLeastOne")}</p>}
     </div>
   );
 }

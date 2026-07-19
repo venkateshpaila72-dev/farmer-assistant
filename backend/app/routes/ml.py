@@ -33,6 +33,47 @@ SOIL_NUTRIENTS = {
     "default":     {"N": 80,  "P": 40, "K": 43, "ph": 6.5}
 }
 
+# The soil-image classifier (soil_classifier.py) outputs a different taxonomy
+# than the one above (Black/Cinder/Laterite/Peat/Yellow Soil vs.
+# red_loamy/black/sandy/clay/loamy/alluvial/laterite) — these were built
+# independently and never reconciled. This bridges classifier output to a
+# usable nutrient-key lookup.
+#
+# "Black Soil" and "Laterite Soil" map cleanly (same real-world soil type).
+# "Cinder Soil", "Peat Soil", and "Yellow Soil" do NOT have a real
+# agronomic equivalent in SOIL_NUTRIENTS — these three are best-effort
+# approximations based on general soil characteristics (cinder: coarse,
+# well-drained, low-fertility → closest to sandy; peat: organic-rich,
+# moisture-retentive → closest to clay; yellow: weathered, laterite-derived
+# → closest to laterite), not authoritative agronomic matches. Worth a
+# domain-expert review before relying on these three for real advice.
+SOIL_CLASSIFIER_TO_NUTRIENT_KEY = {
+    "black soil":    "black",
+    "laterite soil": "laterite",
+    "cinder soil":   "sandy",     # approximation — no exact match
+    "peat soil":     "clay",      # approximation — no exact match
+    "yellow soil":   "laterite",  # approximation — no exact match
+}
+
+
+def resolve_soil_nutrients(soil_type: str) -> dict:
+    """
+    Resolves ANY soil type string — whether it's an onboarding value
+    (e.g. 'black', 'loamy'), a stored profile value, or a raw soil-image
+    classifier output (e.g. 'Black Soil') — to a SOIL_NUTRIENTS entry.
+    Falls back to 'default' if nothing matches rather than raising, since
+    a rough estimate is better than blocking a crop recommendation.
+    """
+    if not soil_type:
+        return SOIL_NUTRIENTS["default"]
+    key = soil_type.strip().lower().replace(" ", "_")
+    if key in SOIL_NUTRIENTS:
+        return SOIL_NUTRIENTS[key]
+    mapped = SOIL_CLASSIFIER_TO_NUTRIENT_KEY.get(soil_type.strip().lower())
+    if mapped:
+        return SOIL_NUTRIENTS[mapped]
+    return SOIL_NUTRIENTS["default"]
+
 
 async def get_farmer_context(username: str) -> dict:
     """Load farmer profile + live weather as context for ML predictions."""
@@ -45,13 +86,22 @@ async def get_farmer_context(username: str) -> dict:
     location = profile.get("current_location", profile.get("home_location", {}))
     soil_type = profile.get("soil_type", "default")
 
-    # Get live weather
-    weather = await get_current_weather(
-        lat=location.get("lat", 17.97),
-        lng=location.get("lng", 79.59)
-    )
-
-    current = weather.get("current", {})
+    # Get live weather — falls back to sensible seasonal-average defaults if
+    # the weather API is unreachable (network/AV/firewall issues), rather
+    # than 500ing the whole crop/fertilizer recommendation over a weather
+    # hiccup. The direct /weather/current endpoint (weather.py) does NOT do
+    # this — a farmer checking weather directly should see a real failure,
+    # not a silently faked number. This fallback is only for the ML context
+    # builder, where a reasonable estimate is better than blocking entirely.
+    try:
+        weather = await get_current_weather(
+            lat=location.get("lat", 17.97),
+            lng=location.get("lng", 79.59)
+        )
+        current = weather.get("current", {})
+    except Exception as e:
+        print(f"⚠️  Weather fetch failed for {username}'s ML context, using defaults: {e}")
+        current = {}
 
     # Get soil nutrients from profile or estimate from soil type
     nutrients = SOIL_NUTRIENTS.get(soil_type, SOIL_NUTRIENTS["default"])
@@ -80,13 +130,18 @@ async def recommend_crop(data: CropRecommendRequest, current_user: dict = Depend
     _check_owner(current_user, data.username)
     ctx = await get_farmer_context(data.username)
 
+    # If a soil_type override was passed (e.g. from a just-detected photo
+    # classification that we deliberately did NOT save to the profile),
+    # resolve nutrients from that instead of the stored profile's soil type.
+    base_nutrients = resolve_soil_nutrients(data.soil_type) if data.soil_type else ctx["nutrients"]
+
     # Use provided values OR auto-loaded from profile + weather
-    N           = data.N           or ctx["nutrients"]["N"]
-    P           = data.P           or ctx["nutrients"]["P"]
-    K           = data.K           or ctx["nutrients"]["K"]
+    N           = data.N           or base_nutrients["N"]
+    P           = data.P           or base_nutrients["P"]
+    K           = data.K           or base_nutrients["K"]
     temperature = data.temperature or ctx["temperature"]
     humidity    = data.humidity    or ctx["humidity"]
-    ph          = data.ph          or ctx["nutrients"]["ph"]
+    ph          = data.ph          or base_nutrients["ph"]
     rainfall    = data.rainfall    or ctx["rainfall"]
 
     try:

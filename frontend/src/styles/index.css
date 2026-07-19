@@ -15,6 +15,19 @@
   :focus-visible {
     @apply outline outline-2 outline-primary outline-offset-2;
   }
+
+  /* Browsers force a background tint on autofilled inputs (usually blue or
+     yellow) that ignores normal background-color. This delays the browser's
+     internal autofill style transition long enough that our own background
+     wins instead. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #2A2114;
+    -webkit-box-shadow: 0 0 0px 1000px #FFFFFF inset;
+    box-shadow: 0 0 0px 1000px #FFFFFF inset;
+    transition: background-color 9999s ease-in-out 0s;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

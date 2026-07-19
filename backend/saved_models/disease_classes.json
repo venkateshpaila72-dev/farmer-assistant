@@ -76,208 +76,476 @@
   "model_type": "MobileNetV2",
   "treatments": {
     "Apple___Apple_scab": {
-      "status": "Apple \u2014 Apple scab",
-      "treatment": "Consult local agricultural officer.",
-      "severity": "Unknown",
-      "prevention": "Monitor crop regularly."
+      "status": "Apple Scab",
+      "treatment": "Apply a protectant fungicide (captan or myclobutanil) from bud break through early summer.",
+      "severity": "Medium",
+      "prevention": "Rake and destroy fallen leaves. Prune for airflow.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Balanced NPK, avoid excess nitrogen",
+        "method": "Keep nitrogen moderate — heavy N pushes soft, scab-prone new growth. Base-dress in early spring per soil test rather than repeated top-ups.",
+        "related_fertilizers": [
+          {
+            "name": "10-26-26 (low-nitrogen NPK blend)",
+            "reason": "Keeps nitrogen moderate while still feeding the tree — avoids the lush, scab-prone growth a high-N feed encourages."
+          },
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "General disease resilience support, applied alongside the fungicide, not instead of it."
+          }
+        ]
+      }
     },
     "Apple___Black_rot": {
       "status": "Black Rot",
       "treatment": "Apply copper fungicide. Prune infected parts.",
       "severity": "High",
-      "prevention": "Good drainage. Remove infected debris."
+      "prevention": "Good drainage. Remove infected debris.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Primarily a fungal/cultural management issue — good sanitation and pruning matter far more here than nutrition."
+      }
     },
     "Apple___Cedar_apple_rust": {
       "status": "Rust Disease",
       "treatment": "Apply Propiconazole fungicide immediately.",
       "severity": "High",
-      "prevention": "Remove crop debris. Use resistant varieties."
+      "prevention": "Remove crop debris. Use resistant varieties.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Fungal disease requiring fungicide/host management — no meaningful fertilizer intervention."
+      }
     },
     "Apple___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Cherry_(including_sour)___Powdery_mildew": {
       "status": "Powdery Mildew",
       "treatment": "Apply sulfur fungicide every 10 days.",
       "severity": "Medium",
-      "prevention": "Improve air circulation. Avoid wet leaves."
+      "prevention": "Improve air circulation. Avoid wet leaves.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Potassium sulfate (SOP) or muriate of potash (MOP)",
+        "method": "Adequate potassium improves general fungal resistance. Apply as a soil top-dress, split into two applications during active growth rather than one large dose.",
+        "related_fertilizers": [
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "Adequate potassium is linked to better general fungal resistance."
+          },
+          {
+            "name": "Muriate of Potash (MOP)",
+            "reason": "Alternative potassium source if SOP isn't available locally."
+          }
+        ]
+      }
     },
     "Cherry_(including_sour)___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
       "status": "Gray Leaf Spot",
       "treatment": "Apply Strobilurin fungicide.",
       "severity": "Medium",
-      "prevention": "Tillage. Crop rotation recommended."
+      "prevention": "Tillage. Crop rotation recommended.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Balanced NPK per soil test, avoid nitrogen excess",
+        "method": "Over-application of nitrogen increases canopy density and humidity, worsening gray leaf spot. Split nitrogen doses across the season rather than one heavy application.",
+        "related_fertilizers": [
+          {
+            "name": "14-35-14 (moderate-N blend)",
+            "reason": "Provides phosphorus/potassium support without the nitrogen excess that thickens the canopy this disease spreads fastest through."
+          },
+          {
+            "name": "DAP",
+            "reason": "Early-season phosphorus for root establishment, applied at planting rather than as a heavy mid-season N top-up."
+          }
+        ]
+      }
     },
     "Corn_(maize)___Common_rust_": {
       "status": "Rust Disease",
       "treatment": "Apply Propiconazole fungicide immediately.",
       "severity": "High",
-      "prevention": "Remove crop debris. Use resistant varieties."
+      "prevention": "Remove crop debris. Use resistant varieties.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Fungal disease driven mainly by humidity/spore spread — fungicide and resistant varieties matter more than nutrition here."
+      }
     },
     "Corn_(maize)___Northern_Leaf_Blight": {
       "status": "Northern Leaf Blight",
       "treatment": "Apply Propiconazole or Azoxystrobin.",
       "severity": "High",
-      "prevention": "Crop rotation. Use resistant varieties."
+      "prevention": "Crop rotation. Use resistant varieties.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Balanced NPK per soil test, avoid nitrogen excess",
+        "method": "As with gray leaf spot, keep nitrogen levels moderate and split across the season — excess N promotes the dense canopy this disease spreads fastest in.",
+        "related_fertilizers": [
+          {
+            "name": "14-35-14 (moderate-N blend)",
+            "reason": "Same logic as gray leaf spot — keeps nitrogen moderate, avoids the dense canopy this disease favors."
+          },
+          {
+            "name": "Muriate of Potash (MOP)",
+            "reason": "Potassium supports general stalk and tissue resilience."
+          }
+        ]
+      }
     },
     "Corn_(maize)___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Grape___Black_rot": {
       "status": "Black Rot",
       "treatment": "Apply copper fungicide. Prune infected parts.",
       "severity": "High",
-      "prevention": "Good drainage. Remove infected debris."
+      "prevention": "Good drainage. Remove infected debris.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Fungal disease — sanitation, pruning, and fungicide timing matter far more than nutrition."
+      }
     },
     "Grape___Esca_(Black_Measles)": {
-      "status": "Grape \u2014 Esca (Black Measles)",
-      "treatment": "Consult local agricultural officer.",
+      "status": "Grape — Esca (Black Measles)",
+      "treatment": "No effective curative fungicide — remove and destroy severely affected vines/wood. Consult your local agricultural officer for vineyard-specific guidance.",
       "severity": "Unknown",
-      "prevention": "Monitor crop regularly."
+      "prevention": "Avoid pruning wounds in wet weather. Protect large cuts.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "A trunk/wood disease with no established fertilizer-based treatment — management is cultural (pruning practice, wound protection), not nutritional."
+      }
     },
     "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": {
-      "status": "Grape \u2014 Leaf blight (Isariopsis Leaf Spot)",
-      "treatment": "Consult local agricultural officer.",
-      "severity": "Unknown",
-      "prevention": "Monitor crop regularly."
+      "status": "Grape — Leaf blight (Isariopsis Leaf Spot)",
+      "treatment": "Apply a copper-based or mancozeb fungicide at first sign of spotting.",
+      "severity": "Medium",
+      "prevention": "Improve canopy airflow. Remove fallen leaves.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Fungal, humidity-driven — airflow and fungicide timing matter more than nutrition."
+      }
     },
     "Grape___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Peach___Bacterial_spot": {
       "status": "Bacterial Spot",
       "treatment": "Apply copper bactericide. Remove infected leaves.",
       "severity": "High",
-      "prevention": "Use disease-free seeds. Avoid overhead watering."
+      "prevention": "Use disease-free seeds. Avoid overhead watering.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Calcium nitrate",
+        "method": "Calcium strengthens cell walls, giving some added resistance to bacterial entry. Apply as a foliar spray or soil application alongside — not instead of — the bactericide treatment.",
+        "related_fertilizers": [
+          {
+            "name": "Calcium nitrate",
+            "reason": "Calcium strengthens cell walls, adding some resistance to bacterial entry — used alongside the bactericide, not as a replacement."
+          },
+          {
+            "name": "10-26-26 (low-nitrogen NPK blend)",
+            "reason": "General tree vigor without pushing excess soft new growth."
+          }
+        ]
+      }
     },
     "Peach___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Pepper,_bell___Bacterial_spot": {
       "status": "Bacterial Spot",
       "treatment": "Apply copper bactericide. Remove infected leaves.",
       "severity": "High",
-      "prevention": "Use disease-free seeds. Avoid overhead watering."
+      "prevention": "Use disease-free seeds. Avoid overhead watering.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Calcium nitrate",
+        "method": "As with other bacterial spot cases, calcium supports cell-wall strength. Apply as a supporting measure alongside the bactericide, not a replacement for it.",
+        "related_fertilizers": [
+          {
+            "name": "Calcium nitrate",
+            "reason": "Same cell-wall support logic as other bacterial spot cases — pairs with the bactericide treatment."
+          },
+          {
+            "name": "10-26-26 (low-nitrogen NPK blend)",
+            "reason": "General plant vigor without excess nitrogen."
+          }
+        ]
+      }
     },
     "Pepper,_bell___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Potato___Early_blight": {
       "status": "Early Blight",
       "treatment": "Apply Mancozeb 2g/litre every 7 days.",
       "severity": "Medium",
-      "prevention": "Avoid overhead irrigation. Crop rotation."
+      "prevention": "Avoid overhead irrigation. Crop rotation.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Potassium sulfate (SOP) or muriate of potash (MOP)",
+        "method": "Potassium deficiency is a well-documented risk factor for early blight susceptibility in potato. Apply as a soil-incorporated base dose per your soil test, topped up mid-season if leaves show early yellowing.",
+        "related_fertilizers": [
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "Potassium deficiency is a well-documented risk factor for early blight susceptibility in potato."
+          },
+          {
+            "name": "Muriate of Potash (MOP)",
+            "reason": "Alternative potassium source, slightly cheaper but adds chloride — avoid on chloride-sensitive soils."
+          }
+        ]
+      }
     },
     "Potato___Late_blight": {
       "status": "Late Blight",
       "treatment": "Apply Metalaxyl + Mancozeb immediately.",
       "severity": "High",
-      "prevention": "Use resistant varieties. Avoid wet conditions."
+      "prevention": "Use resistant varieties. Avoid wet conditions.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Balanced NPK, avoid nitrogen excess",
+        "method": "Excess nitrogen produces lush, susceptible foliage that late blight spreads through fastest. Keep nitrogen moderate and ensure adequate potassium for tissue resilience.",
+        "related_fertilizers": [
+          {
+            "name": "14-35-14 (moderate-N blend)",
+            "reason": "Keeps nitrogen moderate — lush foliage from excess N is exactly what late blight spreads through fastest."
+          },
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "Supports tissue resilience alongside the fungicide treatment."
+          }
+        ]
+      }
     },
     "Potato___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Soybean___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Strawberry___Leaf_scorch": {
       "status": "Leaf Scorch",
       "treatment": "Improve irrigation. Apply potassium fertilizer.",
       "severity": "Medium",
-      "prevention": "Avoid water stress. Mulch around plants."
+      "prevention": "Avoid water stress. Mulch around plants.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Potassium sulfate (SOP) or muriate of potash (MOP)",
+        "method": "Apply as a soil top-dress around the root zone, watered in well. Combine with consistent irrigation — water-stressed plants show leaf scorch symptoms far more severely even with adequate potassium.",
+        "related_fertilizers": [
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "Directly addresses the potassium deficiency commonly linked to leaf scorch symptoms."
+          },
+          {
+            "name": "Muriate of Potash (MOP)",
+            "reason": "Alternative potassium source if SOP isn't available."
+          }
+        ]
+      }
     },
     "Strawberry___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     },
     "Tomato___Bacterial_spot": {
       "status": "Bacterial Spot",
       "treatment": "Apply copper bactericide. Remove infected leaves.",
       "severity": "High",
-      "prevention": "Use disease-free seeds. Avoid overhead watering."
+      "prevention": "Use disease-free seeds. Avoid overhead watering.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Calcium nitrate",
+        "method": "Calcium supports cell-wall strength against bacterial entry. Apply as a foliar spray or soil application alongside the bactericide, not as a substitute for it.",
+        "related_fertilizers": [
+          {
+            "name": "Calcium nitrate",
+            "reason": "Cell-wall support against bacterial entry, applied alongside the bactericide."
+          },
+          {
+            "name": "10-26-26 (low-nitrogen NPK blend)",
+            "reason": "General vigor without excess nitrogen."
+          }
+        ]
+      }
     },
     "Tomato___Early_blight": {
       "status": "Early Blight",
       "treatment": "Apply Mancozeb 2g/litre every 7 days.",
       "severity": "Medium",
-      "prevention": "Avoid overhead irrigation. Crop rotation."
+      "prevention": "Avoid overhead irrigation. Crop rotation.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Potassium sulfate (SOP) or muriate of potash (MOP)",
+        "method": "Same pattern as potato early blight — potassium deficiency raises susceptibility. Apply as a base soil dose per soil test, with a mid-season top-up if lower leaves start yellowing.",
+        "related_fertilizers": [
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "Same documented link as potato — potassium deficiency raises early blight susceptibility."
+          },
+          {
+            "name": "Muriate of Potash (MOP)",
+            "reason": "Alternative potassium source."
+          }
+        ]
+      }
     },
     "Tomato___Late_blight": {
       "status": "Late Blight",
       "treatment": "Apply Metalaxyl + Mancozeb immediately.",
       "severity": "High",
-      "prevention": "Use resistant varieties. Avoid wet conditions."
+      "prevention": "Use resistant varieties. Avoid wet conditions.",
+      "fertilizer": {
+        "applicable": true,
+        "name": "Balanced NPK, avoid nitrogen excess",
+        "method": "Keep nitrogen moderate — heavy N growth is exactly what late blight spreads through fastest. Ensure adequate potassium for general tissue resilience.",
+        "related_fertilizers": [
+          {
+            "name": "14-35-14 (moderate-N blend)",
+            "reason": "Moderate nitrogen avoids the lush growth late blight spreads through fastest."
+          },
+          {
+            "name": "Potassium sulfate (SOP)",
+            "reason": "General tissue resilience support."
+          }
+        ]
+      }
     },
     "Tomato___Leaf_Mold": {
       "status": "Leaf Mold",
       "treatment": "Apply copper fungicide. Improve ventilation.",
       "severity": "Medium",
-      "prevention": "Reduce humidity. Space plants properly."
+      "prevention": "Reduce humidity. Space plants properly.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Driven mainly by humidity/airflow inside dense canopies — ventilation and spacing matter far more than nutrition here."
+      }
     },
     "Tomato___Septoria_leaf_spot": {
       "status": "Septoria Leaf Spot",
       "treatment": "Apply Chlorothalonil fungicide.",
       "severity": "Medium",
-      "prevention": "Rotate crops. Remove plant debris."
+      "prevention": "Rotate crops. Remove plant debris.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Fungal, spread by splashing water and plant debris — sanitation and fungicide timing matter more than nutrition."
+      }
     },
     "Tomato___Spider_mites Two-spotted_spider_mite": {
       "status": "Spider Mites",
       "treatment": "Apply Abamectin or neem oil spray.",
       "severity": "Medium",
-      "prevention": "Maintain humidity. Use predatory mites."
+      "prevention": "Maintain humidity. Use predatory mites.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "A pest, not a nutrient deficiency — miticide/predatory mites are the real intervention. (Note: over-fertilizing with nitrogen can attract mites, so avoid excess rather than adding more.)"
+      }
     },
     "Tomato___Target_Spot": {
       "status": "Target Spot",
       "treatment": "Apply Azoxystrobin fungicide.",
       "severity": "Medium",
-      "prevention": "Proper spacing. Avoid leaf wetness."
+      "prevention": "Proper spacing. Avoid leaf wetness.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "Fungal, humidity-driven — spacing and fungicide timing matter more than nutrition."
+      }
     },
     "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
       "status": "Yellow Leaf Curl Virus",
       "treatment": "Remove infected plants. Control whiteflies.",
       "severity": "High",
-      "prevention": "Use virus-resistant varieties."
+      "prevention": "Use virus-resistant varieties.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "A viral disease spread by whiteflies — no fertilizer treats a virus. Focus entirely on removing infected plants and controlling the insect vector."
+      }
     },
     "Tomato___Tomato_mosaic_virus": {
       "status": "Mosaic Virus",
       "treatment": "Remove infected plants immediately.",
       "severity": "High",
-      "prevention": "Control aphids with neem oil spray."
+      "prevention": "Control aphids with neem oil spray.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "A viral disease — no fertilizer treats a virus. Focus on removing infected plants and controlling the aphid vector."
+      }
     },
     "Tomato___healthy": {
       "status": "Healthy",
       "treatment": "No treatment needed. Keep monitoring.",
       "severity": "None",
-      "prevention": "Maintain good crop hygiene."
+      "prevention": "Maintain good crop hygiene.",
+      "fertilizer": {
+        "applicable": false,
+        "note": "No treatment needed."
+      }
     }
   }
 }

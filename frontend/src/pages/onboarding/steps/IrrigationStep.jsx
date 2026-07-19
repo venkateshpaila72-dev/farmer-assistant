@@ -1,25 +1,24 @@
-const OPTIONS = [
-  { value: "rainfall", label: "Rain-fed" },
-  { value: "canal", label: "Canal" },
-  { value: "borewell", label: "Borewell" },
-];
+import { useTranslation } from "react-i18next";
+
+const OPTIONS = ["rainfall", "canal", "borewell"];
 
 export function IrrigationStep({ value, onChange }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="text-xl mb-1">How do you water your fields?</h2>
-      <p className="text-sm text-ink-soft mb-5">Your main source &mdash; it&rsquo;s fine if you use more than one sometimes.</p>
+      <h2 className="text-xl mb-1">{t("irrigationStep.title")}</h2>
+      <p className="text-sm text-ink-soft mb-5">{t("irrigationStep.subtitle")}</p>
       <div className="flex flex-col gap-2.5">
         {OPTIONS.map((opt) => (
           <button
-            key={opt.value}
+            key={opt}
             type="button"
-            onClick={() => onChange(opt.value)}
+            onClick={() => onChange(opt)}
             className={`rounded-sm border px-4 py-3 text-sm font-medium text-left transition-colors duration-150 ${
-              value === opt.value ? "border-primary bg-primary-tint text-primary" : "border-border bg-surface text-ink hover:border-ink-soft"
+              value === opt ? "border-primary bg-primary-tint text-primary" : "border-border bg-surface text-ink hover:border-ink-soft"
             }`}
           >
-            {opt.label}
+            {t(`irrigation.${opt}`)}
           </button>
         ))}
       </div>

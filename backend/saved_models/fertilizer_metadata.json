@@ -1,0 +1,117 @@
+{
+  "model_type": "XGBoost",
+  "model_version": "v2_crop_aware_deficit",
+  "n_classes": 7,
+  "classes": [
+    "10-26-26",
+    "14-35-14",
+    "17-17-17",
+    "20-20",
+    "28-28",
+    "DAP",
+    "Urea"
+  ],
+  "class_sample_counts": {
+    "Urea": 22,
+    "DAP": 18,
+    "28-28": 17,
+    "14-35-14": 14,
+    "20-20": 14,
+    "17-17-17": 7,
+    "10-26-26": 7
+  },
+  "low_sample_classes": [
+    "17-17-17",
+    "10-26-26"
+  ],
+  "crops": [
+    "Barley",
+    "Cotton",
+    "Ground Nuts",
+    "Maize",
+    "Millets",
+    "Oil seeds",
+    "Paddy",
+    "Pulses",
+    "Sugarcane",
+    "Tobacco",
+    "Wheat"
+  ],
+  "soils": [
+    "Black",
+    "Clayey",
+    "Loamy",
+    "Red",
+    "Sandy"
+  ],
+  "features": [
+    "Temparature",
+    "Humidity ",
+    "Moisture",
+    "Soil_enc",
+    "N_deficit",
+    "P_deficit",
+    "K_deficit"
+  ],
+  "crop_npk_requirements": {
+    "Paddy": {
+      "N": 120,
+      "P": 60,
+      "K": 40
+    },
+    "Wheat": {
+      "N": 120,
+      "P": 60,
+      "K": 40
+    },
+    "Maize": {
+      "N": 120,
+      "P": 60,
+      "K": 40
+    },
+    "Sugarcane": {
+      "N": 250,
+      "P": 115,
+      "K": 115
+    },
+    "Cotton": {
+      "N": 100,
+      "P": 50,
+      "K": 50
+    },
+    "Ground Nuts": {
+      "N": 20,
+      "P": 40,
+      "K": 40
+    },
+    "Pulses": {
+      "N": 20,
+      "P": 40,
+      "K": 20
+    },
+    "Barley": {
+      "N": 60,
+      "P": 30,
+      "K": 20
+    },
+    "Millets": {
+      "N": 40,
+      "P": 20,
+      "K": 20
+    },
+    "Oil seeds": {
+      "N": 60,
+      "P": 40,
+      "K": 20
+    },
+    "Tobacco": {
+      "N": 100,
+      "P": 50,
+      "K": 50
+    }
+  },
+  "cv_accuracy_mean": 0.6273684210526317,
+  "cv_accuracy_std": 0.11830520649428963,
+  "default_top_n": 5,
+  "note": "Model input features are NPK DEFICITS (crop requirement - soil reading), not raw NPK. Raw N/P/K + crop_type are required inputs at inference time to compute deficits internally \u2014 see suggest_fertilizer()."
+}

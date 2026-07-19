@@ -138,6 +138,12 @@ class CropRecommendRequest(BaseModel):
     humidity: Optional[float] = None
     ph: Optional[float] = None
     rainfall: Optional[float] = None
+    # Optional soil type override — used to preview a recommendation for a
+    # freshly-detected soil photo result without writing it to the profile.
+    # Accepts either an onboarding-style value ("black", "loamy") or a raw
+    # soil-image classifier output ("Black Soil") — both resolve through
+    # resolve_soil_nutrients() in the route.
+    soil_type: Optional[str] = None
 
 
 class CropRecommendResponse(BaseModel):

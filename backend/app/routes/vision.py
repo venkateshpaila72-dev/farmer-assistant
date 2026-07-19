@@ -15,11 +15,15 @@ router = APIRouter()
 async def classify_soil(
     username: str,
     file: UploadFile = File(...),
+    update_profile: bool = True,
     current_user: dict = Depends(get_current_user)
 ):
     """
     Classify soil type from uploaded photo.
-    Saves result to farmer profile in MongoDB.
+    By default saves the result to the farmer's profile in MongoDB — pass
+    update_profile=false to just get the classification back (e.g. for a
+    "preview crop recommendations for this soil" flow that shouldn't
+    silently overwrite the farmer's actual saved soil type).
     Supported: JPEG, PNG, JPG, WEBP
     """
     if current_user["role"] != "admin" and current_user["username"] != username:
@@ -47,16 +51,17 @@ async def classify_soil(
     except Exception:
         image_url = None
 
-    # Update farmer profile with soil type
-    db = get_db()
-    await db[FARMER_PROFILES_COLLECTION].update_one(
-        {"username": username},
-        {"$set": {
-            "soil_type":      result["soil_type"].lower().replace(" ", "_"),
-            "soil_image_url": image_url,
-            "updated_at":     datetime.utcnow()
-        }}
-    )
+    # Update farmer profile with soil type — only if requested
+    if update_profile:
+        db = get_db()
+        await db[FARMER_PROFILES_COLLECTION].update_one(
+            {"username": username},
+            {"$set": {
+                "soil_type":      result["soil_type"].lower().replace(" ", "_"),
+                "soil_image_url": image_url,
+                "updated_at":     datetime.utcnow()
+            }}
+        )
 
     return {
         "username":          username,
@@ -64,8 +69,12 @@ async def classify_soil(
         "confidence":        result["confidence"],
         "all_probabilities": result["all_probabilities"],
         "image_url":         image_url,
-        "profile_updated":   True,
-        "message":           f"Soil classified as {result['soil_type']} — profile updated!"
+        "profile_updated":   update_profile,
+        "message":           (
+            f"Soil classified as {result['soil_type']} — profile updated!"
+            if update_profile
+            else f"Soil classified as {result['soil_type']}."
+        )
     }
 
 
@@ -130,6 +139,7 @@ async def detect_disease(
         "confidence": result["confidence"],
         "treatment":  result["treatment"],
         "prevention": result["prevention"],
+        "fertilizer": result["fertilizer"],
         "is_healthy": result["is_healthy"],
         "top3":       result["top3"],
         "image_url":  image_url

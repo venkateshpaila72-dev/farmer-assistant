@@ -1,10 +1,15 @@
+import { useTranslation } from "react-i18next";
+
+// Canonical values sent to the backend stay fixed English strings — only the
+// displayed label is translated.
 const SOIL_TYPES = ["Alluvial", "Black", "Red", "Laterite", "Sandy", "Clay", "Loamy"];
 
 export function SoilTypeStep({ value, onChange }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h2 className="text-xl mb-1">What&rsquo;s your soil type?</h2>
-      <p className="text-sm text-ink-soft mb-5">If you&rsquo;re not sure, pick your best guess &mdash; you can update this later.</p>
+      <h2 className="text-xl mb-1">{t("soilStep.title")}</h2>
+      <p className="text-sm text-ink-soft mb-5">{t("soilStep.subtitle")}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         {SOIL_TYPES.map((soil) => (
           <button
@@ -15,7 +20,7 @@ export function SoilTypeStep({ value, onChange }) {
               value === soil ? "border-primary bg-primary-tint text-primary" : "border-border bg-surface text-ink hover:border-ink-soft"
             }`}
           >
-            {soil}
+            {t(`soilTypes.${soil}`)}
           </button>
         ))}
       </div>

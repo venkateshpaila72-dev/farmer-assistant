@@ -1,8 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const easeOut = [0.16, 1, 0.3, 1];
 
 export function MobileMenu({ open, onClose, links }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {open && (
@@ -19,14 +22,17 @@ export function MobileMenu({ open, onClose, links }) {
                 key={l.href}
                 href={l.href}
                 onClick={onClose}
-                className="py-2.5 text-[15px] font-medium text-ink-soft border-b border-border last:border-none"
+                className="py-2.5 text-[15px] font-medium text-ink-soft border-b border-border"
               >
                 {l.label}
               </a>
             ))}
-            <a href="/login" onClick={onClose} className="py-2.5 text-[15px] font-medium text-ink-soft">
-              Log in
+            <a href="/login" onClick={onClose} className="py-2.5 text-[15px] font-medium text-ink-soft border-b border-border">
+              {t("nav.login")}
             </a>
+            <div className="py-3">
+              <LanguageSwitcher />
+            </div>
           </div>
         </motion.div>
       )}

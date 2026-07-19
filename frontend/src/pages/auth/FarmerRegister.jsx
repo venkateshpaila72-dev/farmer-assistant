@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../../layouts/AuthLayout";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -19,6 +20,7 @@ const initial = {
 };
 
 export default function FarmerRegister() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState(initial);
@@ -35,15 +37,13 @@ export default function FarmerRegister() {
     setLoading(true);
     try {
       await registerFarmer(form);
-      // Backend register endpoint only confirms creation, doesn't return a
-      // token — log in right after so the farmer lands straight in onboarding.
       const tokenData = await loginFarmer(form.username, form.password);
       login(tokenData);
       toast.success("Account created — let's set up your farm profile.");
       navigate("/onboarding", { replace: true });
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setError(detail || "Registration failed. Try a different username.");
+      setError(detail || t("register.error"));
     } finally {
       setLoading(false);
     }
@@ -51,29 +51,29 @@ export default function FarmerRegister() {
 
   return (
     <AuthLayout maxWidth="max-w-lg">
-      <h1 className="text-2xl mb-1.5">Create your free account</h1>
-      <p className="text-ink-soft text-sm mb-7">Takes about a minute. No cost, ever.</p>
+      <h1 className="text-2xl mb-1.5">{t("register.title")}</h1>
+      <p className="text-ink-soft text-sm mb-7">{t("register.subtitle")}</p>
 
       <Panel className="p-6">
         <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-4">
-          <Input label="Username" name="username" value={form.username} onChange={update("username")} required />
-          <Input label="Password" name="password" type="password" value={form.password} onChange={update("password")} required />
-          <Input label="Phone number" name="phone" type="tel" value={form.phone} onChange={update("phone")} required />
-          <Input label="Door no." name="door_no" value={form.door_no} onChange={update("door_no")} required />
-          <Input label="Village" name="village" value={form.village} onChange={update("village")} required />
-          <Input label="City" name="city" value={form.city} onChange={update("city")} required />
-          <Input label="State" name="state" value={form.state} onChange={update("state")} required className="sm:col-span-2" />
+          <Input label={t("register.username")} name="username" value={form.username} onChange={update("username")} required />
+          <Input label={t("register.password")} name="password" type="password" value={form.password} onChange={update("password")} required />
+          <Input label={t("register.phone")} name="phone" type="tel" value={form.phone} onChange={update("phone")} required />
+          <Input label={t("register.doorNo")} name="door_no" value={form.door_no} onChange={update("door_no")} required />
+          <Input label={t("register.village")} name="village" value={form.village} onChange={update("village")} required />
+          <Input label={t("register.city")} name="city" value={form.city} onChange={update("city")} required />
+          <Input label={t("register.state")} name="state" value={form.state} onChange={update("state")} required className="sm:col-span-2" />
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
           <Button type="submit" disabled={loading} className="sm:col-span-2 mt-1">
-            {loading ? "Creating account\u2026" : "Create account"}
+            {loading ? t("register.submitting") : t("register.submit")}
           </Button>
         </form>
       </Panel>
 
       <p className="text-sm text-ink-soft text-center mt-5">
-        Already have an account?{" "}
+        {t("register.haveAccount")}{" "}
         <Link to="/login" className="text-primary font-semibold">
-          Log in
+          {t("register.login")}
         </Link>
       </p>
     </AuthLayout>

@@ -1,12 +1,42 @@
+import ssl
+import asyncio
 import httpx
 from datetime import datetime
 from app.core.config import settings
+
+
+def _legacy_tolerant_ssl_context() -> ssl.SSLContext:
+    """
+    Some networks (often antivirus "HTTPS scanning" or a corporate SSL-
+    inspecting firewall/proxy) transparently intercept TLS connections and
+    require a legacy renegotiation mid-handshake. Windows' native schannel
+    (what curl.exe uses) tolerates this; Python's OpenSSL-based ssl module
+    does not by default since OpenSSL 3.x disables legacy renegotiation for
+    security reasons — the connection just hangs until timeout instead of
+    failing cleanly.
+
+    This re-enables it for outbound requests only (0x4 == the numeric value
+    of SSL_OP_LEGACY_SERVER_CONNECT — not yet exposed as a named ssl.*
+    constant before Python 3.12).
+    """
+    ctx = ssl.create_default_context()
+    ctx.options |= 0x4
+    return ctx
+
+
+_ssl_context = _legacy_tolerant_ssl_context()
 
 
 async def get_current_weather(lat: float, lng: float) -> dict:
     """
     Fetch current weather + 5 day forecast from Open-Meteo.
     No API key needed — completely free.
+
+    Retries once on connection timeout — some intercepting network devices
+    (see _legacy_tolerant_ssl_context above) add extra TLS round-trips that
+    occasionally exceed even a generous timeout; a single retry catches most
+    of these transient failures without meaningfully slowing down the
+    common case where the first attempt just works.
     """
     params = {
         "latitude": lat,
@@ -30,10 +60,27 @@ async def get_current_weather(lat: float, lng: float) -> dict:
         "forecast_days": 5
     }
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(settings.OPEN_METEO_BASE_URL, params=params)
-        response.raise_for_status()
-        data = response.json()
+    last_error = None
+    for attempt in range(2):
+        try:
+            # local_address="0.0.0.0" forces an IPv4 local socket, which in
+            # turn makes the connection attempt only viable against IPv4
+            # remote addresses — sidesteps a separate failure mode where a
+            # newly-available NAT64-synthesized IPv6 route gets tried first
+            # and hangs, even though a fast working IPv4 path exists
+            # alongside it (confirmed via curl showing both routes present).
+            transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
+            async with httpx.AsyncClient(timeout=20, verify=_ssl_context, transport=transport) as client:
+                response = await client.get(settings.OPEN_METEO_BASE_URL, params=params)
+                response.raise_for_status()
+                data = response.json()
+                break
+        except httpx.ConnectTimeout as e:
+            last_error = e
+            if attempt == 0:
+                await asyncio.sleep(1)
+                continue
+            raise
 
     current = data.get("current", {})
     daily   = data.get("daily", {})

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../../layouts/AuthLayout";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -9,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { loginFarmer } from "../../api/auth";
 
 export default function FarmerLogin() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,7 +30,7 @@ export default function FarmerLogin() {
       navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setError(detail || "Login failed. Check your username and password.");
+      setError(detail || t("login.error"));
     } finally {
       setLoading(false);
     }
@@ -36,13 +38,13 @@ export default function FarmerLogin() {
 
   return (
     <AuthLayout>
-      <h1 className="text-2xl mb-1.5">Log in</h1>
-      <p className="text-ink-soft text-sm mb-7">Check today&rsquo;s weather, prices, and advice for your farm.</p>
+      <h1 className="text-2xl mb-1.5">{t("login.title")}</h1>
+      <p className="text-ink-soft text-sm mb-7">{t("login.subtitle")}</p>
 
       <Panel className="p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Username"
+            label={t("login.username")}
             name="username"
             autoComplete="username"
             value={form.username}
@@ -50,7 +52,7 @@ export default function FarmerLogin() {
             required
           />
           <Input
-            label="Password"
+            label={t("login.password")}
             name="password"
             type="password"
             autoComplete="current-password"
@@ -60,20 +62,20 @@ export default function FarmerLogin() {
           />
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" disabled={loading} className="mt-1">
-            {loading ? "Logging in\u2026" : "Log in"}
+            {loading ? t("login.submitting") : t("login.submit")}
           </Button>
         </form>
       </Panel>
 
       <p className="text-sm text-ink-soft text-center mt-5">
-        New here?{" "}
+        {t("login.newHere")}{" "}
         <Link to="/register" className="text-primary font-semibold">
-          Create an account
+          {t("login.createAccount")}
         </Link>
       </p>
       <p className="text-sm text-ink-soft text-center mt-2">
         <Link to="/admin/login" className="text-ink-soft underline">
-          Admin login
+          {t("login.adminLogin")}
         </Link>
       </p>
     </AuthLayout>

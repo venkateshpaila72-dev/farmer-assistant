@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../../layouts/AuthLayout";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -9,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { loginAdmin } from "../../api/auth";
 
 export default function AdminLogin() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -26,7 +28,7 @@ export default function AdminLogin() {
       navigate("/admin", { replace: true });
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setError(detail || "Login failed. Check your email and password.");
+      setError(detail || t("adminLogin.error"));
     } finally {
       setLoading(false);
     }
@@ -34,13 +36,13 @@ export default function AdminLogin() {
 
   return (
     <AuthLayout>
-      <h1 className="text-2xl mb-1.5">Admin login</h1>
-      <p className="text-ink-soft text-sm mb-7">For platform administrators only.</p>
+      <h1 className="text-2xl mb-1.5">{t("adminLogin.title")}</h1>
+      <p className="text-ink-soft text-sm mb-7">{t("adminLogin.subtitle")}</p>
 
       <Panel className="p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Email"
+            label={t("adminLogin.email")}
             name="email"
             type="email"
             autoComplete="username"
@@ -49,7 +51,7 @@ export default function AdminLogin() {
             required
           />
           <Input
-            label="Password"
+            label={t("adminLogin.password")}
             name="password"
             type="password"
             autoComplete="current-password"
@@ -59,14 +61,14 @@ export default function AdminLogin() {
           />
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" disabled={loading} className="mt-1">
-            {loading ? "Logging in\u2026" : "Log in"}
+            {loading ? t("adminLogin.submitting") : t("adminLogin.submit")}
           </Button>
         </form>
       </Panel>
 
       <p className="text-sm text-ink-soft text-center mt-5">
         <Link to="/login" className="text-ink-soft underline">
-          Farmer login
+          {t("adminLogin.farmerLogin")}
         </Link>
       </p>
     </AuthLayout>

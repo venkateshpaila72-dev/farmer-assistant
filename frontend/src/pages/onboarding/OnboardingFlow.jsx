@@ -1,40 +1,43 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { AuthLayout } from "../../layouts/AuthLayout";
 import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { saveOnboarding } from "../../api/onboarding";
+import { LanguageStep } from "./steps/LanguageStep";
 import { SoilTypeStep } from "./steps/SoilTypeStep";
 import { FarmSizeStep } from "./steps/FarmSizeStep";
 import { CropsStep } from "./steps/CropsStep";
 import { IrrigationStep } from "./steps/IrrigationStep";
 import { ProblemStep } from "./steps/ProblemStep";
-import { LanguageStep } from "./steps/LanguageStep";
 import { LocationStep } from "./steps/LocationStep";
 
-const STEPS = ["soil_type", "farm_acres", "preferred_crops", "irrigation_type", "main_problem", "chat_language", "home_location"];
+// Language goes first on purpose — everything after it should render in the
+// language the farmer just picked, not just get saved for later.
+const STEPS = ["chat_language", "soil_type", "farm_acres", "preferred_crops", "irrigation_type", "main_problem", "home_location"];
 
 const initial = {
+  chat_language: "English",
   soil_type: "",
   farm_acres: "",
   preferred_crops: [],
   irrigation_type: "",
   main_problem: "",
-  chat_language: "English",
   home_location: { state: "", district: "", village: "", lat: null, lng: null },
 };
 
 function isStepValid(key, data) {
   switch (key) {
+    case "chat_language": return !!data.chat_language;
     case "soil_type": return !!data.soil_type;
     case "farm_acres": return !!data.farm_acres && data.farm_acres > 0;
     case "preferred_crops": return data.preferred_crops.length > 0;
     case "irrigation_type": return !!data.irrigation_type;
     case "main_problem": return !!data.main_problem;
-    case "chat_language": return !!data.chat_language;
     case "home_location": {
       const loc = data.home_location;
       return !!(loc.state && loc.district && loc.village && loc.lat && loc.lng);
@@ -44,6 +47,7 @@ function isStepValid(key, data) {
 }
 
 export default function OnboardingFlow() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stepIndex, setStepIndex] = useState(0);
@@ -64,10 +68,10 @@ export default function OnboardingFlow() {
     setError("");
     try {
       await saveOnboarding({ username: user.username, ...data });
-      toast.success("Farm profile saved!");
+      toast.success(t("onboarding.saved"));
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.detail || "Couldn't save your profile. Try again.");
+      setError(err.response?.data?.detail || t("onboarding.saveError"));
     } finally {
       setSubmitting(false);
     }
@@ -75,6 +79,8 @@ export default function OnboardingFlow() {
 
   function renderStep() {
     switch (stepKey) {
+      case "chat_language":
+        return <LanguageStep value={data.chat_language} onChange={(v) => setData({ ...data, chat_language: v })} />;
       case "soil_type":
         return <SoilTypeStep value={data.soil_type} onChange={(v) => setData({ ...data, soil_type: v })} />;
       case "farm_acres":
@@ -85,8 +91,6 @@ export default function OnboardingFlow() {
         return <IrrigationStep value={data.irrigation_type} onChange={(v) => setData({ ...data, irrigation_type: v })} />;
       case "main_problem":
         return <ProblemStep value={data.main_problem} onChange={(v) => setData({ ...data, main_problem: v })} />;
-      case "chat_language":
-        return <LanguageStep value={data.chat_language} onChange={(v) => setData({ ...data, chat_language: v })} />;
       case "home_location":
         return <LocationStep value={data.home_location} onChange={(v) => setData({ ...data, home_location: v })} />;
       default:
@@ -116,10 +120,10 @@ export default function OnboardingFlow() {
             disabled={stepIndex === 0}
             className={stepIndex === 0 ? "invisible" : ""}
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {t("onboarding.back")}
           </Button>
           <Button type="button" onClick={handleNext} disabled={!valid || submitting}>
-            {submitting ? "Saving\u2026" : isLast ? "Finish" : "Next"}
+            {submitting ? t("onboarding.saving") : isLast ? t("onboarding.finish") : t("onboarding.next")}
             {!submitting && <ArrowRight size={16} />}
           </Button>
         </div>
