@@ -9,6 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getPestAlerts } from "../../api/news";
 import { getAvailableStates } from "../../api/market";
 import { getOnboardingProfile } from "../../api/onboarding";
+import { getCached, setCached } from "../../utils/dataCache";
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -23,12 +24,16 @@ export default function PestAlerts() {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const [states, setStates] = useState(null);
-  const [state, setState] = useState("");
-  const [alerts, setAlerts] = useState(null);
+  const [states, setStates] = useState(() => getCached("market:states") ?? null);
+  // The chosen state itself is cached too, so coming back to this tab keeps
+  // whatever you were last looking at instead of resetting to your home state.
+  const [state, setState] = useState(() => getCached("news:alerts:selectedState") ?? "");
+  const alertsCacheKey = `news:alerts:${state || "all"}`;
+  const [alerts, setAlerts] = useState(() => getCached(alertsCacheKey) ?? null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (getCached("news:alerts:selectedState") !== undefined) return; // already chosen this session
     if (!user?.username) return;
     getOnboardingProfile(user.username)
       .then((profile) => {
@@ -39,15 +44,29 @@ export default function PestAlerts() {
   }, [user?.username]);
 
   useEffect(() => {
-    getAvailableStates().then((data) => setStates(data.states || [])).catch(() => setStates([]));
-  }, []);
+    if (states !== null) return;
+    getAvailableStates()
+      .then((data) => {
+        const list = data.states || [];
+        setStates(list);
+        setCached("market:states", list);
+      })
+      .catch(() => setStates([]));
+  }, [states]);
 
   useEffect(() => {
-    setAlerts(null);
-    setError(false);
+    setCached("news:alerts:selectedState", state);
+    // Cached alerts (if any) already show via the initializer — this
+    // refetches quietly in the background rather than resetting to a skeleton.
     getPestAlerts(state || undefined)
-      .then((data) => setAlerts(data.alerts || []))
-      .catch(() => setError(true));
+      .then((data) => {
+        const list = data.alerts || [];
+        setAlerts(list);
+        setCached(alertsCacheKey, list);
+      })
+      .catch(() => {
+        if (getCached(alertsCacheKey) === undefined) setError(true);
+      });
   }, [state]);
 
   return (

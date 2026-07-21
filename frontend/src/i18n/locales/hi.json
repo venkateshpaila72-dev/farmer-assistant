@@ -244,8 +244,17 @@
     "pickState": "भाव देखने के लिए राज्य चुनें।",
     "noData": "अभी कोई भाव डेटा उपलब्ध नहीं है।",
     "priceTrend": "{{commodity}} भाव रुझान",
+    "marketComparison": "{{commodity}} बाज़ार अनुसार भाव",
+    "marketComparisonNote": "सबसे ऊंचे से सबसे कम क्रम में। हरा औसत से ऊपर है, धराशायी रेखा औसत दिखाती है।",
     "modalPrice": "मॉडल भाव",
-    "listings": "सूचियां"
+    "listings": "सूचियां",
+    "searchToView": "इसके भाव देखने के लिए ऊपर एक फ़सल खोजें।",
+    "backToSearch": "खोज पर वापस जाएं",
+    "highestPrice": "सबसे ऊंचा भाव",
+    "lowestPrice": "सबसे कम भाव",
+    "avgPrice": "औसत भाव",
+    "allListings": "सभी सूचियां ({{count}})",
+    "noCommoditiesFound": "इस राज्य के लिए कोई फ़सल नहीं मिली।"
   },
   "news": {
     "pageTitle": "समाचार",

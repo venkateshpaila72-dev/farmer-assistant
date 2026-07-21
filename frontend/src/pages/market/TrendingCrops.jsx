@@ -8,17 +8,20 @@ import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { getTrendingCrops, getAvailableStates } from "../../api/market";
 import { getOnboardingProfile } from "../../api/onboarding";
+import { getCached, setCached } from "../../utils/dataCache";
 
 export default function TrendingCrops() {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const [states, setStates] = useState(null);
-  const [state, setState] = useState("");
-  const [trending, setTrending] = useState(null);
+  const [states, setStates] = useState(() => getCached("market:states") ?? null);
+  const [state, setState] = useState(() => getCached("market:trending:selectedState") ?? "");
+  const trendingCacheKey = `market:trending:${state}`;
+  const [trending, setTrending] = useState(() => (state ? getCached(trendingCacheKey) ?? null : null));
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (getCached("market:trending:selectedState") !== undefined) return;
     if (!user?.username) return;
     getOnboardingProfile(user.username)
       .then((profile) => {
@@ -29,16 +32,31 @@ export default function TrendingCrops() {
   }, [user?.username]);
 
   useEffect(() => {
-    getAvailableStates().then((data) => setStates(data.states || [])).catch(() => setStates([]));
-  }, []);
+    if (states !== null) return;
+    getAvailableStates()
+      .then((data) => {
+        const list = data.states || [];
+        setStates(list);
+        setCached("market:states", list);
+      })
+      .catch(() => setStates([]));
+  }, [states]);
 
   useEffect(() => {
     if (!state) return;
-    setTrending(null);
+    setCached("market:trending:selectedState", state);
+    const cached = getCached(trendingCacheKey);
+    if (cached === undefined) setTrending(null);
     setError(false);
     getTrendingCrops(state, 8)
-      .then((data) => setTrending(data.trending_crops || []))
-      .catch(() => setError(true));
+      .then((data) => {
+        const list = data.trending_crops || [];
+        setTrending(list);
+        setCached(trendingCacheKey, list);
+      })
+      .catch(() => {
+        if (cached === undefined) setError(true);
+      });
   }, [state]);
 
   const maxScore = trending?.length ? Math.max(...trending.map((c) => c.trending_score)) : 1;

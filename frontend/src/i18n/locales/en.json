@@ -244,8 +244,17 @@
     "pickState": "Pick a state to see prices.",
     "noData": "No price data available yet.",
     "priceTrend": "{{commodity}} price trend",
+    "marketComparison": "{{commodity}} price by market",
+    "marketComparisonNote": "Ranked highest to lowest. Green is above average, dashed line marks the average.",
     "modalPrice": "Modal price",
-    "listings": "listings"
+    "listings": "listings",
+    "searchToView": "Search for a commodity above to see its prices.",
+    "backToSearch": "Back to search",
+    "highestPrice": "Highest price",
+    "lowestPrice": "Lowest price",
+    "avgPrice": "Average price",
+    "allListings": "All listings ({{count}})",
+    "noCommoditiesFound": "No commodities found for this state."
   },
   "news": {
     "pageTitle": "News",

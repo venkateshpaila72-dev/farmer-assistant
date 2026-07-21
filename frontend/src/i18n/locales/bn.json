@@ -244,8 +244,17 @@
     "pickState": "দাম দেখতে একটি রাজ্য নির্বাচন করুন।",
     "noData": "এখনো দামের তথ্য উপলব্ধ নেই।",
     "priceTrend": "{{commodity}} দামের প্রবণতা",
+    "marketComparison": "{{commodity}} বাজার অনুযায়ী দাম",
+    "marketComparisonNote": "সর্বোচ্চ থেকে সর্বনিম্ন ক্রমে। সবুজ গড়ের চেয়ে বেশি, ড্যাশযুক্ত রেখা গড় নির্দেশ করে।",
     "modalPrice": "মডেল দাম",
-    "listings": "তালিকা"
+    "listings": "তালিকা",
+    "searchToView": "দাম দেখতে উপরে একটি পণ্য অনুসন্ধান করুন।",
+    "backToSearch": "অনুসন্ধানে ফিরে যান",
+    "highestPrice": "সর্বোচ্চ দাম",
+    "lowestPrice": "সর্বনিম্ন দাম",
+    "avgPrice": "গড় দাম",
+    "allListings": "সব তালিকা ({{count}})",
+    "noCommoditiesFound": "এই রাজ্যের জন্য কোনো পণ্য পাওয়া যায়নি।"
   },
   "news": {
     "pageTitle": "সংবাদ",

@@ -244,8 +244,17 @@
     "pickState": "भाव पाहण्यासाठी राज्य निवडा.",
     "noData": "अजून भाव डेटा उपलब्ध नाही.",
     "priceTrend": "{{commodity}} भाव कल",
+    "marketComparison": "{{commodity}} बाजारानुसार भाव",
+    "marketComparisonNote": "सर्वाधिक ते सर्वात कमी क्रमाने. हिरवा सरासरीपेक्षा जास्त आहे, ठिपकेदार रेषा सरासरी दर्शवते.",
     "modalPrice": "मॉडेल भाव",
-    "listings": "यादी"
+    "listings": "यादी",
+    "searchToView": "भाव पाहण्यासाठी वर एक शेतमाल शोधा.",
+    "backToSearch": "शोधाकडे परत जा",
+    "highestPrice": "सर्वाधिक भाव",
+    "lowestPrice": "सर्वात कमी भाव",
+    "avgPrice": "सरासरी भाव",
+    "allListings": "सर्व याद्या ({{count}})",
+    "noCommoditiesFound": "या राज्यासाठी कोणताही शेतमाल सापडला नाही."
   },
   "news": {
     "pageTitle": "बातम्या",

@@ -244,8 +244,17 @@
     "pickState": "ਭਾਅ ਵੇਖਣ ਲਈ ਰਾਜ ਚੁਣੋ।",
     "noData": "ਅਜੇ ਕੋਈ ਭਾਅ ਡੇਟਾ ਉਪਲਬਧ ਨਹੀਂ।",
     "priceTrend": "{{commodity}} ਭਾਅ ਰੁਝਾਨ",
+    "marketComparison": "{{commodity}} ਮੰਡੀ ਅਨੁਸਾਰ ਭਾਅ",
+    "marketComparisonNote": "ਸਭ ਤੋਂ ਵੱਧ ਤੋਂ ਸਭ ਤੋਂ ਘੱਟ ਕ੍ਰਮ ਵਿੱਚ। ਹਰਾ ਔਸਤ ਤੋਂ ਵੱਧ ਹੈ, ਬਿੰਦੀਦਾਰ ਰੇਖਾ ਔਸਤ ਦਰਸਾਉਂਦੀ ਹੈ।",
     "modalPrice": "ਮਾਡਲ ਭਾਅ",
-    "listings": "ਸੂਚੀਆਂ"
+    "listings": "ਸੂਚੀਆਂ",
+    "searchToView": "ਭਾਅ ਵੇਖਣ ਲਈ ਉੱਪਰ ਇੱਕ ਜਿਣਸ ਖੋਜੋ।",
+    "backToSearch": "ਖੋਜ 'ਤੇ ਵਾਪਸ ਜਾਓ",
+    "highestPrice": "ਸਭ ਤੋਂ ਵੱਧ ਭਾਅ",
+    "lowestPrice": "ਸਭ ਤੋਂ ਘੱਟ ਭਾਅ",
+    "avgPrice": "ਔਸਤ ਭਾਅ",
+    "allListings": "ਸਾਰੀਆਂ ਸੂਚੀਆਂ ({{count}})",
+    "noCommoditiesFound": "ਇਸ ਰਾਜ ਲਈ ਕੋਈ ਜਿਣਸ ਨਹੀਂ ਮਿਲੀ।"
   },
   "news": {
     "pageTitle": "ਖ਼ਬਰਾਂ",

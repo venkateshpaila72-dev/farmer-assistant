@@ -6,6 +6,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { getFarmerNews } from "../../api/news";
+import { getCached, setCached } from "../../utils/dataCache";
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -19,14 +20,25 @@ function timeAgo(iso) {
 export default function NewsFeed() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [articles, setArticles] = useState(null);
+  const cacheKey = `news:feed:${user?.username}`;
+
+  const [articles, setArticles] = useState(() => getCached(cacheKey) ?? null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!user?.username) return;
+    // Cached data (if any) is already showing via the initializer above —
+    // this always refetches quietly in the background to stay current,
+    // without resetting the view to a loading skeleton.
     getFarmerNews(user.username)
-      .then((data) => setArticles(data.articles || []))
-      .catch(() => setError(true));
+      .then((data) => {
+        const list = data.articles || [];
+        setArticles(list);
+        setCached(cacheKey, list);
+      })
+      .catch(() => {
+        if (getCached(cacheKey) === undefined) setError(true);
+      });
   }, [user?.username]);
 
   if (error) return <Panel className="p-8 text-center text-ink-soft">{t("news.loadError")}</Panel>;

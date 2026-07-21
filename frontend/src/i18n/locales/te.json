@@ -244,8 +244,17 @@
     "pickState": "ధరలు చూడటానికి రాష్ట్రాన్ని ఎంచుకోండి.",
     "noData": "ఇంకా ధర డేటా అందుబాటులో లేదు.",
     "priceTrend": "{{commodity}} ధర ధోరణి",
+    "marketComparison": "{{commodity}} మార్కెట్ వారీగా ధర",
+    "marketComparisonNote": "అత్యధిక నుండి అత్యల్పానికి క్రమంలో. ఆకుపచ్చ సగటు కంటే ఎక్కువ, చుక్కల రేఖ సగటును సూచిస్తుంది.",
     "modalPrice": "మోడల్ ధర",
-    "listings": "జాబితాలు"
+    "listings": "జాబితాలు",
+    "searchToView": "దాని ధరలు చూడటానికి పైన ఒక సరుకును వెతకండి.",
+    "backToSearch": "శోధనకు తిరిగి వెళ్లండి",
+    "highestPrice": "అత్యధిక ధర",
+    "lowestPrice": "అత్యల్ప ధర",
+    "avgPrice": "సగటు ధర",
+    "allListings": "అన్ని జాబితాలు ({{count}})",
+    "noCommoditiesFound": "ఈ రాష్ట్రానికి సరుకులు కనబడలేదు."
   },
   "news": {
     "pageTitle": "వార్తలు",
