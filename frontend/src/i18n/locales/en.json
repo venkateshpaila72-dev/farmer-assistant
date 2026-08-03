@@ -254,13 +254,60 @@
     "lowestPrice": "Lowest price",
     "avgPrice": "Average price",
     "allListings": "All listings ({{count}})",
-    "noCommoditiesFound": "No commodities found for this state."
+    "noCommoditiesFound": "No commodities found for this state.",
+    "loadError": "Couldn't load prices. Try again."
   },
   "news": {
     "pageTitle": "News",
     "pageSubtitle": "Farming news and alerts relevant to you.",
     "tabFeed": "News", "tabAlerts": "Pest Alerts",
     "allIndia": "All India",
-    "noAlerts": "No pest alerts right now."
+    "noAlerts": "No pest alerts right now.",
+    "tabAnnouncements": "Announcements",
+    "noAnnouncements": "No announcements posted yet.",
+    "edited": "Edited"
+  },
+  "chat": {
+    "title": "Farm Assistant",
+    "subtitle": "Ask anything — crops, fertilizer, disease, weather, prices.",
+    "online": "Online",
+    "connecting": "Connecting…",
+    "reconnect": "Reconnect",
+    "clear": "Clear chat",
+    "placeholder": "Ask about crops, fertilizer, disease, prices…",
+    "thinking": "Thinking…",
+    "groundedIn": "Grounded in:",
+    "replyLanguage": "Reply language",
+    "copy": "Copy",
+    "copied": "Copied",
+    "edit": "Edit",
+    "voiceInput": "Voice input",
+    "listening": "Listening..."
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Your account and farm details.",
+    "phone": "Phone",
+    "memberSince": "Member since",
+    "accountReadOnlyNote": "Account details can't be changed here — contact support if something's wrong.",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "saved": "Profile updated",
+    "saveError": "Couldn't save changes. Try again.",
+    "loadError": "Couldn't load your profile.",
+    "logout": "Log out",
+    "detectSoilTitle": "Not sure? Detect from a photo",
+    "detectSoilSubtitle": "Upload a close-up photo of your soil and we'll suggest a match.",
+    "detectSoilUpload": "Upload soil photo",
+    "detecting": "Analyzing photo...",
+    "detectedAs": "Detected:",
+    "noExactMatch": "No close match in the list above — pick the closest option yourself.",
+    "useDetected": "Use {{soil}}",
+    "soilDetectError": "Couldn't analyze that photo. Try again.",
+    "notSet": "Not set",
+    "acres": "acres",
+    "cancel": "Cancel",
+    "saveField": "Save",
+    "setTo": "→ Set to {{soil}}"
   }
 }

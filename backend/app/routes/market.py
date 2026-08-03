@@ -4,6 +4,7 @@ from app.db.database import get_db
 from app.db.models import MARKET_PRICES_COLLECTION, FARMER_PROFILES_COLLECTION
 from app.utils.market_utils import get_prices_from_db, get_trending_from_db
 from app.core.security import get_current_user, get_current_admin
+from app.db.schemas import MarketPriceCreate
 import csv
 import io
 
@@ -135,6 +136,62 @@ async def upload_market_dataset(
     }
 
 
+# ── Admin — Add a single record ──────────────────────────────────────────────
+# For the odd correction or one-off addition where a full CSV re-upload isn't
+# worth it — same record shape as process_csv above, inserted immediately
+# (no background task needed for a single document).
+
+@router.post("/add-price")
+async def add_market_price(data: MarketPriceCreate, admin: dict = Depends(get_current_admin)):
+    db = get_db()
+
+    record = {
+        "state":          data.state.strip(),
+        "district":       data.district.strip(),
+        "market":         data.market.strip(),
+        "commodity":      data.commodity.strip().lower(),
+        "commodity_raw":  data.commodity.strip(),
+        "variety":        data.variety.strip(),
+        "grade":          data.grade.strip(),
+        "commodity_code": data.commodity_code.strip(),
+        "min_price":      data.min_price,
+        "max_price":      data.max_price,
+        "modal_price":    data.modal_price,
+        "arrival_date":   data.arrival_date.strip(),
+        "uploaded_by":    admin.get("email") or admin.get("name") or "admin",
+        "uploaded_at":    datetime.utcnow()
+    }
+
+    await db[MARKET_PRICES_COLLECTION].insert_one(record)
+
+    return {"success": True, "message": "Price record added"}
+
+
+# ── Admin — Browse actual records ────────────────────────────────────────────
+# The upload-status endpoint below only ever gave a count + state list — no
+# way to actually see what's in the database. This lists real records,
+# most-recently-uploaded first, with simple pagination.
+
+@router.get("/records")
+async def get_market_records(
+    limit: int = 50,
+    skip: int = 0,
+    state: str = None,
+    admin: dict = Depends(get_current_admin)
+):
+    db = get_db()
+    query = {}
+    if state:
+        query["state"] = {"$regex": state, "$options": "i"}
+
+    total   = await db[MARKET_PRICES_COLLECTION].count_documents(query)
+    records = await db[MARKET_PRICES_COLLECTION].find(
+        query, {"_id": 0}
+    ).sort("uploaded_at", -1).skip(skip).limit(limit).to_list(length=limit)
+
+    return {"total": total, "records": records}
+
+
 # ── Upload status ──────────────────────────────────────────────────────────────
 
 @router.get("/upload-status")
@@ -165,24 +222,38 @@ async def get_prices(
     state: str,
     commodity: str = None,
     district: str = None,
-    limit: int = 50
+    limit: int = 50,
+    skip: int = 0
 ):
     """
     Get market prices by state.
     Optionally filter by commodity and district.
+    `skip` lets the frontend page through large states ("load more")
+    instead of pulling everything in one request.
     """
     prices = await get_prices_from_db(
         state=state,
         commodity=commodity,
         district=district,
-        limit=limit
+        limit=limit,
+        skip=skip
     )
 
     if not prices:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No price data for {state}. Admin needs to upload dataset first."
-        )
+        # skip > 0 with an empty page just means "no more records" (end of
+        # pagination) — that's not an error, only skip == 0 is a real miss.
+        if skip == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No price data for {state}. Admin needs to upload dataset first."
+            )
+        return {
+            "state":     state,
+            "commodity": commodity or "all",
+            "district":  district or "all",
+            "total":     0,
+            "prices":    []
+        }
 
     return {
         "state":     state,

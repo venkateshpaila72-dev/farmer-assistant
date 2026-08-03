@@ -19,32 +19,26 @@ import TrendingCrops from "./pages/market/TrendingCrops.jsx";
 import NewsLayout from "./pages/news/NewsLayout.jsx";
 import NewsFeed from "./pages/news/NewsFeed.jsx";
 import PestAlerts from "./pages/news/PestAlerts.jsx";
+import AnnouncementsFeed from "./pages/news/AnnouncementsFeed.jsx";
+import ChatPage from "./pages/chat/ChatPage.jsx";
+import ProfilePage from "./pages/profile/ProfilePage.jsx";
 import { DashboardLayout } from "./layouts/DashboardLayout.jsx";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { OnboardingGuard } from "./routes/OnboardingGuard.jsx";
 import { AdminRoute } from "./routes/AdminRoute.jsx";
-
-function NotFound() {
-  return (
-    <div className="min-h-screen flex items-center justify-center text-ink-soft">
-      Page not found.
-    </div>
-  );
-}
+import { AdminLayout } from "./layouts/AdminLayout.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import FarmerList from "./pages/admin/FarmerList.jsx";
+import Analytics from "./pages/admin/Analytics.jsx";
+import Announcements from "./pages/admin/Announcements.jsx";
+import MarketDataUpload from "./pages/admin/MarketDataUpload.jsx";
+import NotFound from "./pages/NotFound.jsx";
 
 // Placeholders for tool pages not yet built (Phase 7).
 function ToolPlaceholder({ label }) {
   return (
     <div className="flex items-center justify-center py-24 text-ink-soft">
       {label} coming soon.
-    </div>
-  );
-}
-
-function AdminPlaceholder() {
-  return (
-    <div className="min-h-screen flex items-center justify-center text-ink-soft">
-      Admin panel coming in Phase 8.
     </div>
   );
 }
@@ -56,6 +50,14 @@ function DashboardRoute({ children }) {
         <DashboardLayout>{children}</DashboardLayout>
       </OnboardingGuard>
     </ProtectedRoute>
+  );
+}
+
+function AdminPageRoute({ children }) {
+  return (
+    <AdminRoute>
+      <AdminLayout>{children}</AdminLayout>
+    </AdminRoute>
   );
 }
 
@@ -98,19 +100,17 @@ function App() {
       <Route path="/news" element={<DashboardRoute><NewsLayout /></DashboardRoute>}>
         <Route index element={<NewsFeed />} />
         <Route path="alerts" element={<PestAlerts />} />
+        <Route path="announcements" element={<AnnouncementsFeed />} />
       </Route>
 
-      <Route path="/chat" element={<DashboardRoute><ToolPlaceholder label="Chat" /></DashboardRoute>} />
-      <Route path="/profile" element={<DashboardRoute><ToolPlaceholder label="Profile" /></DashboardRoute>} />
+      <Route path="/chat" element={<DashboardRoute><ChatPage /></DashboardRoute>} />
+      <Route path="/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
 
-      <Route
-        path="/admin"
-        element={
-          <AdminRoute>
-            <AdminPlaceholder />
-          </AdminRoute>
-        }
-      />
+      <Route path="/admin" element={<AdminPageRoute><AdminDashboard /></AdminPageRoute>} />
+      <Route path="/admin/farmers" element={<AdminPageRoute><FarmerList /></AdminPageRoute>} />
+      <Route path="/admin/analytics" element={<AdminPageRoute><Analytics /></AdminPageRoute>} />
+      <Route path="/admin/announcements" element={<AdminPageRoute><Announcements /></AdminPageRoute>} />
+      <Route path="/admin/market-upload" element={<AdminPageRoute><MarketDataUpload /></AdminPageRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

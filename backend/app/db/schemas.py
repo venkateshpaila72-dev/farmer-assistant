@@ -229,6 +229,20 @@ class AnnouncementCreate(BaseModel):
     posted_by: str
 
 
+class MarketPriceCreate(BaseModel):
+    state: str
+    district: str
+    market: str
+    commodity: str
+    variety: str = ""
+    grade: str = ""
+    commodity_code: str = ""
+    min_price: float = 0
+    max_price: float = 0
+    modal_price: float = 0
+    arrival_date: str
+
+
 # ── GENERIC ───────────────────────────────────────────────────────────────────
 
 class MessageResponse(BaseModel):

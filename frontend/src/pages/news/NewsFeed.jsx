@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Newspaper } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { getFarmerNews } from "../../api/news";
@@ -25,11 +26,8 @@ export default function NewsFeed() {
   const [articles, setArticles] = useState(() => getCached(cacheKey) ?? null);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (!user?.username) return;
-    // Cached data (if any) is already showing via the initializer above —
-    // this always refetches quietly in the background to stay current,
-    // without resetting the view to a loading skeleton.
+  function load() {
+    setError(false);
     getFarmerNews(user.username)
       .then((data) => {
         const list = data.articles || [];
@@ -39,9 +37,18 @@ export default function NewsFeed() {
       .catch(() => {
         if (getCached(cacheKey) === undefined) setError(true);
       });
+  }
+
+  useEffect(() => {
+    if (!user?.username) return;
+    // Cached data (if any) is already showing via the initializer above —
+    // this always refetches quietly in the background to stay current,
+    // without resetting the view to a loading skeleton.
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.username]);
 
-  if (error) return <Panel className="p-8 text-center text-ink-soft">{t("news.loadError")}</Panel>;
+  if (error) return <ErrorState message={t("news.loadError")} onRetry={load} />;
 
   if (articles === null) {
     return (

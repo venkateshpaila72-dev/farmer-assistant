@@ -9,6 +9,7 @@ FARM_REPORTS_COLLECTION     = "farm_reports"
 DISEASE_LOGS_COLLECTION     = "disease_logs"
 ANNOUNCEMENTS_COLLECTION    = "announcements"
 MARKET_PRICES_COLLECTION    = "market_prices"
+ICAR_DOCUMENTS_COLLECTION   = "icar_documents"
 
 
 async def create_indexes(db):

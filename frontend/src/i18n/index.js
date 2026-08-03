@@ -38,8 +38,8 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-// Keep the choice across visits/reloads and remember it for whenever we later
-// wire the farmer's saved chat_language into their login flow.
+// Keep the choice across visits/reloads. AuthContext.jsx additionally
+// syncs this to the farmer's saved chat_language automatically at login.
 i18n.on("languageChanged", (lng) => {
   localStorage.setItem("language", lng);
 });

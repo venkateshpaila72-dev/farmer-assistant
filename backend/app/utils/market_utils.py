@@ -6,11 +6,14 @@ async def get_prices_from_db(
     state: str,
     commodity: str = None,
     district: str = None,
-    limit: int = 100
+    limit: int = 100,
+    skip: int = 0
 ) -> list:
     """
     Fetch market prices from MongoDB.
     Data was uploaded by admin via CSV.
+    `skip` supports a "load more" pattern for large states instead of
+    fetching everything in one shot.
     """
     db = get_db()
 
@@ -22,7 +25,7 @@ async def get_prices_from_db(
 
     prices = await db[MARKET_PRICES_COLLECTION].find(
         query, {"_id": 0}
-    ).sort("arrival_date", -1).limit(limit).to_list(length=limit)
+    ).sort("arrival_date", -1).skip(skip).limit(limit).to_list(length=limit)
 
     return prices
 

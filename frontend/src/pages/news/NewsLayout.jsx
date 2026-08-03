@@ -5,6 +5,7 @@ import { cn } from "../../utils/cn";
 const tabs = [
   { to: "/news", key: "news.tabFeed", end: true },
   { to: "/news/alerts", key: "news.tabAlerts" },
+  { to: "/news/announcements", key: "news.tabAnnouncements" },
 ];
 
 export default function NewsLayout() {

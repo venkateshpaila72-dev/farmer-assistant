@@ -29,11 +29,17 @@ langchain-groq
 # LLM — NVIDIA NIM (Embeddings + Vision)
 openai
 
-# Agentic AI — LangChain + LangGraph + CrewAI
-langchain
-langchain-pinecone
-langgraph
-crewai
+# Agentic AI — LangGraph (chat ReAct agent + supervisor) + LangChain core
+# (tools, retriever, message types) + LangChain's Groq chat model wrapper.
+# NOT using: the top-level `langchain` package (never imported — only
+# langchain_core primitives are used), `langchain-pinecone` (this RAG index
+# uses Pinecone's own hosted/server-side embedding, not a LangChain
+# VectorStore — see app/rag/langchain_retriever.py for why), or `crewai`
+# (LangGraph alone covers the supervisor's fan-out/fan-in pipeline; running
+# two agent frameworks side by side would add complexity with no benefit).
+langchain-core>=1.5.1
+langchain-groq>=1.1.3
+langgraph>=1.2.9
 
 # Vector DB — Pinecone (RAG)
 pinecone-client

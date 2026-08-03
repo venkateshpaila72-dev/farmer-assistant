@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
+from starlette.websockets import WebSocketState
 from datetime import datetime
 from app.db.database import get_db
 from app.db.models import (
@@ -10,12 +11,39 @@ from app.utils.weather_utils import get_current_weather, get_season_from_month
 from app.utils.news_utils import get_farming_news
 from app.utils.groq_utils import (
     build_system_prompt,
-    chat_with_groq,
     detect_language_override
 )
+from app.utils.langgraph_chat_agent import run_chat_agent
 from app.core.security import get_current_user, decode_token
 
 router = APIRouter()
+
+
+async def safe_send_json(websocket: WebSocket, payload: dict) -> bool:
+    """
+    Send JSON to the client, swallowing the failure if it's already gone.
+    A dropped connection (page navigation, a dev-only React StrictMode
+    double-connect, a flaky network) is normal, not a server error —
+    without this guard, a send on a dead socket raises WebSocketDisconnect,
+    and if that happens *inside our own error-handling send*, the second
+    failure goes unhandled and crashes with the ugly nested traceback.
+    """
+    if websocket.client_state != WebSocketState.CONNECTED:
+        return False
+    try:
+        await websocket.send_json(payload)
+        return True
+    except Exception:
+        return False
+
+
+async def safe_close(websocket: WebSocket, code: int = 1000, reason: str = "") -> None:
+    """Close without raising if the socket is already gone."""
+    if websocket.client_state == WebSocketState.CONNECTED:
+        try:
+            await websocket.close(code=code, reason=reason)
+        except Exception:
+            pass
 
 
 async def load_farmer_context(username: str, db) -> dict:
@@ -139,11 +167,11 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
     try:
         ctx = await load_farmer_context(username, db)
         if not ctx:
-            await websocket.send_json({
+            await safe_send_json(websocket, {
                 "type":    "error",
                 "message": f"Farmer '{username}' profile not found. Complete onboarding first."
             })
-            await websocket.close()
+            await safe_close(websocket)
             return
 
         profile = ctx.get("profile", {})
@@ -154,17 +182,19 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
         session_language = profile.get("chat_language", "English")
 
     except Exception as e:
-        await websocket.send_json({"type": "error", "message": str(e)})
-        await websocket.close()
+        await safe_send_json(websocket, {"type": "error", "message": str(e)})
+        await safe_close(websocket)
         return
 
-    # Welcome message
-    await websocket.send_json({
+    # Welcome message — if this fails the client is already gone (e.g. a
+    # dev-only double-connect that got superseded), nothing more to do.
+    if not await safe_send_json(websocket, {
         "type":     "connected",
         "message":  f"Hello {username}! I know your farm in {state}. Ask me anything!",
         "language": session_language,
         "season":   ctx.get("season", "Kharif")
-    })
+    }):
+        return
 
     try:
         while True:
@@ -197,7 +227,7 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             #    RAG document search, or last disease detection) based on what
             #    was actually asked. No manual keyword gating needed anymore.
             try:
-                result   = await chat_with_groq(
+                result   = await run_chat_agent(
                     messages=history,
                     system_prompt=system_prompt,
                     max_tokens=600,
@@ -219,12 +249,13 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             print(f"🤖 Bot: {response[:100]}...")
 
             # 7. Send to farmer
-            await websocket.send_json({
+            if not await safe_send_json(websocket, {
                 "type":     "message",
                 "response": response,
                 "sources":  rag_sources,
                 "used_rag": used_rag
-            })
+            }):
+                break  # client's already gone — nothing left to do here
 
     except WebSocketDisconnect:
         print(f"🔌 Disconnected: {username}")

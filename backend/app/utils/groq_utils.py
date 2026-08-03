@@ -6,6 +6,38 @@ from app.utils.agent_tools import TOOL_SCHEMAS, TOOL_FUNCTIONS
 MAX_TOOL_ITERATIONS = 3  # safety cap so the agent can't loop forever
 
 
+def _recover_malformed_tool_call(error_str: str):
+    """
+    Known Llama/Groq quirk: instead of returning a proper structured tool
+    call, the model sometimes glues the function name and its JSON
+    arguments into one invalid string, e.g. it tries to call a tool
+    literally named:
+        search_farming_documents{"query": "treatment for leaf scorch"}
+    Groq's API rejects this with a 400 validation error — but critically,
+    that error message echoes the exact mangled string back, which means
+    the model's actual intent (which tool, which arguments) is sitting
+    right there in the error text. Recovering and running it directly is
+    far better than just dropping tool access for the whole turn.
+
+    Returns (tool_name, args_dict), or (None, None) if nothing recoverable
+    was found — callers should fall back to the old plain-text behavior
+    in that case, so this is a strictly additive improvement, never a
+    regression risk.
+    """
+    for name in TOOL_FUNCTIONS:
+        idx = error_str.find(name + "{")
+        if idx == -1:
+            continue
+        json_start = idx + len(name)
+        try:
+            args, _ = json.JSONDecoder().raw_decode(error_str[json_start:])
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(args, dict):
+            return name, args
+    return None, None
+
+
 # ── Groq key rotation ────────────────────────────────────────────────────
 # Groq's free tier rate-limits per API key (tokens/day). With 4 keys, any
 # single call that hits a rate limit on one key automatically retries on
@@ -141,8 +173,22 @@ Ask yourself before calling any tool: "Does answering this require data
 I do not currently have, that one specific tool below provides?"
 - If NO (it's a greeting, thanks, opinion, general knowledge, or something
   answerable from the context already given) → just answer, zero tool calls.
-- If YES → call exactly the one tool that provides that exact data, once,
-  with the right arguments. Then answer using what it returns.
+- If YES → call the tool that provides that exact data, with the right
+  arguments. Then answer using what it returns.
+
+Some questions genuinely need the SAME tool called more than once with
+DIFFERENT arguments — e.g. "which of these 3 crops has the best price"
+needs get_market_price called once per crop, not once total. Never guess,
+skip a crop, or say data "isn't available" when you could just call the
+tool again with different arguments to actually get it.
+
+Do not repeat an IDENTICAL call (same tool, same arguments) more than
+once — that's the only kind of repetition to avoid.
+
+Never narrate this process to the farmer. Do not say "I will search...",
+"Searching for...", "Let me check...", or anything describing that you are
+about to use or have used a tool. The farmer only ever sees your final
+answer — go straight to it, as if you already knew the information.
 
 ═══════════════════════════════════════════════════════════
 FARMER DETAILS (already known to you — never say you don't know this)
@@ -301,12 +347,44 @@ async def chat_with_groq(
             # cleanly to any one tool, the model sometimes emits a malformed
             # pseudo-XML function call (<function=name{args}></function>)
             # instead of a proper structured tool_calls response. Groq's API
-            # then rejects it with a 400 "tool_use_failed" error. Rather than
-            # crash, retry once with tools disabled so it just answers in
-            # plain text from the background context already in the prompt.
+            # then rejects it with a 400 "tool_use_failed" error.
             error_str = str(e)
             if "tool_use_failed" in error_str or "tool call validation failed" in error_str:
-                print(f"⚠️ Malformed tool call detected, retrying without tools: {error_str[:150]}")
+                print(f"⚠️ Malformed tool call detected: {error_str[:150]}")
+
+                # Try to recover what the model actually meant to call and
+                # run it for real, instead of just answering with no tools.
+                recovered_name, recovered_args = _recover_malformed_tool_call(error_str)
+
+                if recovered_name and recovered_name in TOOL_FUNCTIONS:
+                    print(f"   Recovered: {recovered_name}({recovered_args}) — executing directly")
+                    if recovered_name == "get_last_disease_detection" and "username" not in recovered_args and username:
+                        recovered_args["username"] = username
+
+                    try:
+                        result = await TOOL_FUNCTIONS[recovered_name](**recovered_args)
+                    except Exception as tool_err:
+                        result = {"found": False, "message": f"Tool error: {str(tool_err)}"}
+
+                    used_tools.append(recovered_name)
+                    if recovered_name == "search_farming_documents" and result.get("sources"):
+                        for s in result["sources"]:
+                            if s not in rag_sources:
+                                rag_sources.append(s)
+
+                    # Feed the real tool result back in and ask for a final
+                    # answer — no `tools` param this time, so there's nothing
+                    # left for the model to malform a call against.
+                    full_messages.append({
+                        "role": "user",
+                        "content": (
+                            f"[Tool result for {recovered_name}]: {json.dumps(result)}\n\n"
+                            "Use this to answer the farmer's question."
+                        )
+                    })
+                else:
+                    print("   Could not recover a specific tool call — answering without tools")
+
                 try:
                     fallback = groq_completion_with_rotation(
                         model=settings.GROQ_MODEL,

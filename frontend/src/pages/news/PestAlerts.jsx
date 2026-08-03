@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { Select } from "../../components/ui/Select";
 import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { getPestAlerts } from "../../api/news";
@@ -54,10 +55,9 @@ export default function PestAlerts() {
       .catch(() => setStates([]));
   }, [states]);
 
-  useEffect(() => {
+  function loadAlerts() {
+    setError(false);
     setCached("news:alerts:selectedState", state);
-    // Cached alerts (if any) already show via the initializer — this
-    // refetches quietly in the background rather than resetting to a skeleton.
     getPestAlerts(state || undefined)
       .then((data) => {
         const list = data.alerts || [];
@@ -67,6 +67,13 @@ export default function PestAlerts() {
       .catch(() => {
         if (getCached(alertsCacheKey) === undefined) setError(true);
       });
+  }
+
+  useEffect(() => {
+    // Cached alerts (if any) already show via the initializer — this
+    // refetches quietly in the background rather than resetting to a skeleton.
+    loadAlerts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   return (
@@ -83,7 +90,7 @@ export default function PestAlerts() {
       </Panel>
 
       {error ? (
-        <Panel className="p-8 text-center text-ink-soft">{t("news.loadError")}</Panel>
+        <ErrorState message={t("news.loadError")} onRetry={loadAlerts} />
       ) : alerts === null ? (
         <div className="flex flex-col gap-3">
           {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)}

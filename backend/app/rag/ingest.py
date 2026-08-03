@@ -46,13 +46,15 @@ async def ingest_pdf(pdf_bytes: bytes, source_name: str) -> dict:
 
     index      = get_index()
     records    = []
+    all_ids    = []  # every chunk id actually upserted — needed for precise deletion later
     failed     = 0
     batch_size = 50
 
     for i, chunk in enumerate(chunks):
         try:
+            chunk_id = f"{source_name}_{i}_{str(uuid.uuid4())[:8]}"
             records.append({
-                "_id":    f"{source_name}_{i}_{str(uuid.uuid4())[:8]}",
+                "_id":    chunk_id,
                 "text":   chunk,        # ← MUST be "text" for Pinecone inference
                 "source": source_name,
                 "chunk":  i
@@ -70,6 +72,7 @@ async def ingest_pdf(pdf_bytes: bytes, source_name: str) -> dict:
                     records=records
                 )
                 print(f"  ✅ Batch upserted: {i+1}/{len(chunks)} chunks")
+                all_ids.extend(r["_id"] for r in records)
                 records = []
             except Exception as e:
                 print(f"  ❌ Batch upsert failed: {e}")
@@ -84,6 +87,7 @@ async def ingest_pdf(pdf_bytes: bytes, source_name: str) -> dict:
                 records=records
             )
             print(f"  ✅ Final batch upserted: {len(records)} chunks")
+            all_ids.extend(r["_id"] for r in records)
         except Exception as e:
             print(f"  ❌ Final batch failed: {e}")
             failed += len(records)
@@ -97,5 +101,6 @@ async def ingest_pdf(pdf_bytes: bytes, source_name: str) -> dict:
         "total_chunks": len(chunks),
         "ingested":     success_count,
         "failed":       failed,
+        "ids":          all_ids,  # exact Pinecone vector ids — used to support precise deletion
         "message":      f"Ingested {success_count} chunks from {source_name}"
-    }
+    }       
