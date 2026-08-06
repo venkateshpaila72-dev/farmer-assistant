@@ -5,8 +5,62 @@ from app.db.models import FARMER_PROFILES_COLLECTION, DISEASE_LOGS_COLLECTION
 from app.utils.cloudinary_utils import upload_image
 from app.ml_models import soil_classifier, disease_detector
 from app.core.security import get_current_user
+from app.utils.chat_history import save_message
 
 router = APIRouter()
+
+
+def _format_soil_chat_summary(result: dict) -> str:
+    """Plain-language summary saved into chat history when a soil photo is
+    analyzed from inside the chat UI — written as if the assistant itself
+    had just looked at the photo and answered, so it reads naturally in
+    the conversation and gives the agent context for later questions."""
+    return (
+        f"[Soil photo analyzed] This soil looks like **{result['soil_type']}** "
+        f"({result['confidence']*100:.0f}% confidence). I've noted this as your soil type."
+    )
+
+
+def _format_fertilizer(fert: dict) -> str:
+    """The ML model's fertilizer field is a structured object
+    ({applicable, name, method, related_fertilizers: [{name, reason}]} when
+    applicable, or {applicable: False, note} when not) — never a plain
+    string. Stringifying it directly (as the first version of this file
+    did) produces literal '[object Object]'/dict-repr text. This turns it
+    into a readable sentence instead."""
+    if not fert or not fert.get("applicable"):
+        return (fert or {}).get("note") or "No fertilizer recommendation for this condition."
+
+    parts = [fert.get("name", "")]
+    if fert.get("method"):
+        parts.append(fert["method"])
+
+    related = fert.get("related_fertilizers") or []
+    options = "; ".join(
+        f"{r.get('name')} ({r['reason']})" if r.get("reason") else r.get("name", "")
+        for r in related if r.get("name")
+    )
+    if options:
+        parts.append(f"Options: {options}")
+
+    return " ".join(p for p in parts if p)
+
+
+def _format_disease_chat_summary(result: dict) -> str:
+    """Same idea for disease detection — includes treatment, prevention and
+    fertilizer so the full recommendation shows up in the chat thread, not
+    just in the one-off API response."""
+    if result.get("is_healthy"):
+        return "[Crop photo analyzed] Good news — this plant looks healthy, no disease detected."
+
+    lines = [
+        f"[Crop photo analyzed] I found {result['disease']} "
+        f"({result['confidence']*100:.0f}% confidence, severity: {result['severity']}).",
+        f"\nTreatment: {result['treatment']}",
+        f"\nFertilizer recommendation: {_format_fertilizer(result.get('fertilizer'))}",
+        f"\nPrevention tips: {result['prevention']}",
+    ]
+    return "".join(lines)
 
 
 # ── Soil Classification ────────────────────────────────────────────────────────
@@ -16,6 +70,7 @@ async def classify_soil(
     username: str,
     file: UploadFile = File(...),
     update_profile: bool = True,
+    log_to_chat: bool = False,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -51,9 +106,10 @@ async def classify_soil(
     except Exception:
         image_url = None
 
+    db = get_db()
+
     # Update farmer profile with soil type — only if requested
     if update_profile:
-        db = get_db()
         await db[FARMER_PROFILES_COLLECTION].update_one(
             {"username": username},
             {"$set": {
@@ -62,6 +118,12 @@ async def classify_soil(
                 "updated_at":     datetime.utcnow()
             }}
         )
+
+    # Log into chat history when this photo was uploaded from inside the
+    # chat UI, so it shows up in the conversation thread on reload and the
+    # agent has it as context for follow-up questions in the same session.
+    if log_to_chat:
+        await save_message(username, "assistant", _format_soil_chat_summary(result), db)
 
     return {
         "username":          username,
@@ -84,6 +146,7 @@ async def classify_soil(
 async def detect_disease(
     username: str,
     file: UploadFile = File(...),
+    log_to_chat: bool = False,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -131,6 +194,9 @@ async def detect_disease(
         "image_url":   image_url,
         "detected_at": datetime.utcnow()
     })
+
+    if log_to_chat:
+        await save_message(username, "assistant", _format_disease_chat_summary(result), db)
 
     return {
         "username":   username,

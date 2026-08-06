@@ -1,5 +1,7 @@
 {
-  "brand": { "name": "Kisan Sahayak" },
+  "brand": {
+    "name": "Kisan Sahayak"
+  },
   "nav": {
     "whatItDoes": "What it does",
     "dashboardGlance": "Your farm, at a glance",
@@ -30,11 +32,26 @@
     "badge": "What it does",
     "title": "Six things you'd otherwise call five different people for.",
     "subtitle": "Each one answers a question you already ask — just faster, and specific to your field and your soil.",
-    "crop": { "title": "Crop, fertiliser and yield, worked out for your soil", "desc": "Tell it your soil type and field size once — it fills in the rest from live weather and your location, and tells you what to plant, what to feed it, and what to expect at harvest." },
-    "photo": { "title": "Photo diagnosis", "desc": "Photograph a leaf or soil sample for an instant read on disease and treatment." },
-    "market": { "title": "Local market prices", "desc": "Real prices from your district, with trends so you know if a price is worth waiting on." },
-    "weather": { "title": "Weather by field", "desc": "Forecasts tied to your exact village, not the nearest big city." },
-    "chat": { "title": "Ask it anything, anytime", "desc": "A chat that knows your farm's history — ask in plain language, get an answer grounded in real agricultural guidance." }
+    "crop": {
+      "title": "Crop, fertiliser and yield, worked out for your soil",
+      "desc": "Tell it your soil type and field size once — it fills in the rest from live weather and your location, and tells you what to plant, what to feed it, and what to expect at harvest."
+    },
+    "photo": {
+      "title": "Photo diagnosis",
+      "desc": "Photograph a leaf or soil sample for an instant read on disease and treatment."
+    },
+    "market": {
+      "title": "Local market prices",
+      "desc": "Real prices from your district, with trends so you know if a price is worth waiting on."
+    },
+    "weather": {
+      "title": "Weather by field",
+      "desc": "Forecasts tied to your exact village, not the nearest big city."
+    },
+    "chat": {
+      "title": "Ask it anything, anytime",
+      "desc": "A chat that knows your farm's history — ask in plain language, get an answer grounded in real agricultural guidance."
+    }
   },
   "dashboardPreview": {
     "badge": "Your farm, at a glance",
@@ -54,11 +71,15 @@
     "rising": "Rising"
   },
   "news": {
-    "badge": "Farming news",
-    "title": "What's happening in agriculture today.",
-    "subtitle": "Pulled fresh from the news feed, updated as it publishes.",
-    "loadError": "Couldn't load news right now — check that the backend is running.",
-    "empty": "No news articles found right now."
+    "pageTitle": "News",
+    "pageSubtitle": "Farming news and alerts relevant to you.",
+    "tabFeed": "News",
+    "tabAlerts": "Pest Alerts",
+    "allIndia": "All India",
+    "noAlerts": "No pest alerts right now.",
+    "tabAnnouncements": "Announcements",
+    "noAnnouncements": "No announcements posted yet.",
+    "edited": "Edited"
   },
   "cta": {
     "title": "Set up your farm profile once. Get advice suited to it every day after.",
@@ -119,8 +140,13 @@
     "subtitle": "If you're not sure, pick your best guess — you can update this later."
   },
   "soilTypes": {
-    "Alluvial": "Alluvial", "Black": "Black", "Red": "Red", "Laterite": "Laterite",
-    "Sandy": "Sandy", "Clay": "Clay", "Loamy": "Loamy"
+    "Alluvial": "Alluvial",
+    "Black": "Black",
+    "Red": "Red",
+    "Laterite": "Laterite",
+    "Sandy": "Sandy",
+    "Clay": "Clay",
+    "Loamy": "Loamy"
   },
   "farmSizeStep": {
     "title": "How big is your farm?",
@@ -133,22 +159,37 @@
     "selectAtLeastOne": "Select at least one crop to continue."
   },
   "crops": {
-    "Rice": "Rice", "Wheat": "Wheat", "Cotton": "Cotton", "Sugarcane": "Sugarcane",
-    "Maize": "Maize", "Groundnut": "Groundnut", "Soybean": "Soybean", "Tomato": "Tomato",
-    "Onion": "Onion", "Chilli": "Chilli", "Mustard": "Mustard", "Gram": "Gram"
+    "Rice": "Rice",
+    "Wheat": "Wheat",
+    "Cotton": "Cotton",
+    "Sugarcane": "Sugarcane",
+    "Maize": "Maize",
+    "Groundnut": "Groundnut",
+    "Soybean": "Soybean",
+    "Tomato": "Tomato",
+    "Onion": "Onion",
+    "Chilli": "Chilli",
+    "Mustard": "Mustard",
+    "Gram": "Gram"
   },
   "irrigationStep": {
     "title": "How do you water your fields?",
     "subtitle": "Your main source — it's fine if you use more than one sometimes."
   },
-  "irrigation": { "rainfall": "Rain-fed", "canal": "Canal", "borewell": "Borewell" },
+  "irrigation": {
+    "rainfall": "Rain-fed",
+    "canal": "Canal",
+    "borewell": "Borewell"
+  },
   "problemStep": {
     "title": "What's your biggest challenge right now?",
     "subtitle": "We'll prioritize advice around this."
   },
   "problem": {
-    "pests": "Pests & disease", "water": "Water shortage",
-    "price": "Getting a fair price", "disease": "Crop health issues"
+    "pests": "Pests & disease",
+    "water": "Water shortage",
+    "price": "Getting a fair price",
+    "disease": "Crop health issues"
   },
   "locationStep": {
     "title": "Where's your farm?",
@@ -165,10 +206,18 @@
     "geoPartialFail": "Got your location, but couldn't fill in the address automatically — please enter it below."
   },
   "sidebar": {
-    "dashboard": "Dashboard", "cropTools": "Crop Tools", "vision": "Photo Check",
-    "market": "Market", "news": "News", "chat": "Chat", "profile": "Profile"
+    "dashboard": "Dashboard",
+    "cropTools": "Crop Tools",
+    "vision": "Photo Check",
+    "market": "Market",
+    "news": "News",
+    "chat": "Chat",
+    "profile": "Profile"
   },
-  "topbar": { "greeting": "Hi, {{name}}", "logout": "Log out" },
+  "topbar": {
+    "greeting": "Hi, {{name}}",
+    "logout": "Log out"
+  },
   "dashboardHome": {
     "alertNone": "No alerts today — all clear",
     "today": "Today",
@@ -186,16 +235,18 @@
   "cropTools": {
     "title": "Crop tools",
     "subtitle": "Recommendations built from your soil, weather, and farm profile.",
-    "tabCrop": "Crop", "tabFertilizer": "Fertilizer", "tabYield": "Yield",
+    "tabCrop": "Crop",
+    "tabFertilizer": "Fertilizer",
+    "tabYield": "Yield",
     "cropAutoNote": "We use your soil type, location, and today's weather automatically — nothing to fill in.",
     "fertilizerAutoNote": "Soil and weather are auto-loaded from your profile. Just pick your crop.",
     "getCropRecommendation": "Get crop recommendation",
     "getFertilizerSuggestion": "Get fertilizer suggestion",
     "getYieldPrediction": "Predict yield",
-    "analyzing": "Analyzing\u2026",
+    "analyzing": "Analyzing…",
     "confidence": "confidence",
     "dosage": "Dosage",
-    "lowSampleNote": "Fewer training examples for this fertilizer \u2014 treat with a bit more caution",
+    "lowSampleNote": "Fewer training examples for this fertilizer — treat with a bit more caution",
     "npkDeficit": "Your NPK vs. what this crop needs",
     "deficitExplain": "Positive means your soil has less than the crop needs; negative means you already have more than enough.",
     "method": "Method",
@@ -214,13 +265,15 @@
   "vision": {
     "title": "Photo check",
     "subtitle": "Snap a photo of a leaf or your soil for an instant read.",
-    "tabDisease": "Disease", "tabSoil": "Soil", "tabHistory": "History",
+    "tabDisease": "Disease",
+    "tabSoil": "Soil",
+    "tabHistory": "History",
     "diseaseNote": "Take a clear, close-up photo of the affected leaf in good light.",
     "soilNote": "Take a clear photo of your soil in daylight, without shadows.",
     "uploadLeafPhoto": "Upload or take a leaf photo",
     "uploadSoilPhoto": "Upload or take a soil photo",
     "checkPhoto": "Check photo",
-    "analyzing": "Analyzing\u2026",
+    "analyzing": "Analyzing…",
     "healthy": "Looks healthy",
     "treatment": "Treatment",
     "prevention": "Prevention",
@@ -236,7 +289,8 @@
   "market": {
     "title": "Market",
     "subtitle": "Real prices and trends from your area.",
-    "tabPrices": "Prices", "tabTrending": "Trending",
+    "tabPrices": "Prices",
+    "tabTrending": "Trending",
     "state": "State",
     "selectState": "Select a state",
     "commodity": "Commodity",
@@ -257,16 +311,6 @@
     "noCommoditiesFound": "No commodities found for this state.",
     "loadError": "Couldn't load prices. Try again."
   },
-  "news": {
-    "pageTitle": "News",
-    "pageSubtitle": "Farming news and alerts relevant to you.",
-    "tabFeed": "News", "tabAlerts": "Pest Alerts",
-    "allIndia": "All India",
-    "noAlerts": "No pest alerts right now.",
-    "tabAnnouncements": "Announcements",
-    "noAnnouncements": "No announcements posted yet.",
-    "edited": "Edited"
-  },
   "chat": {
     "title": "Farm Assistant",
     "subtitle": "Ask anything — crops, fertilizer, disease, weather, prices.",
@@ -282,7 +326,22 @@
     "copied": "Copied",
     "edit": "Edit",
     "voiceInput": "Voice input",
-    "listening": "Listening..."
+    "listening": "Listening...",
+    "soilAnalysis": "Soil Analysis",
+    "diseaseAnalysis": "Crop Disease Analysis",
+    "readAloud": "Read aloud",
+    "stopSpeaking": "Stop",
+    "soilResult": "This soil looks like {{type}} ({{confidence}}% confidence). I've noted this as your soil type.",
+    "healthyResult": "Good news — this plant looks healthy, no disease detected.",
+    "diseaseResult": "I found {{disease}} ({{confidence}}% confidence, severity: {{severity}}).\n\nTreatment: {{treatment}}\n\nFertilizer recommendation: {{fertilizer}}\n\nPrevention tips: {{prevention}}",
+    "analysisFailed": "Sorry, I couldn't analyze that photo. Please try again.",
+    "analyzingSoil": "Analyzing soil photo…",
+    "analyzingCrop": "Analyzing crop photo…",
+    "whatIsThisPhoto": "What's in this photo?",
+    "soilPhoto": "Soil",
+    "cropPhoto": "Crop / Leaf",
+    "transcribing": "Transcribing your voice…",
+    "attachPhoto": "Attach photo"
   },
   "profile": {
     "title": "Profile",

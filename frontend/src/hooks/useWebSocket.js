@@ -176,5 +176,19 @@ export function useWebSocket(username) {
 
   const clearMessages = useCallback(() => setMessages([]), []);
 
-  return { messages, status, thinking, meta, sendMessage, reconnect, clearMessages };
+  // Photo analysis (soil/disease) doesn't go through the chat socket — it's
+  // a plain REST call to the vision endpoints. This drops the exchange into
+  // the same message list so it reads naturally in the thread. The backend
+  // also persists a text summary into chat_history (log_to_chat=true) so it
+  // survives a reload; `analysis` here is only used for the nicer in-session
+  // card rendering and isn't itself persisted.
+  const addPhotoExchange = useCallback((userImageUrl, assistantContent, analysis) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: nextId(), role: "user", content: "", imageUrl: userImageUrl },
+      { id: nextId(), role: "assistant", content: assistantContent, analysis },
+    ]);
+  }, []);
+
+  return { messages, status, thinking, meta, sendMessage, reconnect, clearMessages, addPhotoExchange };
 }

@@ -102,6 +102,72 @@ def groq_completion_with_rotation(**kwargs):
 groq_client = _clients[0] if _clients else None
 
 
+# Whisper's `prompt` param biases its vocabulary recognition toward words
+# that appear in it — it doesn't force these exact words into the output,
+# it just makes Whisper more likely to recognize them correctly when they
+# actually occur in the audio. This targets a specific, observed failure
+# mode: farmers code-switching into English mid-sentence for domain terms
+# and place names (e.g. "...crops recommend చేయు" or "...Andhra Pradesh
+# లో..."), which Whisper was mangling into nonsense syllables (seen in
+# testing: "recommend" -> "రిటమెంట్", "Andhra Pradesh" -> "అందర్ ప్రదేశ్").
+_TRANSCRIPTION_VOCAB_HINT = (
+    "Farmer Assistant app. Indian farmer speaking about crops, farming, "
+    "and prices. Common words: recommend, crop, fertilizer, disease, "
+    "pesticide, irrigation, quintal, mandi, yield, soil, weather, market "
+    "price, Andhra Pradesh, Telangana, Karnataka, Tamil Nadu, Maharashtra, "
+    "Punjab, Gujarat, West Bengal, rice, wheat, cotton, maize, soybean, "
+    "tomato, chilli, groundnut, sugarcane."
+)
+
+
+def transcribe_audio_with_rotation(audio_bytes: bytes, filename: str = "voice.webm") -> dict:
+    """
+    Speech-to-text via Groq's hosted Whisper, with the same key-rotation
+    fallback as groq_completion_with_rotation — if one key is rate-limited,
+    try the next rather than failing the farmer's voice message outright.
+
+    No `language` parameter is passed to Whisper on purpose: leaving it
+    unset makes Whisper auto-detect from the audio itself, which is what
+    lets a farmer speak in ANY supported language (not just a fixed list)
+    and still get an accurate transcript.
+
+    A `prompt` IS passed — see _TRANSCRIPTION_VOCAB_HINT above — to reduce
+    (not eliminate) mis-transcription of code-switched English terms and
+    place names that are common in how Indian farmers actually speak.
+
+    Returns {"text": str, "language": str} — `language` is whatever ISO
+    code/name Whisper reports back (e.g. "english", "telugu", "hindi").
+    """
+    global _current_key_index
+
+    last_error = None
+    attempts   = len(_clients)
+
+    for _ in range(attempts):
+        client = _clients[_current_key_index]
+        try:
+            transcript = client.audio.transcriptions.create(
+                file=(filename, audio_bytes),
+                model="whisper-large-v3",
+                response_format="verbose_json",
+                prompt=_TRANSCRIPTION_VOCAB_HINT
+            )
+            return {
+                "text":     (transcript.text or "").strip(),
+                "language": getattr(transcript, "language", None) or "unknown"
+            }
+        except Exception as e:
+            last_error = e
+            if _is_rate_limit_error(e):
+                print(f"⚠️ Groq key #{_current_key_index + 1} rate-limited (whisper), rotating...")
+                _current_key_index = (_current_key_index + 1) % len(_clients)
+                continue
+            else:
+                raise
+
+    raise last_error
+
+
 def build_system_prompt(farmer_context: dict, username: str, language: str = None) -> str:
     """
     Build system prompt with full farmer context.
@@ -144,21 +210,43 @@ def build_system_prompt(farmer_context: dict, username: str, language: str = Non
 ═══════════════════════════════════════════════════════════
 LANGUAGE — NON-NEGOTIABLE, APPLIES TO EVERY SINGLE RESPONSE
 ═══════════════════════════════════════════════════════════
-Required language for this entire conversation: {language}
+Default/starting language for this session: {language}
 
-This applies with ZERO exceptions, including:
-- Greetings and short replies ("hi", "thanks", "ok") — these are NOT
-  exempt just because they're short. A one-word greeting in {language}
-  is still required, even if {language} is not English.
-- Tool-based answers and direct answers — both must be in {language}
-- Every single message, regardless of topic or length
-
-Do not default to English out of habit. Do not switch language based on
-message length or simplicity. The ONLY way to change language is if the
-farmer explicitly asks to switch (e.g. "reply in English", "switch to Telugu")
-— if that hasn't happened in this conversation, you MUST use {language}.
-
-Never mix two languages in a single response.
+Match the language of the farmer's MOST RECENT message, every single turn:
+- Detect the language from the SCRIPT the message is written in — Telugu
+  script means reply in Telugu, Devanagari means reply in Hindi (or Marathi
+  if the farmer has been using Marathi), Tamil script means Tamil, and so on
+  for any of the app's languages. This applies to ANY language the farmer
+  uses, not just {language} — including languages transcribed from speech,
+  which may not match the session default.
+- Many messages come from VOICE INPUT transcribed by an automatic speech
+  recognizer. These transcripts are frequently imperfect — individual words
+  may be garbled, misheard, or nonsensical, especially proper nouns and
+  English loanwords spoken mid-sentence (e.g. a farmer saying "recommend"
+  or a state name inside an otherwise Hindi/Telugu sentence). This is
+  EXPECTED and does not make the language unclear. Judge the language from
+  the SCRIPT of the message, not from whether every word makes grammatical
+  sense — a Devanagari-script message is Hindi even if parts of it read as
+  garbled or don't fully parse; do the same best-effort reading a native
+  speaker would when hearing a bad phone connection, and reply in that
+  language. Do not fall back to {language} just because the phrasing is
+  awkward or a few words seem mistranscribed.
+- Only fall back to {language} when the language genuinely cannot be
+  determined at all — e.g. the message is only numbers, or only a single
+  ambiguous word/name with no other language cue, or literally mixes two
+  full scripts within one message. A garbled-but-legible message in a
+  single identifiable script is NOT this case.
+- This applies with ZERO exceptions, including short replies ("hi", "thanks",
+  "ok") — a one-word greeting in the farmer's language is still required,
+  even if that language is not English. Do not default to English out of
+  habit just because a message is short or simple.
+- If the farmer explicitly asks to switch (e.g. "reply in English", "switch
+  to Telugu", or the same request phrased in Telugu/Hindi/any other
+  language — understand the INTENT, not just these exact English example
+  phrases), honor that immediately, even before their next message, and
+  even if it means replying in a different language than the message
+  itself was written in.
+- Never mix two languages within a single response.
 
 ═══════════════════════════════════════════════════════════
 THE ONE RULE THAT GOVERNS TOOL USE
@@ -262,32 +350,6 @@ RESPONSE STYLE
 - Default to under 200 words unless the farmer asks for more detail"""
 
     return system
-
-
-def detect_language_override(message: str) -> str:
-    """
-    Lightweight check for an explicit language switch instruction in the
-    farmer's message. Returns a language name if detected, else None.
-    This does NOT call any LLM — pure keyword check, so it's instant and free.
-    """
-    text = message.lower()
-
-    # English switch
-    english_triggers = ["in english", "english please", "reply in english", "switch to english"]
-    if any(t in text for t in english_triggers):
-        return "English"
-
-    # Telugu switch
-    telugu_triggers = ["in telugu", "telugu please", "reply in telugu", "switch to telugu", "తెలుగు"]
-    if any(t in text for t in telugu_triggers):
-        return "Telugu"
-
-    # Hindi switch
-    hindi_triggers = ["in hindi", "hindi please", "reply in hindi", "switch to hindi", "हिंदी"]
-    if any(t in text for t in hindi_triggers):
-        return "Hindi"
-
-    return None
 
 
 def is_farming_question(message: str) -> bool:

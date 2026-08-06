@@ -1,4 +1,6 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, UploadFile, File
+from fastapi.responses import Response
+from pydantic import BaseModel
 from starlette.websockets import WebSocketState
 from datetime import datetime
 from app.db.database import get_db
@@ -11,8 +13,11 @@ from app.utils.weather_utils import get_current_weather, get_season_from_month
 from app.utils.news_utils import get_farming_news
 from app.utils.groq_utils import (
     build_system_prompt,
-    detect_language_override
+    transcribe_audio_with_rotation
 )
+from app.utils.lang_detect import detect_lang_code, LANGUAGE_DISPLAY_NAMES
+from app.utils.tts_utils import synthesize_speech
+from app.utils.chat_history import save_message, load_history
 from app.utils.langgraph_chat_agent import run_chat_agent
 from app.core.security import get_current_user, decode_token
 
@@ -93,40 +98,9 @@ async def load_farmer_context(username: str, db) -> dict:
     }
 
 
-async def save_message(username: str, role: str, content: str, db):
-    """Save message to MongoDB chat_history collection. (unchanged)"""
-    message = {
-        "role":      role,
-        "content":   content,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-
-    result = await db[CHAT_HISTORY_COLLECTION].update_one(
-        {"username": username},
-        {
-            "$push":        {"messages": message},
-            "$set":         {"updated_at": datetime.utcnow()},
-            "$setOnInsert": {
-                "username":   username,
-                "created_at": datetime.utcnow()
-            }
-        },
-        upsert=True
-    )
-    return result
-
-
-async def load_history(username: str, db, limit: int = 10) -> list:
-    """Load last N messages from MongoDB for conversation continuity. (unchanged)"""
-    doc = await db[CHAT_HISTORY_COLLECTION].find_one({"username": username})
-    if not doc:
-        return []
-
-    messages = doc.get("messages", [])
-    return [
-        {"role": m["role"], "content": m["content"]}
-        for m in messages[-limit:]
-    ]
+# save_message / load_history now live in app/utils/chat_history.py so that
+# routes/vision.py can also append photo-analysis results into the same
+# conversation (see the chat-photo-analysis feature).
 
 
 @router.websocket("/ws/chat/{username}")
@@ -208,24 +182,25 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             await save_message(username, "user", message, db)
             print(f"💬 [{username}]: {message}")
 
-            # 2. Check if farmer is asking to switch language THIS message.
-            #    If so, update session_language — it stays in effect for all
-            #    future messages on this connection until changed again.
-            lang_override = detect_language_override(message)
-            if lang_override:
-                session_language = lang_override
-                print(f"🌐 Language switched to {session_language} for {username}")
-
-            # 3. Load full conversation history (includes the message just saved)
+            # 2. Load full conversation history (includes the message just saved)
             history = await load_history(username, db, limit=10)
 
-            # 4. Rebuild system prompt with CURRENT session language + explicit username
+            # 3. Rebuild system prompt with CURRENT session language + explicit username.
+            #    "Explicit switch" requests (e.g. "reply in English", or the
+            #    same ask phrased in Telugu/Hindi/any language) are handled
+            #    directly by the LLM per the LANGUAGE block below — no
+            #    separate keyword matcher needed. session_language here is
+            #    only the FALLBACK for messages too short/ambiguous to have
+            #    a clear language of their own (see step 6, which keeps it
+            #    in sync with whatever language the conversation is actually
+            #    in, turn by turn).
             system_prompt = build_system_prompt(ctx, username=username, language=session_language)
 
-            # 5. Generate response — the agent decides internally whether it needs
+            # 4. Generate response — the agent decides internally whether it needs
             #    to call any tools (market price lookup for ANY crop, price trend,
             #    RAG document search, or last disease detection) based on what
             #    was actually asked. No manual keyword gating needed anymore.
+            had_error = False
             try:
                 result   = await run_chat_agent(
                     messages=history,
@@ -243,10 +218,23 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
                 response    = f"Sorry, error: {str(e)}"
                 rag_sources = []
                 used_rag    = False
+                had_error   = True
 
-            # 6. Save bot response to MongoDB
+            # 5. Save bot response to MongoDB
             await save_message(username, "assistant", response, db)
             print(f"🤖 Bot: {response[:100]}...")
+
+            # 6. Keep session_language in sync with the language the agent
+            #    actually just replied in (detected from the reply's own
+            #    script) — this is what step 3's fallback uses for the NEXT
+            #    ambiguous/short message, so it stays continuous with the
+            #    real conversation instead of drifting back to whatever was
+            #    saved on the profile at connection time. Skipped on error
+            #    responses (always plain English) so a transient failure
+            #    doesn't wrongly reset the farmer's actual session language.
+            if not had_error:
+                detected_code = detect_lang_code(response)
+                session_language = LANGUAGE_DISPLAY_NAMES.get(detected_code, session_language)
 
             # 7. Send to farmer
             if not await safe_send_json(websocket, {
@@ -265,6 +253,84 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             await websocket.close()
         except Exception:
             pass
+
+
+@router.post("/chat/transcribe")
+async def transcribe_voice_message(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Speech-to-text for the chat mic button.
+
+    Uses Groq Whisper (already-configured API keys, same rotation-on-rate-
+    limit pattern as the text chat) instead of the browser's native
+    SpeechRecognition — that API is Chrome/webkit-only and its accuracy for
+    Indian languages (Telugu, Kannada, Marathi, etc.) varies a lot across
+    budget Android devices. Whisper gives consistent quality regardless of
+    device, and needs no language hint — it auto-detects from the audio,
+    which is what lets a farmer speak in ANY language and have it work.
+
+    Returns the transcript plus Whisper's detected language, so the frontend
+    can show it and (optionally) use it to pick a matching text-to-speech
+    voice for the reply without guessing from the reply text alone.
+    """
+    allowed_types = ["audio/webm", "audio/wav", "audio/mp3", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/x-m4a"]
+    if file.content_type and file.content_type not in allowed_types:
+        # Some browsers send an empty or unusual content_type for recorded
+        # blobs — don't hard-reject, Whisper will just error out itself if
+        # the bytes truly aren't audio.
+        pass
+
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+
+    try:
+        result = transcribe_audio_with_rotation(audio_bytes, filename=file.filename or "voice.webm")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Transcription failed: {str(e)}")
+
+    return {
+        "text":     result["text"],
+        "language": result["language"]
+    }
+
+
+class SpeakRequest(BaseModel):
+    text: str
+
+
+@router.post("/chat/speak")
+async def speak_chat_reply(
+    body: SpeakRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Text-to-speech for the chat's auto-read-aloud / speaker button.
+
+    Generates audio server-side via edge-tts (free, no API key, Microsoft's
+    online neural voice service) instead of the browser's built-in
+    speechSynthesis. Browser TTS depends entirely on which voices happen to
+    be installed on the farmer's own phone — with no matching voice
+    installed, it silently substitutes its default English voice and reads
+    the text anyway, producing badly mispronounced audio. Generating audio
+    here means every farmer gets the same real neural-quality voice for
+    their language, regardless of device.
+    """
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="No text to speak")
+    # Keep individual TTS calls reasonably sized — a farmer reading this
+    # much text wouldn't want to wait for it all to synthesize anyway.
+    text = text[:2000]
+
+    try:
+        audio_bytes = await synthesize_speech(text)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Speech synthesis failed: {str(e)}")
+
+    return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
 @router.get("/chat/history/{username}")
