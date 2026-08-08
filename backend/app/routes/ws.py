@@ -112,7 +112,8 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
     ✅ Tool-calling agent: market price (ANY crop, not just preferred_crops),
        price trend, RAG document search, last disease detection — agent
        decides which to call based on the actual question, not a fixed list
-    ✅ Language preference from profile, with session override if farmer asks to switch
+    ✅ Language preference from profile, with per-message override detected
+       from the farmer's own message script, plus explicit switch requests
     ✅ Live weather + news (injected); market prices for preferred crops shown
        as a quick snapshot, but agent can look up ANY crop on demand via tools
 
@@ -185,16 +186,36 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             # 2. Load full conversation history (includes the message just saved)
             history = await load_history(username, db, limit=10)
 
-            # 3. Rebuild system prompt with CURRENT session language + explicit username.
-            #    "Explicit switch" requests (e.g. "reply in English", or the
-            #    same ask phrased in Telugu/Hindi/any language) are handled
-            #    directly by the LLM per the LANGUAGE block below — no
-            #    separate keyword matcher needed. session_language here is
-            #    only the FALLBACK for messages too short/ambiguous to have
-            #    a clear language of their own (see step 6, which keeps it
-            #    in sync with whatever language the conversation is actually
-            #    in, turn by turn).
-            system_prompt = build_system_prompt(ctx, username=username, language=session_language)
+            # 3. Rebuild system prompt with the language of THIS message +
+            #    explicit username.
+            #
+            #    FIX: this used to pass session_language — the *previous*
+            #    turn's language, or the profile default (often "English")
+            #    on the very first message — as the prompt's stated
+            #    default, and relied entirely on the LLM to notice the
+            #    CURRENT message's script and override that default on its
+            #    own. In practice, smaller/fast Groq models frequently
+            #    anchor on the stated default instead of overriding it —
+            #    e.g. a farmer's very first message of the session, spoken
+            #    in Telugu, would still see "Default language: English" in
+            #    the prompt and often got an English reply back regardless
+            #    of the LANGUAGE block's instructions.
+            #
+            #    We already have a script detector (detect_lang_code) —
+            #    use it on the incoming message itself so the prompt states
+            #    the CORRECT language up front instead of leaving it to the
+            #    model to catch and resolve a contradiction. Falls back to
+            #    session_language when the message has no reliable script
+            #    signal (numbers only, a single ambiguous word, romanized
+            #    text, etc. — detect_lang_code returns "en" for all of
+            #    these, same as genuine English), same as before.
+            incoming_code = detect_lang_code(message)
+            turn_language = (
+                LANGUAGE_DISPLAY_NAMES.get(incoming_code, session_language)
+                if incoming_code != "en"
+                else session_language
+            )
+            system_prompt = build_system_prompt(ctx, username=username, language=turn_language)
 
             # 4. Generate response — the agent decides internally whether it needs
             #    to call any tools (market price lookup for ANY crop, price trend,
@@ -328,6 +349,14 @@ async def speak_chat_reply(
     try:
         audio_bytes = await synthesize_speech(text)
     except Exception as e:
+        # FIX: this was previously only ever sent back as an HTTP 502
+        # detail, which the frontend's catch-and-hide error handling
+        # never surfaced anywhere — a broken edge-tts call (stale
+        # install, blocked outbound network to Microsoft's TTS service,
+        # a retired voice name, etc.) was failing completely silently
+        # end to end. Logging server-side makes a "read aloud does
+        # nothing" report actually diagnosable from the server logs.
+        print(f"❌ TTS failed for {current_user.get('username')}: {e}")
         raise HTTPException(status_code=502, detail=f"Speech synthesis failed: {str(e)}")
 
     return Response(content=audio_bytes, media_type="audio/mpeg")

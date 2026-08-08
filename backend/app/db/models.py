@@ -10,6 +10,7 @@ DISEASE_LOGS_COLLECTION     = "disease_logs"
 ANNOUNCEMENTS_COLLECTION    = "announcements"
 MARKET_PRICES_COLLECTION    = "market_prices"
 ICAR_DOCUMENTS_COLLECTION   = "icar_documents"
+PEST_ALERTS_COLLECTION      = "pest_alerts"  # last-known-good GNews pest/disease results, per state — lets the /news/alerts endpoint fall back to a recent past batch instead of a bare empty state whenever today's live query finds nothing
 
 
 async def create_indexes(db):
@@ -43,5 +44,10 @@ async def create_indexes(db):
     await db[MARKET_PRICES_COLLECTION].create_index(
         [("state", 1), ("commodity", 1), ("date", -1)]
     )
+
+    # pest_alerts — one stored document per state key ("" = general/All India),
+    # overwritten on every successful live fetch; unique so the upsert in
+    # routes/news.py always replaces rather than accumulating duplicates.
+    await db[PEST_ALERTS_COLLECTION].create_index("state_key", unique=True)
 
     print("✅ MongoDB indexes created")

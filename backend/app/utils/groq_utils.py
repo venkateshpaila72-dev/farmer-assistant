@@ -102,24 +102,6 @@ def groq_completion_with_rotation(**kwargs):
 groq_client = _clients[0] if _clients else None
 
 
-# Whisper's `prompt` param biases its vocabulary recognition toward words
-# that appear in it — it doesn't force these exact words into the output,
-# it just makes Whisper more likely to recognize them correctly when they
-# actually occur in the audio. This targets a specific, observed failure
-# mode: farmers code-switching into English mid-sentence for domain terms
-# and place names (e.g. "...crops recommend చేయు" or "...Andhra Pradesh
-# లో..."), which Whisper was mangling into nonsense syllables (seen in
-# testing: "recommend" -> "రిటమెంట్", "Andhra Pradesh" -> "అందర్ ప్రదేశ్").
-_TRANSCRIPTION_VOCAB_HINT = (
-    "Farmer Assistant app. Indian farmer speaking about crops, farming, "
-    "and prices. Common words: recommend, crop, fertilizer, disease, "
-    "pesticide, irrigation, quintal, mandi, yield, soil, weather, market "
-    "price, Andhra Pradesh, Telangana, Karnataka, Tamil Nadu, Maharashtra, "
-    "Punjab, Gujarat, West Bengal, rice, wheat, cotton, maize, soybean, "
-    "tomato, chilli, groundnut, sugarcane."
-)
-
-
 def transcribe_audio_with_rotation(audio_bytes: bytes, filename: str = "voice.webm") -> dict:
     """
     Speech-to-text via Groq's hosted Whisper, with the same key-rotation
@@ -131,9 +113,20 @@ def transcribe_audio_with_rotation(audio_bytes: bytes, filename: str = "voice.we
     lets a farmer speak in ANY supported language (not just a fixed list)
     and still get an accurate transcript.
 
-    A `prompt` IS passed — see _TRANSCRIPTION_VOCAB_HINT above — to reduce
-    (not eliminate) mis-transcription of code-switched English terms and
-    place names that are common in how Indian farmers actually speak.
+    No `prompt` is passed either — an earlier version of this function
+    passed an English-language vocabulary hint to reduce mis-transcription
+    of code-switched terms (e.g. "recommend", "Andhra Pradesh"). That was a
+    mistake: Whisper partly uses the prompt's own language as a signal for
+    what language to transcribe INTO, so an English prompt was actively
+    biasing Telugu/Hindi audio toward English output — a real regression,
+    observed as inconsistent/wrong-language transcripts. Correct language
+    identification matters far more than slightly better spelling of a few
+    code-switched words, so the prompt is gone rather than "fixed" — a
+    same-language-as-audio prompt would need to know the language in
+    advance, which is exactly what we don't have before transcribing.
+
+    `temperature=0` is set explicitly for more deterministic, repeatable
+    output — reduces run-to-run variance on the same/similar audio.
 
     Returns {"text": str, "language": str} — `language` is whatever ISO
     code/name Whisper reports back (e.g. "english", "telugu", "hindi").
@@ -150,7 +143,7 @@ def transcribe_audio_with_rotation(audio_bytes: bytes, filename: str = "voice.we
                 file=(filename, audio_bytes),
                 model="whisper-large-v3",
                 response_format="verbose_json",
-                prompt=_TRANSCRIPTION_VOCAB_HINT
+                temperature=0
             )
             return {
                 "text":     (transcript.text or "").strip(),
@@ -214,7 +207,7 @@ Default/starting language for this session: {language}
 
 Match the language of the farmer's MOST RECENT message, every single turn:
 - Detect the language from the SCRIPT the message is written in — Telugu
-  script means reply in Telugu, Devanagari means reply in Hindi (or Marathi
+  script means reply in Telugu, hindi means reply in Hindi (or Marathi
   if the farmer has been using Marathi), Tamil script means Tamil, and so on
   for any of the app's languages. This applies to ANY language the farmer
   uses, not just {language} — including languages transcribed from speech,
@@ -247,6 +240,8 @@ Match the language of the farmer's MOST RECENT message, every single turn:
   even if it means replying in a different language than the message
   itself was written in.
 - Never mix two languages within a single response.
+- At last the main thing is What are language the was prompting in that language only you have to generate the response A farmer prompting in Telugu then he should give the response in Telugu If I'm prompting in Hindi you should response in Hindi and so on
+  Since farmers are uneducated You have do this job correctly.
 
 ═══════════════════════════════════════════════════════════
 THE ONE RULE THAT GOVERNS TOOL USE

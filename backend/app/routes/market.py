@@ -287,14 +287,43 @@ async def get_farmer_prices(username: str, current_user: dict = Depends(get_curr
 
     results = {}
     for crop in preferred_crops:
-        prices = await get_prices_from_db(
-            state=state,
-            commodity=crop,
-            district=district or None,
-            limit=10
-        )
+        prices = []
+        matched_district = None
+
+        # AGMARKNET mandi data is often sparse at the district level — a
+        # crop can easily have plenty of state-wide records with none
+        # happening to fall in this exact district. A strict, unconditional
+        # district filter here previously made the dashboard show "no
+        # price data" for crops that genuinely DO have pricing (the chat's
+        # get_market_price tool finds them fine because it treats district
+        # as optional, not required). Try district-level first since it's
+        # the most locally relevant, then fall back to state-level so a
+        # real result isn't hidden just because it's not hyper-local.
+        if district:
+            prices = await get_prices_from_db(
+                state=state,
+                commodity=crop,
+                district=district,
+                limit=10
+            )
+            if prices:
+                matched_district = district
+
+        if not prices:
+            prices = await get_prices_from_db(
+                state=state,
+                commodity=crop,
+                district=None,
+                limit=10
+            )
+
         if prices:
-            results[crop] = prices
+            results[crop] = {
+                "records":  prices,
+                # Lets the frontend show "closest available" vs "your
+                # district" instead of implying every price is hyper-local.
+                "district": matched_district or "statewide",
+            }
 
     return {
         "username":        username,

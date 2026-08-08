@@ -249,9 +249,14 @@ export default function ChatPage() {
         const blob = await synthesizeSpeech(message.content);
         url = URL.createObjectURL(blob);
         ttsCacheRef.current.set(message.id, url);
-      } catch {
-        // Speech generation failed (network hiccup, etc.) — the text is
-        // still right there in the bubble, so this isn't fatal, just quiet.
+      } catch (err) {
+        // FIX: previously caught with an empty `catch {}` — a fully broken
+        // TTS backend (stale edge-tts install, blocked outbound network,
+        // etc.) was indistinguishable from a harmless one-off network
+        // blip, since nothing was ever logged. Logging the actual error
+        // (check the browser console + Network tab on /chat/speak) is
+        // what makes "read aloud does nothing" actually diagnosable.
+        console.error("TTS synthesis failed:", err?.response?.data || err?.message || err);
         setLoadingSpeechId((id) => (id === message.id ? null : id));
         return;
       }
@@ -264,7 +269,14 @@ export default function ChatPage() {
     audio.onerror = () => setSpeakingId((id) => (id === message.id ? null : id));
     try {
       await audio.play();
-    } catch {
+    } catch (err) {
+      // FIX: distinct failure mode from the synthesis catch above — audio
+      // WAS generated fine here, but the browser blocked playback, most
+      // commonly its autoplay policy (this fires automatically from a
+      // useEffect on new messages, not a fresh click). Logging separately
+      // makes the two failure modes distinguishable instead of both just
+      // going silent.
+      console.error("Audio playback blocked/failed:", err?.name || err);
       setSpeakingId(null);
     }
   }
@@ -329,8 +341,10 @@ export default function ChatPage() {
             setInput((prev) => (prev ? `${prev} ${text}` : text));
             inputRef.current?.focus();
           }
-        } catch {
-          // Transcription failed — farmer can just type instead; not fatal.
+        } catch (err) {
+          // Transcription failed — farmer can just type instead; not fatal,
+          // but log it so a fully-broken STT path is diagnosable too.
+          console.error("Voice transcription failed:", err?.response?.data || err?.message || err);
         } finally {
           setTranscribing(false);
         }
@@ -369,9 +383,14 @@ export default function ChatPage() {
     try {
       if (kind === "soil") {
         const result = await classifySoil(user.username, file, true, true);
+        // FIX: result.confidence is already a 0-100 percentage from the
+        // backend ML model (e.g. 87.34), not a 0-1 fraction — multiplying
+        // by 100 again turned "87% confidence" into "8734% confidence".
+        // Same bug as backend/app/routes/vision.py's chat-summary
+        // formatters; fixed there too.
         const summary = t("chat.soilResult", {
           type: result.soil_type,
-          confidence: Math.round(result.confidence * 100),
+          confidence: Math.round(result.confidence),
         });
         addPhotoExchange(previewUrl, summary, { kind: "soil", ...result });
       } else {
@@ -380,7 +399,7 @@ export default function ChatPage() {
           ? t("chat.healthyResult")
           : t("chat.diseaseResult", {
               disease: result.disease,
-              confidence: Math.round(result.confidence * 100),
+              confidence: Math.round(result.confidence),
               severity: result.severity,
               treatment: result.treatment,
               fertilizer: formatFertilizer(result.fertilizer),

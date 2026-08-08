@@ -89,13 +89,14 @@ export default function DashboardHome() {
           {prices ? (
             priceRows.length > 0 ? (
               <Ledger>
-                {priceRows.map(([crop, records]) => {
-                  const latest = records[0];
+                {priceRows.map(([crop, data]) => {
+                  const latest = data.records?.[0];
+                  const isStatewide = data.district === "statewide";
                   return (
                     <LedgerRow
                       key={crop}
                       icon={Droplets}
-                      label={crop}
+                      label={isStatewide ? `${crop} (${t("dashboardHome.statewide")})` : crop}
                       value={latest ? `\u20B9${Math.round(latest.modal_price).toLocaleString("en-IN")}` : "\u2014"}
                     />
                   );
@@ -173,7 +174,7 @@ export default function DashboardHome() {
             ))}
           </div>
         )}
-      </div>
+      </div>  
     </div>
   );
 }

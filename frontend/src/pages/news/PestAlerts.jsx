@@ -55,6 +55,17 @@ export default function PestAlerts() {
       .catch(() => setStates([]));
   }, [states]);
 
+  // FIX: previously this only ever showed "No pest alerts right now" the
+  // moment GNews's live query for the day came back empty — which, for
+  // pest/disease-outbreak-specific English coverage of India, is common
+  // and doesn't necessarily mean there's genuinely nothing relevant to
+  // show. The backend now falls back to the most recently fetched batch
+  // for this state when today's live query is empty (see routes/news.py),
+  // flagged via is_live/fetched_at — surfaced here so it's clear these are
+  // recent past alerts, not breaking news.
+  const [isLive, setIsLive] = useState(true);
+  const [fetchedAt, setFetchedAt] = useState(null);
+
   function loadAlerts() {
     setError(false);
     setCached("news:alerts:selectedState", state);
@@ -62,6 +73,8 @@ export default function PestAlerts() {
       .then((data) => {
         const list = data.alerts || [];
         setAlerts(list);
+        setIsLive(data.is_live !== false);
+        setFetchedAt(data.fetched_at || null);
         setCached(alertsCacheKey, list);
       })
       .catch(() => {
@@ -99,6 +112,11 @@ export default function PestAlerts() {
         <Panel className="p-8 text-center text-ink-soft">{t("news.noAlerts")}</Panel>
       ) : (
         <div className="flex flex-col gap-3">
+          {!isLive && (
+            <p className="text-xs text-ink-soft italic">
+              {t("news.pastAlertsNote", { time: timeAgo(fetchedAt) || t("news.recently") })}
+            </p>
+          )}
           {alerts.map((alert, i) => (
             <RevealOnScroll key={alert.url || i} delay={i * 0.04}>
               <a href={alert.url} target="_blank" rel="noopener noreferrer">

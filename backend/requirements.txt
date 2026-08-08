@@ -25,6 +25,8 @@ passlib[bcrypt]
 groq
 langchain-groq
 
+edge-tts
+
 
 # LLM — NVIDIA NIM (Embeddings + Vision)
 openai

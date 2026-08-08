@@ -33,61 +33,97 @@ def _cache_set(key: str, articles: list, is_failure: bool = False):
     _cache[key] = (time.time(), articles, is_failure)
 
 
+def _merge_unique(*article_lists: list, limit: int) -> list:
+    """Combine several article lists into one, de-duplicated by URL (falling
+    back to title when a URL is missing), preserving the order the lists
+    were passed in — so state-specific results land first, general-India
+    ones fill in after. Caps at `limit`."""
+    seen = set()
+    merged = []
+    for articles in article_lists:
+        for a in articles:
+            key = a.get("url") or a.get("title")
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            merged.append(a)
+            if len(merged) >= limit:
+                return merged
+    return merged
+
+
 async def get_farming_news(state: str = None, max_results: int = 10) -> list:
     """
     Fetch farming news using GNews API.
-    State-specific when possible, falls back to general India farming news.
+    Blends state-specific results with general India farming news so the
+    feed is never left thin just because one narrow query only turned up a
+    couple of matches.
 
     GNews free tier reality:
     - 100 requests/day
-    - State-specific queries often return 0 for Indian states
-    - General India farming queries work reliably
+    - State-specific queries often return 0, or just 1-2, articles for
+      Indian states — narrow "<state> farming crop agriculture"-style
+      queries simply don't have deep English-language coverage.
+    - General India farming queries return more reliably.
+
+    FIX: this used to stop at the FIRST query tier that returned any
+    non-empty result at all, even a single thin match — so a state query
+    that found exactly 1 article was treated as "done" and the broader,
+    better-populated general-India query was never even tried. That's why
+    the feed was consistently stuck showing just one old article instead
+    of the up-to-`max_results` the caller actually asked for. Now every
+    tier is queried and the results are merged (deduped by URL) so the
+    feed is filled out as fully as GNews can support, with state-specific
+    stories still surfaced first when they exist.
     """
+    state_specific  = []
+    state_plus_india = []
 
-    articles = []
-
-    # Try 1 — state specific query
     if state:
-        articles = await _fetch_gnews(
+        state_specific = await _fetch_gnews(
             query=f"{state} farming crop agriculture",
             max_results=max_results
         )
-
-    # Try 2 — if state returned 0, try state + India
-    if not articles and state:
-        articles = await _fetch_gnews(
+        state_plus_india = await _fetch_gnews(
             query=f"{state} India farmer",
             max_results=max_results
         )
 
-    # Try 3 — fallback to general India farming news
-    if not articles:
-        articles = await _fetch_gnews(
-            query="India agriculture farming crop",
+    general = await _fetch_gnews(
+        query="India agriculture farming crop",
+        max_results=max_results
+    )
+
+    return _merge_unique(state_specific, state_plus_india, general, limit=max_results)
+
+
+async def get_pest_alerts(state: str = None, max_results: int = 5) -> list:
+    """
+    Fetch pest and disease alert news — blends state-specific with general
+    India pest/disease coverage the same way get_farming_news does, rather
+    than abandoning the general query the moment a state query finds
+    anything at all.
+
+    Note: pest/disease-outbreak-specific English news for India is
+    genuinely thin on GNews's free tier — an empty result here is often a
+    real "nothing newsworthy today" rather than a bug. That's exactly why
+    routes/news.py now persists whatever this DOES find to MongoDB, so the
+    /alerts endpoint can fall back to the most recent past batch instead of
+    just showing a bare empty state every time today's live query misses.
+    """
+    state_specific = []
+    if state:
+        state_specific = await _fetch_gnews(
+            query=f"{state} crop pest disease",
             max_results=max_results
         )
 
-    return articles
+    general = await _fetch_gnews(
+        query="India crop pest disease outbreak farmer",
+        max_results=max_results
+    )
 
-
-async def get_pest_alerts(state: str = None) -> list:
-    """
-    Fetch pest and disease alert news.
-    Falls back to general India pest news if state-specific returns 0.
-    """
-    articles = []
-
-    if state:
-        articles = await _fetch_gnews(
-            query=f"{state} crop pest disease",
-            max_results=5
-        )
-
-    if not articles:
-        articles = await _fetch_gnews(
-            query="India crop pest disease outbreak farmer",
-            max_results=5
-        )
+    articles = _merge_unique(state_specific, general, limit=max_results)
 
     return articles
 

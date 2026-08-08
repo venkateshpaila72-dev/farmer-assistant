@@ -15,9 +15,13 @@ def _format_soil_chat_summary(result: dict) -> str:
     analyzed from inside the chat UI — written as if the assistant itself
     had just looked at the photo and answered, so it reads naturally in
     the conversation and gives the agent context for later questions."""
+    # FIX: result["confidence"] is already a 0-100 percentage (see
+    # ml_models/soil_classifier.py — confidence = float(...) * 100), not a
+    # 0-1 fraction. Multiplying by 100 again here turned e.g. 87.34%
+    # confidence into a nonsensical "8734% confidence" in the chat thread.
     return (
         f"[Soil photo analyzed] This soil looks like **{result['soil_type']}** "
-        f"({result['confidence']*100:.0f}% confidence). I've noted this as your soil type."
+        f"({result['confidence']:.0f}% confidence). I've noted this as your soil type."
     )
 
 
@@ -53,9 +57,12 @@ def _format_disease_chat_summary(result: dict) -> str:
     if result.get("is_healthy"):
         return "[Crop photo analyzed] Good news — this plant looks healthy, no disease detected."
 
+    # FIX: same double-multiplication bug as the soil summary above —
+    # result["confidence"] is already 0-100 (see
+    # ml_models/disease_detector.py), so this dropped the stray "*100".
     lines = [
         f"[Crop photo analyzed] I found {result['disease']} "
-        f"({result['confidence']*100:.0f}% confidence, severity: {result['severity']}).",
+        f"({result['confidence']:.0f}% confidence, severity: {result['severity']}).",
         f"\nTreatment: {result['treatment']}",
         f"\nFertilizer recommendation: {_format_fertilizer(result.get('fertilizer'))}",
         f"\nPrevention tips: {result['prevention']}",
