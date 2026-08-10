@@ -8,6 +8,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { recommendFertilizer, getFertilizerTypes } from "../../api/ml";
+import { translateCropName } from "../../utils/cropNameLabel";
 
 export default function FertilizerSuggestion() {
   const { t } = useTranslation();
@@ -53,7 +54,7 @@ export default function FertilizerSuggestion() {
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
             <Select value={cropType} onChange={(e) => setCropType(e.target.value)} className="sm:flex-1">
               {cropTypes.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>{translateCropName(t, c)}</option>
               ))}
             </Select>
             <Button type="submit" disabled={loading || !cropType}>

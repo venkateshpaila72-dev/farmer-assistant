@@ -154,12 +154,15 @@ async def detect_disease(
     username: str,
     file: UploadFile = File(...),
     log_to_chat: bool = False,
+    lang: str = "en",
     current_user: dict = Depends(get_current_user)
 ):
     """
     Detect crop disease from leaf photo.
     Saves detection log to MongoDB for agent to reference.
-    Returns disease name, severity, treatment and prevention.
+    Returns disease name, severity, treatment and prevention — localized
+    into `lang` when a translated version of the dataset is available (see
+    scripts/translate_disease_dataset.py), otherwise in English.
     """
     if current_user["role"] != "admin" and current_user["username"] != username:
         raise HTTPException(status_code=403, detail="Not your account")
@@ -173,7 +176,7 @@ async def detect_disease(
 
     # Detect disease
     try:
-        result = disease_detector.detect_disease(image_bytes)
+        result = disease_detector.detect_disease(image_bytes, lang=lang)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:

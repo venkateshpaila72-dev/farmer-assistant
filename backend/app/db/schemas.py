@@ -227,6 +227,15 @@ class AnnouncementCreate(BaseModel):
     title: str
     content: str
     posted_by: str
+    # Structured scheme-card fields — all optional so a plain general
+    # announcement (not a govt scheme) still works with just title/content.
+    benefit: str = ""          # e.g. "₹6,000/year in 3 installments"
+    eligibility: str = ""      # e.g. "Land-owning farmer families"
+    where_to_apply: str = ""   # e.g. "Nearest Common Service Centre / Rythu Seva Kendram"
+    official_link: str = ""    # e.g. "https://pmkisan.gov.in"
+    status: str = "active"     # "active" | "discontinued" — lets old/replaced
+                                # schemes stay visible (e.g. "replaced by X")
+                                # instead of just being deleted and forgotten
 
 
 class MarketPriceCreate(BaseModel):

@@ -12,6 +12,7 @@ import { getOnboardingProfile } from "../../api/onboarding";
 import { getFarmerWeather } from "../../api/weather";
 import { getFarmerPrices } from "../../api/market";
 import { getFarmerNews } from "../../api/news";
+import { translateCropName } from "../../utils/cropNameLabel";
 
 export default function DashboardHome() {
   const { t } = useTranslation();
@@ -48,7 +49,7 @@ export default function DashboardHome() {
       {weather?.alerts?.[0] ? (
         <RevealOnScroll className="flex items-start gap-2.5 bg-danger-tint text-danger rounded-sm px-4 py-3 text-sm font-semibold">
           <AlertTriangle size={17} className="mt-0.5 shrink-0" />
-          {weather.alerts[0]}
+          {t(`dashboardHome.weatherAlert.${weather.alerts[0]}`)}
         </RevealOnScroll>
       ) : weather ? (
         <RevealOnScroll className="flex items-start gap-2.5 bg-accent-tint text-accent rounded-sm px-4 py-3 text-sm font-semibold">
@@ -96,7 +97,7 @@ export default function DashboardHome() {
                     <LedgerRow
                       key={crop}
                       icon={Droplets}
-                      label={isStatewide ? `${crop} (${t("dashboardHome.statewide")})` : crop}
+                      label={isStatewide ? `${translateCropName(t, crop)} (${t("dashboardHome.statewide")})` : translateCropName(t, crop)}
                       value={latest ? `\u20B9${Math.round(latest.modal_price).toLocaleString("en-IN")}` : "\u2014"}
                     />
                   );

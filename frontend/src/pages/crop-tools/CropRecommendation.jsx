@@ -6,6 +6,8 @@ import { Panel } from "../../components/ui/Panel";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { recommendCrop } from "../../api/ml";
+import { translateSoilType } from "../../utils/soilTypeLabel";
+import { translateCropName } from "../../utils/cropNameLabel";
 
 export default function CropRecommendation() {
   const { t } = useTranslation();
@@ -50,7 +52,7 @@ export default function CropRecommendation() {
               {result.season}
             </span>
             <span className="font-semibold text-ink-soft bg-bg border border-border px-2.5 py-1 rounded-full">
-              {result.soil_type}
+              {translateSoilType(t, result.soil_type)}
             </span>
             {result.location && (
               <span className="font-semibold text-ink-soft bg-bg border border-border px-2.5 py-1 rounded-full">
@@ -69,7 +71,7 @@ export default function CropRecommendation() {
                   <Sprout size={20} />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-display text-lg font-semibold">{c.crop}</div>
+                  <div className="font-display text-lg font-semibold">{translateCropName(t, c.crop)}</div>
                   <div className="h-1.5 bg-border rounded-full mt-1.5 overflow-hidden">
                     <div
                       className={`h-full rounded-full ${i === 0 ? "bg-primary" : "bg-ink-soft"}`}

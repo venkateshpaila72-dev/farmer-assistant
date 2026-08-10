@@ -9,6 +9,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { predictYield, getYieldOptions } from "../../api/ml";
+import { translateCropName } from "../../utils/cropNameLabel";
 
 const currentYear = new Date().getFullYear();
 
@@ -17,22 +18,23 @@ const currentYear = new Date().getFullYear();
 // each needs its own headline number and subtitle rather than one blended
 // "yield_per_hectare" figure.
 function formatResult(result, t) {
+  const cropLabel = translateCropName(t, result.crop);
   switch (result.unit_group) {
     case "count":
       return {
         headline: `${result.total_nuts.toLocaleString("en-IN")} ${t("cropTools.nuts")}`,
-        subtitle: `${result.crop} \u00b7 ${result.area_hectares} ha \u00b7 ${result.yield_nuts_per_ha.toLocaleString("en-IN")} ${t("cropTools.nutsPerHectare")}`,
+        subtitle: `${cropLabel} \u00b7 ${result.area_hectares} ha \u00b7 ${result.yield_nuts_per_ha.toLocaleString("en-IN")} ${t("cropTools.nutsPerHectare")}`,
       };
     case "bale":
       return {
         headline: `${result.total_bales.toLocaleString("en-IN", { maximumFractionDigits: 1 })} ${t("cropTools.bales")}`,
-        subtitle: `${result.crop} \u00b7 ${result.area_hectares} ha \u00b7 ${result.yield_bales_per_ha.toLocaleString("en-IN", { maximumFractionDigits: 2 })} ${t("cropTools.perHectare")}`,
+        subtitle: `${cropLabel} \u00b7 ${result.area_hectares} ha \u00b7 ${result.yield_bales_per_ha.toLocaleString("en-IN", { maximumFractionDigits: 2 })} ${t("cropTools.perHectare")}`,
       };
     case "weight":
     default:
       return {
         headline: `${result.total_quintals.toLocaleString("en-IN", { maximumFractionDigits: 1 })} ${t("cropTools.quintals")}`,
-        subtitle: `${result.crop} \u00b7 ${result.area_hectares} ha \u00b7 ${result.yield_kg_per_ha.toLocaleString("en-IN", { maximumFractionDigits: 0 })} kg ${t("cropTools.perHectare")}`,
+        subtitle: `${cropLabel} \u00b7 ${result.area_hectares} ha \u00b7 ${result.yield_kg_per_ha.toLocaleString("en-IN", { maximumFractionDigits: 0 })} kg ${t("cropTools.perHectare")}`,
       };
   }
 }
@@ -90,7 +92,7 @@ export default function YieldPrediction() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <Select label={t("cropTools.crop")} value={form.crop} onChange={(e) => setForm({ ...form, crop: e.target.value })}>
-                {options.crops.map((c) => <option key={c} value={c}>{c}</option>)}
+                {options.crops.map((c) => <option key={c} value={c}>{translateCropName(t, c)}</option>)}
               </Select>
               <Select label={t("cropTools.season")} value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })}>
                 {options.seasons.map((s) => <option key={s} value={s}>{s}</option>)}

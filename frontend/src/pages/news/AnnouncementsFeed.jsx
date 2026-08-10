@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Megaphone } from "lucide-react";
+import { Megaphone, IndianRupee, ListChecks, MapPin, ExternalLink } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { ErrorState } from "../../components/ui/ErrorState";
@@ -71,6 +71,11 @@ export default function AnnouncementsFeed() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-ink leading-snug">{a.title}</h3>
+                  {a.status === "discontinued" && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft bg-border/60 px-1.5 py-0.5 rounded-sm shrink-0">
+                      {t("news.discontinued")}
+                    </span>
+                  )}
                   {a.updated_at && (
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-accent bg-accent-tint px-1.5 py-0.5 rounded-sm shrink-0">
                       {t("news.edited")}
@@ -78,6 +83,53 @@ export default function AnnouncementsFeed() {
                   )}
                 </div>
                 <p className="text-sm text-ink-soft mt-1.5 whitespace-pre-wrap">{a.content}</p>
+
+                {(a.benefit || a.eligibility || a.where_to_apply || a.official_link) && (
+                  <div className="mt-3 pt-3 border-t border-border grid sm:grid-cols-2 gap-x-4 gap-y-2">
+                    {a.benefit && (
+                      <div className="flex items-start gap-1.5">
+                        <IndianRupee size={13} className="text-accent mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{t("news.benefit")}</p>
+                          <p className="text-sm text-ink">{a.benefit}</p>
+                        </div>
+                      </div>
+                    )}
+                    {a.eligibility && (
+                      <div className="flex items-start gap-1.5">
+                        <ListChecks size={13} className="text-accent mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{t("news.eligibility")}</p>
+                          <p className="text-sm text-ink">{a.eligibility}</p>
+                        </div>
+                      </div>
+                    )}
+                    {a.where_to_apply && (
+                      <div className="flex items-start gap-1.5">
+                        <MapPin size={13} className="text-accent mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{t("news.whereToApply")}</p>
+                          <p className="text-sm text-ink">{a.where_to_apply}</p>
+                        </div>
+                      </div>
+                    )}
+                    {a.official_link && (
+                      <a
+                        href={a.official_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-1.5 hover:text-primary transition-colors duration-150"
+                      >
+                        <ExternalLink size={13} className="text-accent mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">{t("news.officialLink")}</p>
+                          <p className="text-sm text-primary truncate">{a.official_link}</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 {a.created_at && (
                   <p className="text-xs text-ink-soft mt-2">{timeAgo(a.updated_at || a.created_at)}</p>
                 )}

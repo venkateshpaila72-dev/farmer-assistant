@@ -86,20 +86,22 @@ async def get_current_weather(lat: float, lng: float) -> dict:
     daily   = data.get("daily", {})
     hourly  = data.get("hourly", {})
 
-    # Detect farming alerts
+    # Detect farming alerts — return type codes, not pre-formatted English
+    # text, so the frontend can translate each one via i18n instead of
+    # always showing English regardless of the farmer's selected language.
     alerts = []
     temp     = current.get("temperature_2m", 0)
     rain     = current.get("precipitation", 0)
     humidity = current.get("relative_humidity_2m", 0)
 
     if temp > 40:
-        alerts.append("⚠️ Extreme heat — water your crops extra today")
+        alerts.append("extreme_heat")
     if temp < 5:
-        alerts.append("⚠️ Frost risk — protect sensitive crops tonight")
+        alerts.append("frost_risk")
     if rain > 50:
-        alerts.append("⚠️ Heavy rainfall — avoid spraying pesticides today")
+        alerts.append("heavy_rainfall")
     if humidity > 85:
-        alerts.append("⚠️ High humidity — fungal disease risk is HIGH")
+        alerts.append("high_humidity")
 
     # Get soil moisture (first available reading)
     soil_moisture = None

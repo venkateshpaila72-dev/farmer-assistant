@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { Megaphone, ImagePlus, X, Pencil, FileText, UploadCloud, Trash2 } from "lucide-react";
+import { Megaphone, ImagePlus, X, Pencil, FileText, UploadCloud, Trash2, Sparkles } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -8,7 +8,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { useAuth } from "../../context/AuthContext";
-import { getAnnouncements, postAnnouncement, editAnnouncement } from "../../api/admin";
+import { getAnnouncements, postAnnouncement, editAnnouncement, draftAnnouncementFromNews } from "../../api/admin";
 import { ingestDocument, getDocuments, deleteDocument } from "../../api/rag";
 
 // A composer with an image picker — reused for both "post new" (top of the
@@ -21,6 +21,19 @@ function AnnouncementForm({ initial, submitLabel, onSubmit, onCancel, busy }) {
   const fileInputRef = useRef(null);
   const [title, setTitle] = useState(initial?.title || "");
   const [content, setContent] = useState(initial?.content || "");
+  const [benefit, setBenefit] = useState(initial?.benefit || "");
+  const [eligibility, setEligibility] = useState(initial?.eligibility || "");
+  const [whereToApply, setWhereToApply] = useState(initial?.where_to_apply || "");
+  const [officialLink, setOfficialLink] = useState(initial?.official_link || "");
+  const [schemeStatus, setSchemeStatus] = useState(initial?.status || "active");
+  const [showSchemeFields, setShowSchemeFields] = useState(
+    !!(initial?.benefit || initial?.eligibility || initial?.where_to_apply || initial?.official_link)
+  );
+  const [showDraftPanel, setShowDraftPanel] = useState(false);
+  const [draftArticleTitle, setDraftArticleTitle] = useState("");
+  const [draftArticleText, setDraftArticleText] = useState("");
+  const [draftArticleUrl, setDraftArticleUrl] = useState("");
+  const [drafting, setDrafting] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(initial?.image_url || null);
 
@@ -40,11 +53,89 @@ function AnnouncementForm({ initial, submitLabel, onSubmit, onCancel, busy }) {
   function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
-    onSubmit({ title: title.trim(), content: content.trim(), imageFile });
+    onSubmit({
+      title: title.trim(),
+      content: content.trim(),
+      benefit: benefit.trim(),
+      eligibility: eligibility.trim(),
+      where_to_apply: whereToApply.trim(),
+      official_link: officialLink.trim(),
+      scheme_status: showSchemeFields ? schemeStatus : "active",
+      imageFile,
+    });
+  }
+
+  // Fills the form fields with an AI-drafted first pass — does NOT post
+  // anything. The admin still reviews/edits every field and clicks the
+  // normal Post/Save button below, same as writing it by hand.
+  async function handleDraft() {
+    if (!draftArticleTitle.trim()) return;
+    setDrafting(true);
+    try {
+      const draft = await draftAnnouncementFromNews({
+        title: draftArticleTitle.trim(),
+        source_text: draftArticleText.trim(),
+        url: draftArticleUrl.trim(),
+      });
+      setTitle(draft.title || draftArticleTitle.trim());
+      setContent(draft.content || "");
+      setBenefit(draft.benefit || "");
+      setEligibility(draft.eligibility || "");
+      setWhereToApply(draft.where_to_apply || "");
+      setOfficialLink(draft.official_link || draftArticleUrl.trim());
+      setShowSchemeFields(true);
+      setShowDraftPanel(false);
+      toast.success("Draft filled in below — review and edit before posting");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Couldn't draft from that article. Try again.");
+    } finally {
+      setDrafting(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+      {!initial && (
+        showDraftPanel ? (
+          <div className="flex flex-col gap-3 p-3.5 rounded-sm bg-accent-tint border border-accent/30">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-accent uppercase tracking-wide flex items-center gap-1.5">
+                <Sparkles size={13} /> Draft from a real news article
+              </p>
+              <button type="button" onClick={() => setShowDraftPanel(false)} className="text-xs text-ink-soft hover:text-danger">
+                Cancel
+              </button>
+            </div>
+            <p className="text-xs text-ink-soft -mt-1">
+              Paste an article's title and summary (e.g. from the farmer-facing Schemes tab, or any real source). The AI only fills in fields the article actually mentions — it leaves benefit/eligibility/where-to-apply blank rather than guess, so check its work before posting.
+            </p>
+            <Input label="Article title" value={draftArticleTitle} onChange={(e) => setDraftArticleTitle(e.target.value)} placeholder="e.g. Govt announces new fertilizer subsidy for Kharif season" />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-ink">Article summary / extra context (optional but helps)</label>
+              <textarea
+                value={draftArticleText}
+                onChange={(e) => setDraftArticleText(e.target.value)}
+                placeholder="Paste the article snippet, or anything else you know about this scheme..."
+                rows={3}
+                className="w-full rounded-sm border border-border bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/60 focus:border-primary focus:outline-none transition-colors duration-150 resize-y"
+              />
+            </div>
+            <Input label="Article URL (optional)" value={draftArticleUrl} onChange={(e) => setDraftArticleUrl(e.target.value)} placeholder="https://..." />
+            <Button type="button" onClick={handleDraft} disabled={drafting || !draftArticleTitle.trim()}>
+              <Sparkles size={16} /> {drafting ? "Drafting..." : "Generate draft"}
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowDraftPanel(true)}
+            className="self-start flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent/80"
+          >
+            <Sparkles size={13} /> Draft from a news article instead of typing from scratch
+          </button>
+        )
+      )}
+
       <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. New PM-KISAN installment released" maxLength={120} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor={contentId} className="text-sm font-medium text-ink">Content</label>
@@ -57,6 +148,47 @@ function AnnouncementForm({ initial, submitLabel, onSubmit, onCancel, busy }) {
           className="w-full rounded-sm border border-border bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 focus:border-primary focus:outline-none transition-colors duration-150 resize-y"
         />
       </div>
+
+      {showSchemeFields ? (
+        <div className="flex flex-col gap-3 p-3.5 rounded-sm bg-bg border border-border">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
+              Scheme details (optional) — shown as a quick-reference card to farmers
+            </p>
+            <button type="button" onClick={() => setShowSchemeFields(false)} className="text-xs text-ink-soft hover:text-danger">
+              Remove
+            </button>
+          </div>
+          <Input label="Benefit" value={benefit} onChange={(e) => setBenefit(e.target.value)} placeholder="e.g. ₹6,000/year in 3 installments" />
+          <Input label="Eligibility" value={eligibility} onChange={(e) => setEligibility(e.target.value)} placeholder="e.g. Land-owning farmer families" />
+          <Input label="Where to apply" value={whereToApply} onChange={(e) => setWhereToApply(e.target.value)} placeholder="e.g. Nearest Common Service Centre / Rythu Seva Kendram" />
+          <Input label="Official link (optional)" value={officialLink} onChange={(e) => setOfficialLink(e.target.value)} placeholder="e.g. https://pmkisan.gov.in" />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-ink">Status</label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-1.5 text-sm text-ink cursor-pointer">
+                <input type="radio" name="schemeStatus" checked={schemeStatus === "active"} onChange={() => setSchemeStatus("active")} />
+                Active
+              </label>
+              <label className="flex items-center gap-1.5 text-sm text-ink cursor-pointer">
+                <input type="radio" name="schemeStatus" checked={schemeStatus === "discontinued"} onChange={() => setSchemeStatus("discontinued")} />
+                Discontinued / replaced
+              </label>
+            </div>
+            <p className="text-xs text-ink-soft">
+              Discontinued schemes still show to farmers (e.g. "replaced by X") instead of just disappearing — mention the replacement in the content above.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowSchemeFields(true)}
+          className="self-start text-xs font-semibold text-primary hover:text-primary-dark flex items-center gap-1"
+        >
+          + Add scheme details (benefit, eligibility, where to apply)
+        </button>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={imageId} className="text-sm font-medium text-ink">Image (optional)</label>
@@ -228,10 +360,10 @@ export default function Announcements() {
 
   useEffect(load, []);
 
-  async function handlePost({ title, content, imageFile }) {
+  async function handlePost({ title, content, benefit, eligibility, where_to_apply, official_link, scheme_status, imageFile }) {
     setPosting(true);
     try {
-      await postAnnouncement({ title, content, posted_by: user?.username || "Admin", imageFile });
+      await postAnnouncement({ title, content, benefit, eligibility, where_to_apply, official_link, scheme_status, posted_by: user?.username || "Admin", imageFile });
       toast.success("Announcement posted");
       load();
     } catch (err) {
@@ -241,10 +373,10 @@ export default function Announcements() {
     }
   }
 
-  async function handleSaveEdit(id, { title, content, imageFile }) {
+  async function handleSaveEdit(id, { title, content, benefit, eligibility, where_to_apply, official_link, scheme_status, imageFile }) {
     setSavingEdit(true);
     try {
-      await editAnnouncement(id, { title, content, imageFile });
+      await editAnnouncement(id, { title, content, benefit, eligibility, where_to_apply, official_link, scheme_status, imageFile });
       toast.success("Announcement updated");
       setEditingId(null);
       load();
@@ -306,6 +438,16 @@ export default function Announcements() {
                         <div className="flex items-start justify-between gap-3">
                           <h3 className="font-semibold text-ink leading-snug">{a.title}</h3>
                           <div className="flex items-center gap-2 shrink-0">
+                            {a.benefit && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary-tint px-1.5 py-0.5 rounded-sm">
+                                Scheme
+                              </span>
+                            )}
+                            {a.status === "discontinued" && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft bg-border/60 px-1.5 py-0.5 rounded-sm">
+                                Discontinued
+                              </span>
+                            )}
                             {a.updated_at && (
                               <span className="text-[10px] font-semibold uppercase tracking-wide text-accent bg-accent-tint px-1.5 py-0.5 rounded-sm">
                                 Edited

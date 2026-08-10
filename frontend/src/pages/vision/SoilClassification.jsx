@@ -8,6 +8,7 @@ import { Panel } from "../../components/ui/Panel";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { classifySoil } from "../../api/vision";
+import { translateSoilType } from "../../utils/soilTypeLabel";
 import { recommendCrop } from "../../api/ml";
 
 const easeOut = [0.16, 1, 0.3, 1];
@@ -88,7 +89,7 @@ export default function SoilClassification() {
                 <span className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center mx-auto mb-3">
                   <Layers size={22} />
                 </span>
-                <div className="font-display text-2xl font-semibold mb-1">{soilResult.soil_type}</div>
+                <div className="font-display text-2xl font-semibold mb-1">{translateSoilType(t, soilResult.soil_type)}</div>
                 <div className="text-sm text-primary font-semibold">
                   {Math.round(soilResult.confidence)}% {t("cropTools.confidence")}
                 </div>

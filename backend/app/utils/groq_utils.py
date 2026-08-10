@@ -207,7 +207,7 @@ Default/starting language for this session: {language}
 
 Match the language of the farmer's MOST RECENT message, every single turn:
 - Detect the language from the SCRIPT the message is written in — Telugu
-  script means reply in Telugu, hindi means reply in Hindi (or Marathi
+  script means reply in Telugu, Devanagari means reply in Hindi (or Marathi
   if the farmer has been using Marathi), Tamil script means Tamil, and so on
   for any of the app's languages. This applies to ANY language the farmer
   uses, not just {language} — including languages transcribed from speech,
@@ -240,9 +240,8 @@ Match the language of the farmer's MOST RECENT message, every single turn:
   even if it means replying in a different language than the message
   itself was written in.
 - Never mix two languages within a single response.
-- At last the main thing is What are language the was prompting in that language only you have to generate the response A farmer prompting in Telugu then he should give the response in Telugu If I'm prompting in Hindi you should response in Hindi and so on
+-  At last the main thing is What are language the was prompting in that language only you have to generate the response A farmer prompting in Telugu then he should give the response in Telugu If I'm prompting in Hindi you should response in Hindi and so on
   Since farmers are uneducated You have do this job correctly.
-
 ═══════════════════════════════════════════════════════════
 THE ONE RULE THAT GOVERNS TOOL USE
 ═══════════════════════════════════════════════════════════
@@ -549,4 +548,75 @@ async def chat_with_groq(
         "response":   text,
         "used_tools": used_tools,
         "sources":    rag_sources
+    }
+
+
+def draft_scheme_from_news(title: str, source_text: str, url: str = "") -> dict:
+    """
+    Draft structured scheme-card fields (benefit, eligibility, where to
+    apply) from a real news item about a government scheme — for an admin
+    to review/edit before publishing, NOT to auto-publish directly.
+
+    Deliberately grounded and conservative: the prompt explicitly forbids
+    inventing details not present in `source_text`, and instructs the
+    model to leave a field blank rather than guess. This matters because
+    getting eligibility or benefit amounts wrong for a real government
+    scheme could genuinely mislead a farmer about money they may or may
+    not actually be entitled to — a thin/vague source should produce a
+    thin/vague (or blank) draft, not a confident-sounding fabrication.
+
+    Returns a dict with title/content/benefit/eligibility/where_to_apply/
+    official_link — always present as strings (possibly empty), never
+    raises for a malformed model response (falls back to an all-blank
+    draft so the admin form just shows empty fields, not an error page).
+    """
+    prompt = f"""You are drafting a scheme information card for a government farming scheme, from a real news item. An admin will review and edit every field before anything is shown to farmers, so your job is to extract what's ACTUALLY stated — never invent, guess, or embellish.
+
+Article title: {title}
+Article text: {source_text}
+{f"Article URL: {url}" if url else ""}
+
+Return ONLY a JSON object (no markdown, no code fences, no commentary) with exactly these keys:
+{{
+  "title": "a clear, short scheme name (use the article title if that's already clear)",
+  "content": "2-4 plain sentences summarizing what the scheme actually does, based only on the article text",
+  "benefit": "the benefit amount/type IF explicitly stated in the article text, else empty string",
+  "eligibility": "who qualifies IF explicitly stated in the article text, else empty string",
+  "where_to_apply": "how/where to apply IF explicitly stated in the article text, else empty string",
+  "official_link": "{url if url else ''}"
+}}
+
+Rules:
+- If the article text doesn't mention a specific rupee amount, benefit must be "" — do not estimate or guess one.
+- If eligibility criteria aren't spelled out, eligibility must be "" — do not assume typical/usual criteria.
+- Same for where_to_apply — only fill it in if the article actually says how/where to apply.
+- It is completely fine, and expected, for benefit/eligibility/where_to_apply to be empty strings when the source is thin. An empty field the admin fills in themselves is far better than a wrong or made-up one."""
+
+    try:
+        result = groq_completion_with_rotation(
+            model=settings.GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+            temperature=0.2  # low — this is extraction, not creative writing
+        )
+        raw = (result.choices[0].message.content or "").strip()
+        # Models sometimes wrap JSON in ```json fences despite instructions
+        # not to — strip those defensively rather than fail the whole draft.
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        parsed = json.loads(raw)
+    except Exception as e:
+        print(f"⚠️ draft_scheme_from_news: extraction failed ({e}), returning blank draft")
+        parsed = {}
+
+    return {
+        "title":          parsed.get("title") or title,
+        "content":        parsed.get("content") or "",
+        "benefit":        parsed.get("benefit") or "",
+        "eligibility":    parsed.get("eligibility") or "",
+        "where_to_apply": parsed.get("where_to_apply") or "",
+        "official_link":  parsed.get("official_link") or url,
     }

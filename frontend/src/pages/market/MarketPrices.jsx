@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getPrices, getAvailableStates } from "../../api/market";
 import { getOnboardingProfile } from "../../api/onboarding";
 import { getCached, setCached } from "../../utils/dataCache";
+import { translateCropName } from "../../utils/cropNameLabel";
 
 // AGMARKNET records the same market/commodity/date multiple times when
 // different varieties or grades were traded — e.g. two Banana lots at the
@@ -85,6 +86,7 @@ function buildTrend(commodityRaw, allPrices) {
 // One row in the commodity search dropdown — bold when it's one of the
 // farmer's preferred crops, with a small up/down trend badge when available.
 function CommodityRow({ c, onPick }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -93,7 +95,7 @@ function CommodityRow({ c, onPick }) {
         c.preferred ? "font-semibold text-primary" : "text-ink"
       }`}
     >
-      <span className="truncate">{c.raw}</span>
+      <span className="truncate">{translateCropName(t, c.raw)}</span>
       {c.trend && (
         <span className={`flex items-center gap-0.5 text-[11px] font-medium shrink-0 ${c.trend.up ? "text-accent" : "text-danger"}`}>
           {c.trend.up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -357,7 +359,7 @@ export default function MarketPrices() {
                 <button type="button" onClick={() => pickCommodity(p.commodity_raw)} className="w-full text-left">
                   <Panel className="p-4 flex items-center justify-between gap-4 hover:border-ink-soft transition-colors duration-150">
                     <div className="min-w-0">
-                      <div className="font-semibold text-sm">{p.commodity_raw}</div>
+                      <div className="font-semibold text-sm">{translateCropName(t, p.commodity_raw)}</div>
                       <div className="text-xs text-ink-soft mt-0.5">
                         {p.market}, {p.district} &middot; {p.arrival_date}
                       </div>
@@ -433,7 +435,7 @@ export default function MarketPrices() {
               <Panel className="p-5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[11px] uppercase tracking-wide text-ink-soft">
-                    {t("market.marketComparison", { commodity: selectedCommodity })}
+                    {t("market.marketComparison", { commodity: translateCropName(t, selectedCommodity) })}
                   </span>
                   {selectedTrend && (
                     <span

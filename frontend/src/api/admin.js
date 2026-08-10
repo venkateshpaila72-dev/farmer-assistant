@@ -21,11 +21,16 @@ export async function getAnnouncements() {
 // Multipart, not JSON — the image is optional, so this is always a
 // FormData post even when no image is attached (backend expects Form
 // fields + an optional UploadFile, not a JSON body).
-export async function postAnnouncement({ title, content, posted_by, imageFile }) {
+export async function postAnnouncement({ title, content, posted_by, benefit, eligibility, where_to_apply, official_link, scheme_status, imageFile }) {
   const formData = new FormData();
   formData.append("title", title);
   formData.append("content", content);
   formData.append("posted_by", posted_by);
+  formData.append("benefit", benefit || "");
+  formData.append("eligibility", eligibility || "");
+  formData.append("where_to_apply", where_to_apply || "");
+  formData.append("official_link", official_link || "");
+  formData.append("scheme_status", scheme_status || "active");
   if (imageFile) formData.append("image", imageFile);
 
   const { data } = await client.post("/admins/announcement", formData, {
@@ -36,14 +41,31 @@ export async function postAnnouncement({ title, content, posted_by, imageFile })
 
 // New image is optional here too — omitting it keeps whatever image the
 // announcement already had (see PUT /admins/announcement/{id} on the backend).
-export async function editAnnouncement(id, { title, content, imageFile }) {
+export async function editAnnouncement(id, { title, content, benefit, eligibility, where_to_apply, official_link, scheme_status, imageFile }) {
   const formData = new FormData();
   formData.append("title", title);
   formData.append("content", content);
+  formData.append("benefit", benefit || "");
+  formData.append("eligibility", eligibility || "");
+  formData.append("where_to_apply", where_to_apply || "");
+  formData.append("official_link", official_link || "");
+  formData.append("scheme_status", scheme_status || "active");
   if (imageFile) formData.append("image", imageFile);
 
   const { data } = await client.put(`/admins/announcement/${id}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+// AI-assisted draft only — never posts anything itself. Returns a draft
+// object {title, content, benefit, eligibility, where_to_apply,
+// official_link} for the admin to review/edit before actually posting.
+export async function draftAnnouncementFromNews({ title, source_text, url }) {
+  const { data } = await client.post("/admins/announcement/draft-from-news", {
+    title,
+    source_text: source_text || "",
+    url: url || "",
   });
   return data;
 }

@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { clearChatHistory, transcribeAudio, synthesizeSpeech } from "../../api/chat";
 import { classifySoil, detectDisease } from "../../api/vision";
+import { translateSoilType } from "../../utils/soilTypeLabel";
 import { Skeleton } from "../../components/ui/Skeleton";
 
 // The disease-detection ML model returns fertilizer as a structured object
@@ -389,7 +390,7 @@ export default function ChatPage() {
         // Same bug as backend/app/routes/vision.py's chat-summary
         // formatters; fixed there too.
         const summary = t("chat.soilResult", {
-          type: result.soil_type,
+          type: translateSoilType(t, result.soil_type),
           confidence: Math.round(result.confidence),
         });
         addPhotoExchange(previewUrl, summary, { kind: "soil", ...result });

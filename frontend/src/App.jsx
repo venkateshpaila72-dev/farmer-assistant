@@ -19,6 +19,7 @@ import TrendingCrops from "./pages/market/TrendingCrops.jsx";
 import NewsLayout from "./pages/news/NewsLayout.jsx";
 import NewsFeed from "./pages/news/NewsFeed.jsx";
 import PestAlerts from "./pages/news/PestAlerts.jsx";
+import SchemeNews from "./pages/news/SchemeNews.jsx";
 import AnnouncementsFeed from "./pages/news/AnnouncementsFeed.jsx";
 import ChatPage from "./pages/chat/ChatPage.jsx";
 import ProfilePage from "./pages/profile/ProfilePage.jsx";
@@ -100,6 +101,7 @@ function App() {
       <Route path="/news" element={<DashboardRoute><NewsLayout /></DashboardRoute>}>
         <Route index element={<NewsFeed />} />
         <Route path="alerts" element={<PestAlerts />} />
+        <Route path="schemes" element={<SchemeNews />} />
         <Route path="announcements" element={<AnnouncementsFeed />} />
       </Route>
 

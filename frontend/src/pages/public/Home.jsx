@@ -92,7 +92,7 @@ export default function Home() {
               {weather?.alerts?.[0] ? (
                 <div className="flex items-start gap-2 bg-danger-tint text-danger rounded-sm px-3 py-2.5 text-[13px] font-semibold mb-3.5">
                   <Bug size={16} className="mt-0.5 shrink-0" />
-                  {weather.alerts[0]}
+                  {t(`dashboardHome.weatherAlert.${weather.alerts[0]}`)}
                 </div>
               ) : (
                 <div className="flex items-start gap-2 bg-accent-tint text-accent rounded-sm px-3 py-2.5 text-[13px] font-semibold mb-3.5">

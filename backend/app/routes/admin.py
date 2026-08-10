@@ -10,6 +10,8 @@ from app.db.models import (
 from app.db.schemas import AdminRegister, AdminResponse, MessageResponse
 from app.core.security import hash_password, get_current_admin
 from app.utils.cloudinary_utils import upload_image
+from app.utils.groq_utils import draft_scheme_from_news
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -78,15 +80,63 @@ async def get_analytics(admin: dict = Depends(get_current_admin)):
     }
 
 
+class DraftFromNewsRequest(BaseModel):
+    title: str
+    source_text: str = ""   # article description/snippet, and/or anything
+                             # extra the admin pastes in for more context
+    url: str = ""
+
+
+@router.post("/announcement/draft-from-news")
+async def draft_announcement_from_news(
+    body: DraftFromNewsRequest,
+    admin: dict = Depends(get_current_admin)
+):
+    """
+    AI-assisted first draft of a scheme announcement, from a real news
+    item (e.g. one the admin found in the farmer-facing Schemes tab).
+
+    This does NOT post anything — it only returns a draft for the admin
+    form to pre-fill, which the admin then reviews/edits/discards before
+    ever hitting the actual Post button. See draft_scheme_from_news's own
+    docstring for why that review step is non-negotiable: getting a real
+    scheme's eligibility or benefit amount wrong could genuinely mislead
+    a farmer about money they may or may not be entitled to.
+    """
+    if not body.title.strip():
+        raise HTTPException(status_code=400, detail="Article title is required")
+
+    draft = draft_scheme_from_news(
+        title=body.title.strip(),
+        source_text=body.source_text.strip(),
+        url=body.url.strip()
+    )
+    return draft
+
+
 @router.post("/announcement", response_model=MessageResponse)
 async def post_announcement(
     title: str = Form(...),
     content: str = Form(...),
     posted_by: str = Form(...),
+    benefit: str = Form(""),
+    eligibility: str = Form(""),
+    where_to_apply: str = Form(""),
+    official_link: str = Form(""),
+    scheme_status: str = Form("active"),
     image: UploadFile = File(None),
     admin: dict = Depends(get_current_admin)
 ):
-    """Admin — post a government scheme or farming announcement, with an optional image."""
+    """Admin — post a government scheme or farming announcement, with an
+    optional image and optional structured scheme fields (benefit,
+    eligibility, where_to_apply, official_link, scheme_status) that render
+    as a scannable scheme card on the farmer-facing feed instead of a
+    free-text paragraph. All are optional — a plain non-scheme
+    announcement just leaves them blank/default.
+
+    Note: this Form param is named scheme_status, not status — `status`
+    is already imported from fastapi in this file (for HTTP status codes),
+    and a same-named parameter would shadow it within this function."""
     db = get_db()
 
     image_url = None
@@ -97,12 +147,17 @@ async def post_announcement(
             image_url = result["url"]
 
     announcement_doc = {
-        "title":      title,
-        "content":    content,
-        "posted_by":  posted_by,
-        "image_url":  image_url,
-        "created_at": datetime.utcnow(),
-        "updated_at": None  # set when the announcement is later edited
+        "title":          title,
+        "content":        content,
+        "posted_by":      posted_by,
+        "benefit":        benefit or None,
+        "eligibility":    eligibility or None,
+        "where_to_apply": where_to_apply or None,
+        "official_link":  official_link or None,
+        "status":         scheme_status or "active",
+        "image_url":      image_url,
+        "created_at":     datetime.utcnow(),
+        "updated_at":     None  # set when the announcement is later edited
     }
 
     await db[ANNOUNCEMENTS_COLLECTION].insert_one(announcement_doc)
@@ -118,6 +173,11 @@ async def edit_announcement(
     announcement_id: str,
     title: str = Form(...),
     content: str = Form(...),
+    benefit: str = Form(""),
+    eligibility: str = Form(""),
+    where_to_apply: str = Form(""),
+    official_link: str = Form(""),
+    scheme_status: str = Form("active"),
     image: UploadFile = File(None),
     admin: dict = Depends(get_current_admin)
 ):
@@ -134,9 +194,14 @@ async def edit_announcement(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
 
     update_doc = {
-        "title":      title,
-        "content":    content,
-        "updated_at": datetime.utcnow()
+        "title":          title,
+        "content":        content,
+        "benefit":        benefit or None,
+        "eligibility":    eligibility or None,
+        "where_to_apply": where_to_apply or None,
+        "official_link":  official_link or None,
+        "status":         scheme_status or "active",
+        "updated_at":     datetime.utcnow()
     }
 
     if image is not None:

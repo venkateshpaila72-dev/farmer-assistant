@@ -1,5 +1,6 @@
 import time
 import httpx
+import xml.etree.ElementTree as ET
 from app.core.config import settings
 
 # In-memory cache, keyed by the exact query string — this is the actual
@@ -126,6 +127,113 @@ async def get_pest_alerts(state: str = None, max_results: int = 5) -> list:
     articles = _merge_unique(state_specific, general, limit=max_results)
 
     return articles
+
+
+async def get_scheme_news(state: str = None, max_results: int = 5) -> list:
+    """
+    Fetch government farming-scheme news — blends state-specific with
+    general India scheme coverage the same way get_farming_news and
+    get_pest_alerts do, PLUS Google News RSS as a second, quota-free
+    source (GNews's free tier caps at 100 requests/day; Google News RSS
+    has no such cap, so it widens coverage without extra cost — at the
+    tradeoff of being an unofficial, unversioned feed that Google could
+    change without notice, and often skewing toward slightly older items
+    for narrow queries rather than breaking news).
+
+    This is a supplementary, informal signal for NEW schemes (subsidies,
+    loan waivers, direct benefit transfers, insurance schemes) — it's
+    news-sourced, not an official government feed, so results here should
+    be shown to farmers as "in the news" rather than as verified/curated
+    scheme info. The admin-curated ANNOUNCEMENTS_COLLECTION (see
+    routes/admin.py) is the trustworthy, structured source for schemes
+    that have actually been reviewed and turned into a proper scheme card
+    (benefit amount, eligibility, where to apply) — this feed exists to
+    help an admin notice a new scheme worth reviewing and promoting there
+    (see draft_scheme_from_news in groq_utils.py), not to replace that
+    review step.
+    """
+    state_specific = []
+    if state:
+        state_specific = await _fetch_gnews(
+            query=f"{state} farmer government scheme subsidy",
+            max_results=max_results
+        )
+
+    general = await _fetch_gnews(
+        query="India farmer government scheme subsidy yojana",
+        max_results=max_results
+    )
+
+    rss_query = f"{state} farmer scheme" if state else "India farmer government scheme"
+    rss_results = await _fetch_google_news_rss(query=rss_query, max_results=max_results)
+
+    articles = _merge_unique(state_specific, general, rss_results, limit=max_results)
+
+    return articles
+
+
+async def _fetch_google_news_rss(query: str, max_results: int = 10) -> list:
+    """
+    Internal helper — Google News RSS (news.google.com/rss/search), a
+    free, no-API-key, no-daily-cap feed. Unofficial (not a documented
+    Google API — could change format without notice) but stable in
+    practice. Returns the same article shape as _fetch_gnews so callers
+    can merge them interchangeably, except `description` and `image` are
+    always None — the RSS format doesn't include either, only title/link/
+    source/date.
+    """
+    cache_key = f"rss::{query}::{max_results}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    params = {
+        "q":    query,
+        "hl":   "en-IN",
+        "gl":   "IN",
+        "ceid": "IN:en",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get("https://news.google.com/rss/search", params=params)
+
+            if response.status_code != 200:
+                print(f"Google News RSS error: {response.status_code} for query '{query}'")
+                _cache_set(cache_key, [], is_failure=True)
+                return []
+
+            root  = ET.fromstring(response.text)
+            items = root.findall("./channel/item")[:max_results]
+
+            result = []
+            for item in items:
+                title = item.findtext("title")
+                if not title:
+                    continue
+                # Google News RSS <source> is a child element with the
+                # publisher name as its text content (falls back to the
+                # generic "Google News" label if that structure ever
+                # changes, rather than crashing this one item).
+                source_el = item.find("source")
+                source    = source_el.text if source_el is not None else "Google News"
+
+                result.append({
+                    "title":        title,
+                    "description":  None,
+                    "url":          item.findtext("link"),
+                    "source":       source,
+                    "published_at": item.findtext("pubDate"),
+                    "image":        None,
+                })
+
+            _cache_set(cache_key, result, is_failure=False)
+            return result
+
+    except Exception as e:
+        print(f"Google News RSS fetch error ({type(e).__name__}): {e}")
+        _cache_set(cache_key, [], is_failure=True)
+        return []
 
 
 async def _fetch_gnews(query: str, max_results: int = 10) -> list:
