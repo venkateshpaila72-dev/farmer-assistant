@@ -54,7 +54,8 @@ export default function Dashboard() {
     const weatherData = weather?.current;
     const forecast = weather?.forecast?.slice(0, 5) || [];
     const alerts = weather?.alerts || [];
-    const priceList = prices?.prices?.slice(0, 6) || [];
+    // /market/farmer/{username} returns prices as { crop: { records, district } }
+    const priceList = Object.entries(prices?.prices || {}).slice(0, 6);
 
     return (
         <div className="container" style={{ padding: "var(--spacing-lg) var(--spacing-md)" }}>
@@ -67,7 +68,7 @@ export default function Dashboard() {
                     </h1>
                     {profile && (
                         <p className="text-subtitle read-me">
-                            {profile.crops?.join(", ")} · {profile.soil_type} · {profile.farm_size_acres} acres
+                            {profile.preferred_crops?.join(", ")} · {profile.soil_type} · {profile.farm_acres} acres
                         </p>
                     )}
                 </div>
@@ -100,13 +101,18 @@ export default function Dashboard() {
                                 <div className="weather-main">
                                     <div className="weather-temp">{Math.round(weatherData.temperature || 0)}°</div>
                                     <div>
-                                        <p style={{ fontSize: "1.1rem", fontWeight: 500 }}>{weatherData.description || ""}</p>
+                                        <p style={{ fontSize: "1.1rem", fontWeight: 500 }}>
+                                            {Number(weatherData.weather_code) === 0 ? "Clear" :
+                                                Number(weatherData.weather_code) <= 3 ? "Cloudy" :
+                                                Number(weatherData.weather_code) >= 51 && Number(weatherData.weather_code) <= 67 ? "Rain" :
+                                                Number(weatherData.weather_code) >= 95 ? "Storm" : "—"}
+                                        </p>
                                         <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem", opacity: 0.8, fontSize: "0.9rem" }}>
                                             <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                                                 <Droplets size={14} /> {weatherData.humidity || 0}%
                                             </span>
                                             <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                                                <Wind size={14} /> {weatherData.windspeed || 0} km/h
+                                                <Wind size={14} /> {weatherData.wind_speed || 0} km/h
                                             </span>
                                         </div>
                                     </div>
@@ -115,9 +121,11 @@ export default function Dashboard() {
                                     <div className="weather-forecast">
                                         {forecast.map((day, i) => (
                                             <div key={i} className="forecast-day">
-                                                <span style={{ fontSize: "0.8rem", opacity: 0.7 }}>{day.day || `Day ${i + 1}`}</span>
-                                                <span style={{ fontSize: "1.1rem", fontWeight: 600 }}>{Math.round(day.max_temp || 0)}°</span>
-                                                <span style={{ fontSize: "0.8rem", opacity: 0.6 }}>{Math.round(day.min_temp || 0)}°</span>
+                                                <span style={{ fontSize: "0.8rem", opacity: 0.7 }}>
+                                                    {day.date ? new Date(day.date).toLocaleDateString(undefined, { weekday: "short" }) : `Day ${i + 1}`}
+                                                </span>
+                                                <span style={{ fontSize: "1.1rem", fontWeight: 600 }}>{Math.round(day.temp_max || 0)}°</span>
+                                                <span style={{ fontSize: "0.8rem", opacity: 0.6 }}>{Math.round(day.temp_min || 0)}°</span>
                                             </div>
                                         ))}
                                     </div>
@@ -143,20 +151,28 @@ export default function Dashboard() {
                             <p style={{ color: "var(--color-text-muted)", marginTop: "0.5rem" }}>Loading prices...</p>
                         ) : priceList.length > 0 ? (
                             <div style={{ marginTop: "0.75rem" }}>
-                                {priceList.map((item, i) => (
-                                    <div key={i} style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        padding: "0.5rem 0",
-                                        borderBottom: i < priceList.length - 1 ? "1px solid var(--color-border)" : "none",
-                                        fontSize: "0.9rem",
-                                    }}>
-                                        <span style={{ fontWeight: 500 }}>{item.commodity}</span>
-                                        <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>
-                                            ₹{item.modal_price || item.max_price || "—"}/q
-                                        </span>
-                                    </div>
-                                ))}
+                                {priceList.map(([crop, data], i) => {
+                                    const latest = data?.records?.[0];
+                                    return (
+                                        <div key={crop} style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "0.5rem 0",
+                                            borderBottom: i < priceList.length - 1 ? "1px solid var(--color-border)" : "none",
+                                            fontSize: "0.9rem",
+                                        }}>
+                                            <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
+                                                {crop.replace(/_/g, " ")}
+                                                {data?.district === "statewide" && (
+                                                    <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginLeft: "6px" }}>(state)</span>
+                                                )}
+                                            </span>
+                                            <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+                                                {latest ? `₹${Math.round(latest.modal_price || latest.max_price || 0).toLocaleString("en-IN")}/q` : "—"}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <p style={{ color: "var(--color-text-muted)", marginTop: "0.5rem" }}>No price data available</p>

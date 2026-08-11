@@ -18,7 +18,10 @@ import Market from "./pages/Market";
 import CropTools from "./pages/CropTools";
 import VisionTools from "./pages/VisionTools";
 import Chat from "./pages/Chat";
+import News from "./pages/News";
+import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import NotFound from "./pages/NotFound";
 
 function AppLayout({ children, showAccessibility = true }) {
     return (
@@ -27,6 +30,16 @@ function AppLayout({ children, showAccessibility = true }) {
             {showAccessibility && <AccessibilityBar />}
             <main className="main-content">{children}</main>
         </div>
+    );
+}
+
+function FarmerRoute({ children }) {
+    return (
+        <ProtectedRoute>
+            <OnboardingGuard>
+                <AppLayout>{children}</AppLayout>
+            </OnboardingGuard>
+        </ProtectedRoute>
     );
 }
 
@@ -41,48 +54,36 @@ export default function App() {
                 <Route path="/admin/login" element={<AdminLogin />} />
 
                 {/* Farmer — Protected + Onboarding */}
-                <Route path="/onboarding" element={
-                    <ProtectedRoute>
-                        <Onboarding />
-                    </ProtectedRoute>
-                } />
-                <Route path="/dashboard" element={
-                    <ProtectedRoute><OnboardingGuard>
-                        <AppLayout><Dashboard /></AppLayout>
-                    </OnboardingGuard></ProtectedRoute>
-                } />
-                <Route path="/weather" element={
-                    <ProtectedRoute><OnboardingGuard>
-                        <AppLayout><Weather /></AppLayout>
-                    </OnboardingGuard></ProtectedRoute>
-                } />
-                <Route path="/market" element={
-                    <ProtectedRoute><OnboardingGuard>
-                        <AppLayout><Market /></AppLayout>
-                    </OnboardingGuard></ProtectedRoute>
-                } />
-                <Route path="/crop-tools" element={
-                    <ProtectedRoute><OnboardingGuard>
-                        <AppLayout><CropTools /></AppLayout>
-                    </OnboardingGuard></ProtectedRoute>
-                } />
-                <Route path="/vision" element={
-                    <ProtectedRoute><OnboardingGuard>
-                        <AppLayout><VisionTools /></AppLayout>
-                    </OnboardingGuard></ProtectedRoute>
-                } />
-                <Route path="/chat" element={
-                    <ProtectedRoute><OnboardingGuard>
-                        <AppLayout><Chat /></AppLayout>
-                    </OnboardingGuard></ProtectedRoute>
-                } />
+                <Route
+                    path="/onboarding"
+                    element={
+                        <ProtectedRoute>
+                            <Onboarding />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route path="/dashboard" element={<FarmerRoute><Dashboard /></FarmerRoute>} />
+                <Route path="/weather" element={<FarmerRoute><Weather /></FarmerRoute>} />
+                <Route path="/market" element={<FarmerRoute><Market /></FarmerRoute>} />
+                <Route path="/crop-tools" element={<FarmerRoute><CropTools /></FarmerRoute>} />
+                <Route path="/vision" element={<FarmerRoute><VisionTools /></FarmerRoute>} />
+                <Route path="/chat" element={<FarmerRoute><Chat /></FarmerRoute>} />
+                <Route path="/news" element={<FarmerRoute><News /></FarmerRoute>} />
+                <Route path="/profile" element={<FarmerRoute><Profile /></FarmerRoute>} />
 
                 {/* Admin */}
-                <Route path="/admin" element={
-                    <AdminRoute>
-                        <AppLayout showAccessibility={false}><Admin /></AppLayout>
-                    </AdminRoute>
-                } />
+                <Route
+                    path="/admin"
+                    element={
+                        <AdminRoute>
+                            <AppLayout showAccessibility={false}><Admin /></AppLayout>
+                        </AdminRoute>
+                    }
+                />
+
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </AuthProvider>
     );

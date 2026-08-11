@@ -154,21 +154,119 @@ export default function CropTools() {
                         <FlaskConical size={20} color="var(--color-primary)" />
                         {t("tools.result", "Result")}
                     </h3>
-                    <div style={{ whiteSpace: "pre-line", lineHeight: 1.7, color: "var(--color-text-main)" }}>
-                        {typeof result === "string" ? result : (
+                    {tab === "crop" && result.top_crops && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-sm)" }}>
+                            <div style={{
+                                display: "flex", alignItems: "center", gap: "var(--spacing-md)", flexWrap: "wrap",
+                                padding: "var(--spacing-md)", borderRadius: "var(--radius-sm)",
+                                background: "rgba(30,94,58,0.08)", border: "1px solid rgba(30,94,58,0.25)",
+                            }}>
+                                <Sprout size={26} color="var(--color-primary)" />
+                                <div>
+                                    <p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{t("tools.cropRecommend", "Crop Recommendation")}</p>
+                                    <p style={{ fontWeight: 700, fontSize: "1.15rem", color: "var(--color-primary-dark)", textTransform: "capitalize" }}>
+                                        {result.best_crop?.replace(/_/g, " ")}
+                                    </p>
+                                </div>
+                                <span style={{
+                                    marginLeft: "auto", fontSize: "0.85rem", fontWeight: 600, padding: "0.3rem 0.8rem",
+                                    borderRadius: "var(--radius-full)", background: "white", color: "var(--color-primary)",
+                                }}>
+                                    {result.confidence}% {t("cropTools.confidence", "confidence")}
+                                </span>
+                            </div>
+                            <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+                                {result.season && <>Season: <strong>{result.season}</strong> · </>}
+                                {result.location && <>State: <strong>{result.location}</strong> · </>}
+                                {result.soil_type && <>Soil: <strong style={{ textTransform: "capitalize" }}>{result.soil_type.replace(/_/g, " ")}</strong></>}
+                            </p>
                             <div>
-                                {result.recommendation && <p><strong>Recommendation:</strong> {result.recommendation}</p>}
-                                {result.predicted_yield && <p><strong>Predicted Yield:</strong> {result.predicted_yield}</p>}
-                                {result.fertilizer && <p><strong>Fertilizer:</strong> {result.fertilizer}</p>}
-                                {result.crops && <p><strong>Crops:</strong> {Array.isArray(result.crops) ? result.crops.join(", ") : result.crops}</p>}
-                                {result.advice && <p><strong>Advice:</strong> {result.advice}</p>}
-                                {/* Fallback: dump remaining keys */}
-                                {Object.entries(result).filter(([k]) => !["recommendation", "predicted_yield", "fertilizer", "crops", "advice"].includes(k)).map(([k, v]) => (
-                                    <p key={k}><strong>{k}:</strong> {typeof v === "object" ? JSON.stringify(v) : String(v)}</p>
+                                <p style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--color-text-muted)", marginBottom: "0.4rem" }}>Top 3</p>
+                                {result.top_crops.map((c) => (
+                                    <div key={c.crop} style={{ display: "flex", justifyContent: "space-between", padding: "0.4rem 0", fontSize: "0.92rem", borderBottom: "1px solid var(--color-border)" }}>
+                                        <span style={{ textTransform: "capitalize" }}>{c.crop.replace(/_/g, " ")}</span>
+                                        <span style={{ color: "var(--color-text-muted)" }}>{c.confidence}%</span>
+                                    </div>
                                 ))}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
+
+                    {tab === "fertilizer" && result.recommendations && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-md)" }}>
+                            {result.deficits && (
+                                <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                                    {Object.entries(result.deficits).map(([k, v]) => (
+                                        <span key={k} style={{
+                                            fontSize: "0.8rem", fontWeight: 600, padding: "0.3rem 0.8rem", borderRadius: "var(--radius-full)",
+                                            background: v > 0 ? "rgba(217,83,79,0.1)" : "rgba(92,184,92,0.1)",
+                                            color: v > 0 ? "var(--color-danger)" : "var(--color-success)",
+                                        }}>
+                                            {k}: {v > 0 ? `+${v}` : "OK"}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {result.recommendations.map((rec, i) => (
+                                <div key={rec.fertilizer} style={{
+                                    display: "flex", alignItems: "center", gap: "var(--spacing-sm)",
+                                    padding: "var(--spacing-md)", borderRadius: "var(--radius-sm)",
+                                    background: i === 0 ? "rgba(30,94,58,0.08)" : "var(--color-bg-base)",
+                                    border: i === 0 ? "1px solid rgba(30,94,58,0.3)" : "1px solid var(--color-border)",
+                                }}>
+                                    <Leaf size={20} color={i === 0 ? "var(--color-primary)" : "var(--color-text-muted)"} style={{ flexShrink: 0 }} />
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontWeight: 600 }}>{rec.fertilizer}</p>
+                                        {rec.low_sample && (
+                                            <p style={{ fontSize: "0.75rem", color: "var(--color-warning)" }}>{t("cropTools.lowSampleNote", "Fewer training examples for this fertilizer")}</p>
+                                        )}
+                                    </div>
+                                    <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>{rec.confidence}%</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {tab === "yield" && result.unit_group && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-md)" }}>
+                            {result.out_of_range_warning && (
+                                <div className="alert-banner">
+                                    {t("cropTools.outOfRangeWarning", "This prediction is outside the range the model was trained on")}
+                                </div>
+                            )}
+                            <div style={{
+                                padding: "var(--spacing-lg)", borderRadius: "var(--radius-sm)", textAlign: "center",
+                                background: "rgba(30,94,58,0.08)", border: "1px solid rgba(30,94,58,0.25)",
+                            }}>
+                                <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>{t("tools.predictYield", "Predicted Yield")}</p>
+                                <p style={{ fontSize: "1.6rem", fontWeight: 800, color: "var(--color-primary-dark)" }}>
+                                    {result.unit_group === "count" ? (
+                                        `${Math.round(result.yield_nuts_per_ha || 0).toLocaleString("en-IN")} ${t("cropTools.nuts", "nuts")}/${t("cropTools.perHectare", "per hectare")}`
+                                    ) : result.unit_group === "bale" ? (
+                                        `${result.yield_bales_per_ha} ${t("cropTools.bales", "bales")}/${t("cropTools.perHectare", "per hectare")}`
+                                    ) : (
+                                        `${result.yield_tonnes_per_ha} ${t("cropTools.quintals", "quintals")}/${t("cropTools.perHectare", "per hectare")}`
+                                    )}
+                                </p>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--spacing-sm)" }}>
+                                {result.unit_group === "weight" && (
+                                    <>
+                                        <div className="stat-pill"><p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{t("cropTools.perHectare", "per hectare")}</p><p className="stat-val" style={{ fontSize: "1.1rem" }}>{result.yield_kg_per_ha} kg</p></div>
+                                        <div className="stat-pill"><p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Total</p><p className="stat-val" style={{ fontSize: "1.1rem" }}>{result.total_quintals} q</p></div>
+                                    </>
+                                )}
+                                {result.unit_group === "count" && (
+                                    <div className="stat-pill"><p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Total</p><p className="stat-val" style={{ fontSize: "1.1rem" }}>{Math.round(result.total_nuts || 0).toLocaleString("en-IN")}</p></div>
+                                )}
+                                {result.unit_group === "bale" && (
+                                    <div className="stat-pill"><p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Total</p><p className="stat-val" style={{ fontSize: "1.1rem" }}>{result.total_bales}</p></div>
+                                )}
+                                <div className="stat-pill"><p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Area</p><p className="stat-val" style={{ fontSize: "1.1rem" }}>{result.area_hectares} ha</p></div>
+                                <div className="stat-pill"><p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{t("cropTools.crop", "Crop")}</p><p className="stat-val" style={{ fontSize: "1.1rem", textTransform: "capitalize" }}>{result.crop?.replace(/_/g, " ")}</p></div>
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
             )}
         </div>
