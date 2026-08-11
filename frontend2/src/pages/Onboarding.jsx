@@ -1,18 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { saveOnboarding } from "../api/onboarding";
 import { LANGUAGE_OPTIONS } from "../i18n";
 import {
     Sprout, ChevronLeft, ChevronRight, Check, Droplets,
-    Mountain, TreePine, Wheat, Languages
+    Mountain, TreePine, Wheat, Languages, AlertTriangle, MapPin, LocateFixed
 } from "lucide-react";
 
+// Values must match the backend schema (app/db/schemas.py → OnboardingData):
+// username, soil_type, farm_acres, preferred_crops, irrigation_type,
+// main_problem, chat_language, home_location {state, district, village, lat, lng}
 const SOIL_TYPES = ["Alluvial", "Black", "Red", "Laterite", "Desert", "Mountain", "Clay", "Sandy", "Loamy"];
 const IRRIGATION_TYPES = ["Drip", "Sprinkler", "Canal", "Rainfed", "Borewell", "Well", "River"];
 const COMMON_CROPS = ["Rice", "Wheat", "Maize", "Cotton", "Sugarcane", "Soybean", "Groundnut", "Mustard", "Gram", "Tur", "Jowar", "Bajra", "Ragi", "Tomato", "Onion", "Potato", "Chilli"];
+const PROBLEMS = ["pests", "water", "price", "disease"];
+const CODE_TO_BACKEND_NAME = { en: "English", hi: "Hindi", te: "Telugu", ta: "Tamil", kn: "Kannada", mr: "Marathi", bn: "Bengali", pa: "Punjabi" };
 
 const steps = [
     { key: "language", icon: Languages, titleKey: "onboarding.language" },
@@ -20,9 +25,22 @@ const steps = [
     { key: "farm", icon: TreePine, titleKey: "onboarding.farm" },
     { key: "crops", icon: Wheat, titleKey: "onboarding.crops" },
     { key: "irrigation", icon: Droplets, titleKey: "onboarding.irrigation" },
+    { key: "problem", icon: AlertTriangle, titleKey: "onboarding.problem" },
+    { key: "location", icon: MapPin, titleKey: "onboarding.location" },
 ];
 
-const CODE_TO_BACKEND_NAME = { en: "English", hi: "Hindi", te: "Telugu", ta: "Tamil", kn: "Kannada", mr: "Marathi", bn: "Bengali", pa: "Punjabi" };
+async function reverseGeocode(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=12&addressdetails=1`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("Reverse geocoding failed");
+    const data = await res.json();
+    const addr = data.address || {};
+    return {
+        state: addr.state || "",
+        district: addr.state_district || addr.county || "",
+        village: addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || "",
+    };
+}
 
 export default function Onboarding() {
     const { t, i18n } = useTranslation();
@@ -33,20 +51,29 @@ export default function Onboarding() {
     const [profile, setProfile] = useState({
         chat_language: CODE_TO_BACKEND_NAME[i18n.language] || "English",
         soil_type: "",
-        farm_size_acres: "",
-        crops: [],
+        farm_acres: "",
+        preferred_crops: [],
         irrigation_type: "",
+        main_problem: "",
+        home_location: { state: "", district: "", village: "", lat: null, lng: null },
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [locating, setLocating] = useState(false);
+    const [geoError, setGeoError] = useState("");
 
     const canNext = () => {
         switch (step) {
             case 0: return !!profile.chat_language;
             case 1: return !!profile.soil_type;
-            case 2: return profile.farm_size_acres > 0;
-            case 3: return profile.crops.length > 0;
+            case 2: return profile.farm_acres > 0;
+            case 3: return profile.preferred_crops.length > 0;
             case 4: return !!profile.irrigation_type;
+            case 5: return !!profile.main_problem;
+            case 6: {
+                const loc = profile.home_location;
+                return !!(loc.state && loc.district && loc.village && loc.lat && loc.lng);
+            }
             default: return false;
         }
     };
@@ -54,7 +81,9 @@ export default function Onboarding() {
     const toggleCrop = (crop) => {
         setProfile((p) => ({
             ...p,
-            crops: p.crops.includes(crop) ? p.crops.filter((c) => c !== crop) : [...p.crops, crop],
+            preferred_crops: p.preferred_crops.includes(crop)
+                ? p.preferred_crops.filter((c) => c !== crop)
+                : [...p.preferred_crops, crop],
         }));
     };
 
@@ -62,10 +91,10 @@ export default function Onboarding() {
         setSaving(true);
         setError("");
         try {
-            await saveOnboarding({ ...profile, username: user.username });
+            await saveOnboarding({ username: user.username, ...profile });
             navigate("/dashboard");
         } catch (err) {
-            setError(err.response?.data?.detail || "Failed to save profile, please try again.");
+            setError(err.response?.data?.detail || t("onboarding.saveError", "Failed to save profile, please try again."));
         } finally {
             setSaving(false);
         }
@@ -76,36 +105,68 @@ export default function Onboarding() {
         setProfile((p) => ({ ...p, chat_language: CODE_TO_BACKEND_NAME[code] || "English" }));
     };
 
+    const captureGPS = () => {
+        if (!("geolocation" in navigator)) {
+            setGeoError(t("locationStep.geoNotSupported", "Geolocation is not supported in this browser"));
+            return;
+        }
+        setLocating(true);
+        setGeoError("");
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const { latitude: lat, longitude: lng } = pos.coords;
+                try {
+                    const address = await reverseGeocode(lat, lng);
+                    setProfile((p) => ({ ...p, home_location: { ...p.home_location, ...address, lat, lng } }));
+                } catch {
+                    setProfile((p) => ({ ...p, home_location: { ...p.home_location, lat, lng } }));
+                    setGeoError(t("locationStep.geoPartialFail", "Location captured, but village/state could not be auto-filled. Please type them."));
+                } finally {
+                    setLocating(false);
+                }
+            },
+            () => {
+                setGeoError(t("locationStep.geoFailed", "Could not get your location. Please type it manually."));
+                setLocating(false);
+            },
+            { timeout: 8000 }
+        );
+    };
+
+    const setLoc = (field) => (e) =>
+        setProfile((p) => ({ ...p, home_location: { ...p.home_location, [field]: e.target.value } }));
+
     const renderStep = () => {
         switch (step) {
             case 0:
                 return (
-                    <div className="lang-selector-grid">
+                    <div className="lang-selector-grid" style={{ margin: "0 auto" }}>
                         {LANGUAGE_OPTIONS.map((lang) => (
                             <button
                                 key={lang.code}
                                 className={`lang-btn ${i18n.language === lang.code ? "active" : ""}`}
                                 onClick={() => handleLangSelect(lang.code)}
+                                style={{ padding: "0.9rem 0.75rem" }}
                             >
-                                {lang.label}
+                                <span style={{ fontSize: "0.95rem" }}>{lang.label}</span>
                             </button>
                         ))}
                     </div>
                 );
             case 1:
                 return (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.75rem" }}>
                         {SOIL_TYPES.map((soil) => (
                             <button
                                 key={soil}
-                                onClick={() => setProfile((p) => ({ ...p, soil_type: soil }))}
+                                onClick={() => setProfile((p) => ({ ...p, soil_type: soil.toLowerCase() }))}
                                 style={{
-                                    padding: "1rem",
+                                    padding: "1rem 0.5rem",
                                     borderRadius: "var(--radius-sm)",
-                                    border: profile.soil_type === soil ? "2px solid var(--color-primary)" : "2px solid var(--color-border)",
-                                    background: profile.soil_type === soil ? "rgba(30,94,58,0.08)" : "white",
+                                    border: profile.soil_type === soil.toLowerCase() ? "2px solid var(--color-primary)" : "2px solid var(--color-border)",
+                                    background: profile.soil_type === soil.toLowerCase() ? "rgba(30,94,58,0.08)" : "white",
                                     cursor: "pointer",
-                                    fontWeight: profile.soil_type === soil ? 600 : 400,
+                                    fontWeight: profile.soil_type === soil.toLowerCase() ? 600 : 400,
                                     transition: "all 0.2s",
                                     fontSize: "0.95rem",
                                 }}
@@ -124,8 +185,8 @@ export default function Onboarding() {
                         <input
                             type="number"
                             className="form-input"
-                            value={profile.farm_size_acres}
-                            onChange={(e) => setProfile((p) => ({ ...p, farm_size_acres: parseFloat(e.target.value) || "" }))}
+                            value={profile.farm_acres}
+                            onChange={(e) => setProfile((p) => ({ ...p, farm_acres: parseFloat(e.target.value) || "" }))}
                             placeholder="e.g. 5"
                             min="0.1"
                             step="0.1"
@@ -137,7 +198,7 @@ export default function Onboarding() {
                 return (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.6rem" }}>
                         {COMMON_CROPS.map((crop) => {
-                            const selected = profile.crops.includes(crop);
+                            const selected = profile.preferred_crops.includes(crop);
                             return (
                                 <button
                                     key={crop}
@@ -187,6 +248,64 @@ export default function Onboarding() {
                         ))}
                     </div>
                 );
+            case 5:
+                return (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", maxWidth: "480px", margin: "0 auto" }}>
+                        {PROBLEMS.map((problem) => (
+                            <button
+                                key={problem}
+                                onClick={() => setProfile((p) => ({ ...p, main_problem: problem }))}
+                                style={{
+                                    padding: "1.1rem",
+                                    borderRadius: "var(--radius-sm)",
+                                    border: profile.main_problem === problem ? "2px solid var(--color-primary)" : "2px solid var(--color-border)",
+                                    background: profile.main_problem === problem ? "rgba(30,94,58,0.08)" : "white",
+                                    cursor: "pointer",
+                                    fontWeight: profile.main_problem === problem ? 600 : 400,
+                                    transition: "all 0.2s",
+                                    fontSize: "1rem",
+                                    textTransform: "capitalize",
+                                }}
+                            >
+                                {t(`problem.${problem}`, problem)}
+                            </button>
+                        ))}
+                    </div>
+                );
+            case 6:
+                return (
+                    <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                            <button className="btn btn-primary" onClick={captureGPS} disabled={locating} style={{ padding: "0.6rem 1.2rem" }}>
+                                <LocateFixed size={16} />
+                                {locating ? t("locationStep.locating", "Locating...") : t("locationStep.useMyLocation", "Use My Location")}
+                            </button>
+                            {profile.home_location.lat && profile.home_location.lng && (
+                                <span style={{ fontSize: "0.85rem", color: "var(--color-success)", display: "flex", alignItems: "center", gap: "5px" }}>
+                                    <MapPin size={14} /> {t("locationStep.locationCaptured", "Location captured ✓")}
+                                </span>
+                            )}
+                        </div>
+                        {geoError && <div className="alert-banner">{geoError}</div>}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--spacing-md)" }}>
+                            <div className="form-group">
+                                <label className="form-label">{t("locationStep.state", "State")} *</label>
+                                <input className="form-input" value={profile.home_location.state} onChange={setLoc("state")} placeholder="e.g. Maharashtra" />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t("locationStep.district", "District")} *</label>
+                                <input className="form-input" value={profile.home_location.district} onChange={setLoc("district")} placeholder="e.g. Pune" />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t("locationStep.village", "Village")} *</label>
+                                <input className="form-input" value={profile.home_location.village} onChange={setLoc("village")} placeholder="e.g. Shivapur" />
+                            </div>
+                        </div>
+                        <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginTop: "0.5rem" }}>
+                            {t("locationStep.autofillNote", "Tip: Use My Location auto-fills these from GPS. You can also type them.")}
+                        </p>
+                    </div>
+                );
             default:
                 return null;
         }
@@ -203,6 +322,14 @@ export default function Onboarding() {
             alignItems: "center",
             padding: "2rem 1rem",
         }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1.5rem" }}>
+                <Sprout size={30} color="var(--color-primary)" />
+                <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary)" }}>
+                    {t("app.name", "Farmer Assistant")}
+                </h1>
+            </div>
+
             {/* Progress Bar */}
             <div style={{ width: "100%", maxWidth: "600px", marginBottom: "2rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -228,7 +355,7 @@ export default function Onboarding() {
                 <div style={{ height: "4px", background: "var(--color-border)", borderRadius: "2px", position: "relative" }}>
                     <motion.div
                         style={{ height: "100%", background: "var(--color-primary)", borderRadius: "2px" }}
-                        animate={{ width: `${((step) / (steps.length - 1)) * 100}%` }}
+                        animate={{ width: `${(step / (steps.length - 1)) * 100}%` }}
                         transition={{ duration: 0.3 }}
                     />
                 </div>

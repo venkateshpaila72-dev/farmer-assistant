@@ -33,7 +33,11 @@ export default function Market() {
         setLoading(false);
     };
 
-    const displayPrices = tab === "my" ? farmerPrices : prices;
+    // /market/farmer/{username} returns prices as { crop: { records, district } }
+    const farmerRows = Object.entries(farmerPrices?.prices || {}).flatMap(([crop, data]) =>
+        (data?.records || []).map((r) => ({ ...r, crop, _district: data.district }))
+    );
+    const displayPrices = tab === "my" ? farmerRows : prices;
 
     return (
         <div className="container" style={{ padding: "var(--spacing-lg) var(--spacing-md)" }}>
@@ -94,7 +98,12 @@ export default function Market() {
                             <tbody>
                                 {displayPrices.map((p, i) => (
                                     <tr key={i} className="read-me">
-                                        <td style={{ fontWeight: 500 }}>{p.commodity}</td>
+                                        <td style={{ fontWeight: 500, textTransform: "capitalize" }}>
+                                            {p.crop ? p.crop.replace(/_/g, " ") : p.commodity}
+                                            {p._district === "statewide" && (
+                                                <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginLeft: "6px" }}>(state)</span>
+                                            )}
+                                        </td>
                                         <td>{p.market || p.district || "—"}</td>
                                         <td>{p.state || "—"}</td>
                                         <td>{p.min_price || "—"}</td>
