@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Sprout, RefreshCw } from "lucide-react";
+import { Sprout, RefreshCw, ChevronDown, Thermometer, Droplets, CloudRain, FlaskConical } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
@@ -9,12 +9,27 @@ import { recommendCrop } from "../../api/ml";
 import { translateSoilType } from "../../utils/soilTypeLabel";
 import { translateCropName } from "../../utils/cropNameLabel";
 
+// The 7 raw factors the ML model was fed (backend's `inputs_used`), each
+// with an icon + the translation key for its label. Same set of inputs
+// drove every one of the top_crops predictions — expanding any card shows
+// this, just framed around that card's own confidence score.
+const INPUT_FACTORS = [
+  { key: "N",           labelKey: "cropTools.nitrogen",   unit: "",     Icon: FlaskConical },
+  { key: "P",           labelKey: "cropTools.phosphorus", unit: "",     Icon: FlaskConical },
+  { key: "K",           labelKey: "cropTools.potassium",  unit: "",     Icon: FlaskConical },
+  { key: "ph",          labelKey: "cropTools.phLevel",    unit: "",     Icon: FlaskConical },
+  { key: "temperature", labelKey: "cropTools.temperature",unit: "°C",   Icon: Thermometer },
+  { key: "humidity",    labelKey: "cropTools.humidity",   unit: "%",    Icon: Droplets },
+  { key: "rainfall",    labelKey: "cropTools.rainfall",   unit: "mm",   Icon: CloudRain },
+];
+
 export default function CropRecommendation() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [expandedCrop, setExpandedCrop] = useState(null);
 
   async function handleGetRecommendation() {
     setLoading(true);
@@ -22,6 +37,7 @@ export default function CropRecommendation() {
     try {
       const data = await recommendCrop(user.username);
       setResult(data);
+      setExpandedCrop(null);
     } catch (err) {
       setError(err.response?.data?.detail || t("cropTools.error"));
     } finally {
@@ -62,26 +78,60 @@ export default function CropRecommendation() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {result.top_crops.map((c, i) => (
-              <Panel
-                key={c.crop}
-                className={`p-5 flex items-center gap-4 ${i === 0 ? "border-primary bg-primary-tint" : ""}`}
-              >
-                <span className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${i === 0 ? "bg-primary text-white" : "bg-bg text-ink-soft"}`}>
-                  <Sprout size={20} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-display text-lg font-semibold">{translateCropName(t, c.crop)}</div>
-                  <div className="h-1.5 bg-border rounded-full mt-1.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${i === 0 ? "bg-primary" : "bg-ink-soft"}`}
-                      style={{ width: `${c.confidence}%` }}
+            {result.top_crops.map((c, i) => {
+              const isOpen = expandedCrop === c.crop;
+              return (
+                <Panel
+                  key={c.crop}
+                  className={`overflow-hidden ${i === 0 ? "border-primary bg-primary-tint" : ""}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCrop(isOpen ? null : c.crop)}
+                    aria-expanded={isOpen}
+                    className="w-full p-5 flex items-center gap-4 text-left"
+                  >
+                    <span className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${i === 0 ? "bg-primary text-white" : "bg-bg text-ink-soft"}`}>
+                      <Sprout size={20} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display text-lg font-semibold">{translateCropName(t, c.crop)}</div>
+                      <div className="h-1.5 bg-border rounded-full mt-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${i === 0 ? "bg-primary" : "bg-ink-soft"}`}
+                          style={{ width: `${c.confidence}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="font-display text-xl font-semibold shrink-0">{Math.round(c.confidence)}%</span>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 text-ink-soft transition-transform ${isOpen ? "rotate-180" : ""}`}
                     />
-                  </div>
-                </div>
-                <span className="font-display text-xl font-semibold shrink-0">{Math.round(c.confidence)}%</span>
-              </Panel>
-            ))}
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-5 pb-5 pt-1 border-t border-border/60">
+                      <p className="text-xs text-ink-soft mt-3 mb-3">
+                        {t("cropTools.whyExplain", { crop: translateCropName(t, c.crop) })}
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {INPUT_FACTORS.map(({ key, labelKey, unit, Icon }) => (
+                          <div key={key} className="bg-bg rounded-lg p-3 flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-ink-soft">
+                              <Icon size={12} /> {t(labelKey)}
+                            </div>
+                            <div className="font-display text-sm font-semibold">
+                              {result.inputs_used?.[key]}{unit}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Panel>
+              );
+            })}
           </div>
         </RevealOnScroll>
       )}

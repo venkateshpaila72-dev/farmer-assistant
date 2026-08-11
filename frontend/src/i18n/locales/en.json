@@ -239,6 +239,7 @@
     "today": "Today",
     "season": "Season",
     "yourPrices": "Your crop prices",
+    "statewide": "statewide",
     "noPrices": "No price data yet for your crops",
     "quickActions": "Quick actions",
     "cropToolsDesc": "Get crop, fertilizer and yield advice",
@@ -282,7 +283,15 @@
     "nutsPerHectare": "nuts per hectare",
     "bales": "bales",
     "outOfRangeWarning": "This prediction is outside the range the model was trained on for this combination — treat it as a rough estimate only.",
-    "error": "Couldn't get a result right now. Try again."
+    "error": "Couldn't get a result right now. Try again.",
+    "nitrogen": "Nitrogen (N)",
+    "phosphorus": "Phosphorus (P)",
+    "potassium": "Potassium (K)",
+    "phLevel": "Soil pH",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "rainfall": "Rainfall",
+    "whyExplain": "This match for {{crop}} was calculated from your soil test values and today's local weather, shown below."
   },
   "vision": {
     "title": "Photo check",
