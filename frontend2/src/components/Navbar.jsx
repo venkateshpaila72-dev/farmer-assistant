@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Sprout, LayoutDashboard, CloudSun, ShoppingCart, Scan,
-    FlaskConical, MessageCircle, LogOut, Menu, X, Shield
+    FlaskConical, MessageCircle, Newspaper, User, LogOut, Menu, X, Shield
 } from "lucide-react";
 
 const farmerLinks = [
@@ -14,7 +14,9 @@ const farmerLinks = [
     { to: "/market", icon: ShoppingCart, labelKey: "nav.market" },
     { to: "/crop-tools", icon: FlaskConical, labelKey: "nav.cropTools" },
     { to: "/vision", icon: Scan, labelKey: "nav.vision" },
+    { to: "/news", icon: Newspaper, labelKey: "nav.news" },
     { to: "/chat", icon: MessageCircle, labelKey: "nav.chat" },
+    { to: "/profile", icon: User, labelKey: "nav.profile" },
 ];
 
 const adminLinks = [
