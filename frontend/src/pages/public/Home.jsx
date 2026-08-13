@@ -71,14 +71,19 @@ export default function Home() {
     <PublicLayout>
       {/* Hero */}
       <header ref={heroRef} className="relative overflow-hidden">
-        <motion.div style={{ y: bgY, opacity: bgOpacity }} className="absolute inset-0 pointer-events-none">
+        {/* Background image for landing page */}
+        <div className="absolute inset-0 z-0">
+          <img src="/bg.jpg" alt="" className="w-full h-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg/60 to-bg/95" />
+        </div>
+        <motion.div style={{ y: bgY, opacity: bgOpacity }} className="absolute inset-0 pointer-events-none z-10">
           <FarmScene variant="wide" className="absolute inset-0 w-full h-full opacity-45" />
           {/* fades the illustration out near the top so headline text sits
               on a clean surface, and it only really shows near the bottom
               edge of the hero */}
           <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg/70 to-transparent" />
         </motion.div>
-        <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-14 grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-14 items-center">
+        <div className="relative z-20 max-w-6xl mx-auto px-6 pt-16 pb-14 grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-14 items-center">
         <div>
           <FadeUp as="span" className="inline-flex items-center gap-2 text-[13px] font-semibold text-accent bg-accent-tint px-3 py-1.5 rounded-full mb-4">
             {t("hero.badge")}
