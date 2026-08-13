@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, Leaf, ScanLine, MessageSquare, LineChart, ArrowRight, Droplets } from "lucide-react";
+import { motion } from "framer-motion";
+import { AlertTriangle, Leaf, ScanLine, MessageSquare, LineChart, ArrowRight, Droplets, Sun, CloudRain, Wind } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Plot } from "../../components/ui/Plot";
 import { Ledger, LedgerRow } from "../../components/ui/Ledger";
@@ -14,10 +15,51 @@ import { getFarmerPrices } from "../../api/market";
 import { getFarmerNews } from "../../api/news";
 import { translateCropName } from "../../utils/cropNameLabel";
 
+// Picks a mood for the weather card from temperature + humidity, each with
+// its own gradient, animated icon, and small floating accent shapes —
+// purely decorative (no new data), just makes the "Today" card feel alive
+// instead of a flat number.
+function weatherMood(temp, humidity) {
+  if (humidity >= 70) {
+    return {
+      gradient: "from-sky-500 to-cyan-600",
+      Icon: CloudRain,
+      accent: "text-sky-100",
+    };
+  }
+  if (temp >= 32) {
+    return {
+      gradient: "from-orange-400 to-amber-600",
+      Icon: Sun,
+      accent: "text-amber-100",
+    };
+  }
+  return {
+    gradient: "from-emerald-500 to-teal-600",
+    Icon: Wind,
+    accent: "text-emerald-100",
+  };
+}
+
+function WeatherIcon({ Icon, spin }) {
+  return (
+    <motion.div
+      className="text-white/90"
+      animate={spin ? { rotate: 360 } : { y: [0, -5, 0] }}
+      transition={
+        spin
+          ? { duration: 16, repeat: Infinity, ease: "linear" }
+          : { duration: 2.4, repeat: Infinity, ease: "easeInOut" }
+      }
+    >
+      <Icon size={42} strokeWidth={1.6} />
+    </motion.div>
+  );
+}
+
 export default function DashboardHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
-
   const [profile, setProfile] = useState(null);
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(false);
@@ -60,30 +102,59 @@ export default function DashboardHome() {
 
       {/* Weather + season + your crop prices */}
       <RevealOnScroll className="grid md:grid-cols-[1fr_1.4fr] gap-4">
-        <Panel className="p-5">
-          <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-2">{t("dashboardHome.today")}</div>
-          {weather ? (
-            <>
-              <div className="font-display text-3xl font-semibold mb-1">
-                {Math.round(weather.current.temperature)}&deg;C
-              </div>
-              <div className="text-sm text-ink-soft mb-4">
-                {t("hero.humidity", { value: weather.current.humidity })}
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-accent bg-accent-tint rounded-full px-2.5 py-1 w-fit">
-                {t("dashboardHome.season")}: {weather.season || "\u2014"}
-              </div>
-            </>
-          ) : weatherError ? (
+        {weather ? (
+          (() => {
+            const mood = weatherMood(weather.current.temperature, weather.current.humidity);
+            return (
+              <Panel
+                className={`p-5 relative overflow-hidden text-white border-none bg-gradient-to-br ${mood.gradient}`}
+              >
+                {/* soft floating accent circles, purely decorative */}
+                <motion.span
+                  className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10"
+                  animate={{ scale: [1, 1.12, 1] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.span
+                  className="absolute bottom-2 -left-4 w-16 h-16 rounded-full bg-white/10"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+                />
+
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <div className={`text-[11px] uppercase tracking-wide mb-2 ${mood.accent}`}>
+                      {t("dashboardHome.today")}
+                    </div>
+                    <div className="font-display text-4xl font-semibold mb-1">
+                      {Math.round(weather.current.temperature)}&deg;C
+                    </div>
+                    <div className={`text-sm mb-4 flex items-center gap-1.5 ${mood.accent}`}>
+                      <Droplets size={14} />
+                      {t("hero.humidity", { value: weather.current.humidity })}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-white bg-white/15 rounded-full px-2.5 py-1 w-fit backdrop-blur-sm">
+                      {t("dashboardHome.season")}: {weather.season || "\u2014"}
+                    </div>
+                  </div>
+                  <WeatherIcon Icon={mood.Icon} spin={mood.Icon === Sun} />
+                </div>
+              </Panel>
+            );
+          })()
+        ) : weatherError ? (
+          <Panel className="p-5">
+            <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-2">{t("dashboardHome.today")}</div>
             <p className="text-sm text-ink-soft">{t("hero.unavailable")}</p>
-          ) : (
-            <>
-              <Skeleton className="h-9 w-24 mb-2" />
-              <Skeleton className="h-4 w-32 mb-4" />
-              <Skeleton className="h-6 w-28 rounded-full" />
-            </>
-          )}
-        </Panel>
+          </Panel>
+        ) : (
+          <Panel className="p-5">
+            <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-2">{t("dashboardHome.today")}</div>
+            <Skeleton className="h-9 w-24 mb-2" />
+            <Skeleton className="h-4 w-32 mb-4" />
+            <Skeleton className="h-6 w-28 rounded-full" />
+          </Panel>
+        )}
 
         <Panel className="p-5">
           <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-3">{t("dashboardHome.yourPrices")}</div>

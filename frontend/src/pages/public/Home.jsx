@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation, Trans } from "react-i18next";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Sprout, ArrowRight, MessageSquare, ScanLine, TrendingUp, CloudSun, LineChart, Droplets, Clock, Bug, Newspaper } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicLayout } from "../../layouts/PublicLayout";
@@ -10,6 +11,8 @@ import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { FadeUp } from "../../components/motion/FadeUp";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
+import { FarmScene } from "../../components/illustrations/FarmScene";
+import { LeafPattern } from "../../components/illustrations/LeafPattern";
 import { useGeolocation } from "../../hooks/useGeolocation";
 import { getCurrentWeather } from "../../api/weather";
 import { getTrendingCrops } from "../../api/market";
@@ -28,6 +31,13 @@ function timeAgo(iso) {
 export default function Home() {
   const { t } = useTranslation();
   const { coords } = useGeolocation();
+
+  const heroRef = useRef(null);
+  // Parallax: the illustration drifts down and fades as the hero scrolls
+  // out of view, instead of sitting static — "motion while scrolling".
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const bgOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
 
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(false);
@@ -60,7 +70,15 @@ export default function Home() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <header className="max-w-6xl mx-auto px-6 pt-16 pb-14 grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-14 items-center">
+      <header ref={heroRef} className="relative overflow-hidden">
+        <motion.div style={{ y: bgY, opacity: bgOpacity }} className="absolute inset-0 pointer-events-none">
+          <FarmScene variant="wide" className="absolute inset-0 w-full h-full opacity-45" />
+          {/* fades the illustration out near the top so headline text sits
+              on a clean surface, and it only really shows near the bottom
+              edge of the hero */}
+          <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg/70 to-transparent" />
+        </motion.div>
+        <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-14 grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-14 items-center">
         <div>
           <FadeUp as="span" className="inline-flex items-center gap-2 text-[13px] font-semibold text-accent bg-accent-tint px-3 py-1.5 rounded-full mb-4">
             {t("hero.badge")}
@@ -163,6 +181,7 @@ export default function Home() {
             </div>
           </Panel>
         </FadeUp>
+        </div>
       </header>
 
       {/* Features - varied-size Plot patchwork, not a repeated card grid */}
@@ -331,9 +350,10 @@ export default function Home() {
       {/* CTA */}
       <section id="trust" className="max-w-6xl mx-auto px-6 py-16">
         <RevealOnScroll>
-          <Plot tone="soil" className="!bg-primary text-white p-10 md:p-14 flex flex-wrap items-center justify-between gap-8">
-            <h2 className="text-white text-2xl md:text-3xl max-w-[22ch]">{t("cta.title")}</h2>
-            <Link to="/register">
+          <Plot tone="soil" className="!bg-primary text-white p-10 md:p-14 flex flex-wrap items-center justify-between gap-8 relative overflow-hidden">
+            <LeafPattern className="absolute inset-0 w-full h-full pointer-events-none" opacity={0.1} />
+            <h2 className="relative text-white text-2xl md:text-3xl max-w-[22ch]">{t("cta.title")}</h2>
+            <Link to="/register" className="relative">
               <Button variant="inverse">
                 {t("cta.button")} <ArrowRight size={16} />
               </Button>
