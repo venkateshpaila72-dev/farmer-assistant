@@ -6,10 +6,11 @@ export function RevealOnScroll({ children, delay = 0, className, as = "div", onc
   const Component = motion[as] || motion.div;
   return (
     <Component
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 18, scale: 0.98 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once, amount: 0.15, margin: "0px 0px -40px 0px" }}
       transition={{ duration: 0.55, delay, ease: easeOut }}
+      style={{ willChange: "transform, opacity" }}
       className={className}
       {...props}
     >
