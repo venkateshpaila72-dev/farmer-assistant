@@ -11,7 +11,6 @@ import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { FadeUp } from "../../components/motion/FadeUp";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
-import { FarmScene } from "../../components/illustrations/FarmScene";
 import { LeafPattern } from "../../components/illustrations/LeafPattern";
 import { useGeolocation } from "../../hooks/useGeolocation";
 import { getCurrentWeather } from "../../api/weather";
@@ -36,7 +35,7 @@ export default function Home() {
   // Parallax: the illustration drifts down and fades as the hero scrolls
   // out of view, instead of sitting static — "motion while scrolling".
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "8%"]);
   const bgOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.3]);
 
   const [weather, setWeather] = useState(null);
@@ -72,16 +71,12 @@ export default function Home() {
       {/* Hero */}
       <header ref={heroRef} className="relative overflow-hidden">
         {/* Background image for landing page */}
-        <div className="absolute inset-0 z-0">
-          <img src="/bg.jpg" alt="" className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg/60 to-bg/95" />
-        </div>
-        <motion.div style={{ y: bgY, opacity: bgOpacity }} className="absolute inset-0 pointer-events-none z-10">
-          <FarmScene variant="wide" className="absolute inset-0 w-full h-full opacity-45" />
-          {/* fades the illustration out near the top so headline text sits
-              on a clean surface, and it only really shows near the bottom
-              edge of the hero */}
-          <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg/70 to-transparent" />
+        <motion.div style={{ y: bgY, opacity: bgOpacity }} className="absolute -inset-y-[12%] inset-x-0 z-0 pointer-events-none">
+          <img src="/bg.jpg" alt="" className="w-full h-full object-cover" />
+          {/* Lighter at the very top (behind the badge/logo), stronger toward
+              the bottom so the headline + card keep good contrast, while the
+              photo itself stays clearly visible in the middle of the hero. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-bg/50 via-bg/40 to-bg/95" />
         </motion.div>
         <div className="relative z-20 max-w-6xl mx-auto px-6 pt-16 pb-14 grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-14 items-center">
         <div>

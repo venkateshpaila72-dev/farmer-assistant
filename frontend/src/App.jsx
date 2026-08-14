@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { PageTransitionProvider } from "./context/PageTransitionContext.jsx";
 import Home from "./pages/public/Home.jsx";
 import FarmerLogin from "./pages/auth/FarmerLogin.jsx";
 import FarmerRegister from "./pages/auth/FarmerRegister.jsx";
@@ -64,7 +65,8 @@ function AdminPageRoute({ children }) {
 
 function App() {
   return (
-    <Routes>
+    <PageTransitionProvider>
+      <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<FarmerLogin />} />
       <Route path="/register" element={<FarmerRegister />} />
@@ -115,7 +117,8 @@ function App() {
       <Route path="/admin/market-upload" element={<AdminPageRoute><MarketDataUpload /></AdminPageRoute>} />
 
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </PageTransitionProvider>
   );
 }
 

@@ -1,7 +1,9 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sprout, LayoutDashboard, Leaf, ScanLine, LineChart, Newspaper, MessageSquare, User } from "lucide-react";
+import { motion } from "framer-motion";
+import { LayoutDashboard, Leaf, ScanLine, LineChart, Newspaper, MessageSquare, User } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { Logo } from "../ui/Logo";
 
 const items = [
   { to: "/dashboard", icon: LayoutDashboard, key: "sidebar.dashboard", end: true },
@@ -15,31 +17,38 @@ const items = [
 
 export function Sidebar() {
   const { t } = useTranslation();
+  const location = useLocation();
+
   return (
-    <aside className="hidden md:flex md:w-60 md:flex-col md:shrink-0 border-r border-border bg-surface">
-      <div className="h-[68px] flex items-center gap-2.5 px-6 border-b border-border font-display font-bold text-lg text-ink">
-        <span className="w-8 h-8 rounded-[9px] bg-primary flex items-center justify-center text-white shrink-0">
-          <Sprout size={18} />
-        </span>
-        {t("brand.name")}
+    <aside className="hidden md:flex md:w-64 md:flex-col md:shrink-0 border-r border-border bg-surface">
+      <div className="h-[68px] flex items-center px-6 border-b border-border">
+        <Logo size="sm" showTagline />
       </div>
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-        {items.map(({ to, icon: Icon, key, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-sm text-[14.5px] font-medium transition-colors duration-150",
-                isActive ? "bg-primary-tint text-primary" : "text-ink-soft hover:bg-bg hover:text-ink"
-              )
-            }
-          >
-            <Icon size={18} />
-            {t(key)}
-          </NavLink>
-        ))}
+      <nav className="flex-1 px-3 py-5 flex flex-col gap-1">
+        {items.map(({ to, icon: Icon, key, end }) => {
+          const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={cn(
+                "relative flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[14.5px] font-medium transition-colors duration-200",
+                isActive ? "text-white" : "text-ink-soft hover:bg-bg hover:text-ink"
+              )}
+            >
+              {isActive && (
+                <motion.span
+                  layoutId="sidebar-active-pill"
+                  className="absolute inset-0 rounded-md bg-primary"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+              <Icon size={18} className="relative" />
+              <span className="relative">{t(key)}</span>
+            </NavLink>
+          );
+        })}
       </nav>
     </aside>
   );

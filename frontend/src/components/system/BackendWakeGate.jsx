@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Sprout } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const INITIAL_CHECK_TIMEOUT_MS = 4000;  // how long we wait before assuming the backend is asleep
@@ -77,8 +76,8 @@ export function BackendWakeGate({ children }) {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center text-center px-6">
-      <div className="w-16 h-16 rounded-full bg-primary-tint text-primary flex items-center justify-center mb-6 animate-pulse">
-        <Sprout size={28} />
+      <div className="w-16 h-16 flex items-center justify-center mb-6 animate-pulse">
+        <img src="/logo.png" alt="" className="w-16 h-16 object-contain" />
       </div>
       <p className="font-display text-lg font-semibold text-ink transition-opacity duration-300">
         {STATUS_MESSAGES[messageIndex]}

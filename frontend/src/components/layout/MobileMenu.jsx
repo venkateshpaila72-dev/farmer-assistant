@@ -1,11 +1,19 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { usePageTransition } from "../../context/PageTransitionContext";
 
 const easeOut = [0.16, 1, 0.3, 1];
 
 export function MobileMenu({ open, onClose, links }) {
   const { t } = useTranslation();
+  const { transitionTo } = usePageTransition();
+
+  function handleLogin() {
+    onClose();
+    transitionTo("/login");
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -27,9 +35,12 @@ export function MobileMenu({ open, onClose, links }) {
                 {l.label}
               </a>
             ))}
-            <a href="/login" onClick={onClose} className="py-2.5 text-[15px] font-medium text-ink-soft border-b border-border">
+            <button
+              onClick={handleLogin}
+              className="py-2.5 text-left text-[15px] font-medium text-ink-soft border-b border-border"
+            >
               {t("nav.login")}
-            </a>
+            </button>
             <div className="py-3">
               <LanguageSwitcher />
             </div>

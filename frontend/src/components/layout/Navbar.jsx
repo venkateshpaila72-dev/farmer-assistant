@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sprout, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { Button } from "../ui/Button";
+import { Logo } from "../ui/Logo";
 import { MobileMenu } from "./MobileMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { usePageTransition } from "../../context/PageTransitionContext";
 
 export function Navbar() {
   const { t } = useTranslation();
+  const { transitionTo } = usePageTransition();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -32,11 +35,8 @@ export function Navbar() {
       )}
     >
       <div className="max-w-6xl mx-auto px-6 h-[68px] flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2.5 font-display font-bold text-xl text-ink shrink-0">
-          <span className="w-8 h-8 rounded-[9px] bg-primary flex items-center justify-center text-white shrink-0">
-            <Sprout size={18} />
-          </span>
-          {t("brand.name")}
+        <Link to="/" className="shrink-0">
+          <Logo size="sm" />
         </Link>
 
         <div className="hidden md:flex items-center gap-7 text-[15px] font-medium text-ink-soft">
@@ -49,9 +49,9 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           <LanguageSwitcher className="hidden sm:inline-flex" />
-          <Link to="/login" className="hidden md:block">
-            <Button variant="ghost">{t("nav.login")}</Button>
-          </Link>
+          <Button variant="ghost" className="hidden md:inline-flex" onClick={() => transitionTo("/login")}>
+            {t("nav.login")}
+          </Button>
           <Link to="/register" className="hidden sm:block">
             <Button variant="primary">{t("nav.getStarted")}</Button>
           </Link>

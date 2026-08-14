@@ -1,6 +1,7 @@
 {
   "brand": {
-    "name": "Kisan Sahayak"
+    "name": "Kisan Sahayak",
+    "tagline": "Modern Agrarian"
   },
   "nav": {
     "whatItDoes": "What it does",
@@ -253,7 +254,9 @@
       "frost_risk": "⚠️ Frost risk — protect sensitive crops tonight",
       "heavy_rainfall": "⚠️ Heavy rainfall — avoid spraying pesticides today",
       "high_humidity": "⚠️ High humidity — fungal disease risk is HIGH"
-    }
+    },
+    "welcomeHeading": "Welcome back, {{name}}!",
+    "welcomeSub": "Your fields are looking healthy. Check today's insights to optimize your yield."
   },
   "cropTools": {
     "title": "Crop tools",
@@ -456,5 +459,9 @@
     "urad": "Urad",
     "wheat": "Wheat",
     "other_oilseeds": "Other oilseeds"
+  },
+  "welcome": {
+    "title": "Welcome back, {{name}}!",
+    "subtitle": "Getting your farm dashboard ready…"
   }
 }

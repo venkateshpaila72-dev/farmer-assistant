@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Sprout, LayoutDashboard, Users, BarChart3, Megaphone, UploadCloud, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, Megaphone, UploadCloud, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../utils/cn";
 
@@ -26,10 +26,8 @@ export function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-bg md:flex">
       <aside className="hidden md:flex md:w-56 md:flex-col md:shrink-0 border-r border-border bg-surface">
-        <div className="h-[60px] flex items-center gap-2.5 px-5 border-b border-border font-display font-bold text-base text-ink">
-          <span className="w-7 h-7 rounded-[8px] bg-primary flex items-center justify-center text-white shrink-0">
-            <Sprout size={16} />
-          </span>
+        <div className="h-[60px] flex items-center gap-2 px-5 border-b border-border font-display font-bold text-base text-ink">
+          <img src="/logo.png" alt="" className="w-7 h-7 object-contain shrink-0" />
           Kisan Sahayak
           <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft bg-bg px-1.5 py-0.5 rounded-sm ml-auto">
             ADMIN

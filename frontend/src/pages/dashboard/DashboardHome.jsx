@@ -57,6 +57,11 @@ function WeatherIcon({ Icon, spin }) {
   );
 }
 
+function titleCase(name) {
+  if (!name) return "";
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 export default function DashboardHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -78,15 +83,34 @@ export default function DashboardHome() {
 
   const priceRows = prices?.prices ? Object.entries(prices.prices) : [];
 
+  // Tones chosen to match the reference design: green for Crop Tools, warm
+  // orange for Photo Check, blue for Chat, neutral for Market — each fills
+  // solid with white text on hover instead of just a static tint.
   const quickActions = [
-    { to: "/crop-tools", icon: Leaf, tone: "soil", titleKey: "sidebar.cropTools", descKey: "dashboardHome.cropToolsDesc" },
-    { to: "/vision", icon: ScanLine, tone: "crop", titleKey: "sidebar.vision", descKey: "dashboardHome.visionDesc" },
-    { to: "/chat", icon: MessageSquare, tone: "ink", titleKey: "sidebar.chat", descKey: "dashboardHome.chatDesc" },
+    { to: "/crop-tools", icon: Leaf, tone: "crop", titleKey: "sidebar.cropTools", descKey: "dashboardHome.cropToolsDesc" },
+    { to: "/vision", icon: ScanLine, tone: "soil", titleKey: "sidebar.vision", descKey: "dashboardHome.visionDesc" },
+    { to: "/chat", icon: MessageSquare, tone: "info", titleKey: "sidebar.chat", descKey: "dashboardHome.chatDesc" },
     { to: "/market", icon: LineChart, tone: "plain", titleKey: "sidebar.market", descKey: "dashboardHome.marketDesc" },
   ];
 
+  const displayName = titleCase(profile?.name || user?.username);
+
   return (
-    <div className="max-w-5xl mx-auto px-5 md:px-8 py-6 md:py-10 flex flex-col gap-8">
+    <div className="relative">
+      {/* Ambient page backdrop — your photo, blurred and faded behind a
+          cream→green wash so it reads as atmosphere rather than a distinct
+          image, matching the reference design's soft backdrop. Fixed so it
+          stays put while the page scrolls. */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <img
+          src="/dashboard-hero.jpg"
+          alt=""
+          className="w-full h-full object-cover scale-110 blur-2xl opacity-25"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-bg/90 via-bg/85 to-accent-tint/70" />
+      </div>
+
+      <div className="relative z-[1] max-w-5xl mx-auto px-5 md:px-8 py-6 md:py-10 flex flex-col gap-8">
       {/* Alert banner */}
       {weather?.alerts?.[0] ? (
         <RevealOnScroll className="flex items-start gap-2.5 bg-danger-tint text-danger rounded-sm px-4 py-3 text-sm font-semibold">
@@ -99,6 +123,39 @@ export default function DashboardHome() {
           {t("dashboardHome.alertNone")}
         </RevealOnScroll>
       ) : null}
+
+      {/* Welcome hero banner */}
+      <RevealOnScroll>
+        <div className="relative rounded-lg overflow-hidden h-[220px] md:h-[280px]">
+          <motion.img
+            src="/dashboard-hero.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            initial={{ scale: 1.08 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/25 to-transparent" />
+          <div className="relative h-full flex flex-col justify-end p-6 md:p-8">
+            <motion.h1
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="text-2xl md:text-[32px] font-display font-bold text-white"
+            >
+              {t("dashboardHome.welcomeHeading", { name: displayName })}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="text-white/85 text-sm md:text-base mt-1.5 max-w-md"
+            >
+              {t("dashboardHome.welcomeSub")}
+            </motion.p>
+          </div>
+        </div>
+      </RevealOnScroll>
 
       {/* Weather + season + your crop prices */}
       <RevealOnScroll className="grid md:grid-cols-[1fr_1.4fr] gap-4">
@@ -189,7 +246,7 @@ export default function DashboardHome() {
         </Panel>
       </RevealOnScroll>
 
-      {/* Quick actions - varied Plot tones, not identical repeated cards */}
+      {/* Quick actions - each fills with its own color on hover */}
       <div>
         <h2 className="text-sm font-semibold text-ink-soft uppercase tracking-wide mb-3">
           {t("dashboardHome.quickActions")}
@@ -198,7 +255,7 @@ export default function DashboardHome() {
           {quickActions.map(({ to, icon: Icon, tone, titleKey, descKey }, i) => (
             <RevealOnScroll key={to} delay={i * 0.05}>
               <Link to={to}>
-                <Plot tone={tone} className="h-full flex flex-col gap-2.5">
+                <Plot tone={tone} hoverColor className="h-full flex flex-col gap-2.5">
                   <Icon size={22} />
                   <h3 className="font-display font-semibold text-base">{t(titleKey)}</h3>
                   <p className="text-[13.5px] opacity-90">{t(descKey)}</p>
@@ -246,7 +303,8 @@ export default function DashboardHome() {
             ))}
           </div>
         )}
-      </div>  
+      </div>
+      </div>
     </div>
   );
 }
