@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { Layers, Sprout, RefreshCw } from "lucide-react";
+import { Layers, Sprout } from "lucide-react";
 import { ImageUpload } from "../../components/ui/ImageUpload";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
-import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
+import { ConfidenceRing } from "../../components/ui/ConfidenceRing";
 import { useAuth } from "../../context/AuthContext";
 import { classifySoil } from "../../api/vision";
 import { translateSoilType } from "../../utils/soilTypeLabel";
@@ -62,17 +62,15 @@ export default function SoilClassification() {
         <p className="text-sm text-ink-soft mb-4">{t("vision.soilNote")}</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <ImageUpload onFileSelect={setFile} disabled={loading} label={t("vision.uploadSoilPhoto")} />
-          <Button type="submit" disabled={!file || loading} className="self-start">
-            {loading ? (
-              <>
-                <RefreshCw size={16} className="animate-spin" /> {t("vision.analyzing")}
-              </>
-            ) : (
-              t("vision.checkPhoto")
-            )}
+          <Button type="submit" disabled={!file} loading={loading} className="self-start">
+            {t("vision.checkPhoto")}
           </Button>
         </form>
-        {error && <p className="text-sm text-danger mt-3">{error}</p>}
+        {error && (
+          <motion.p initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-danger mt-3">
+            {error}
+          </motion.p>
+        )}
       </Panel>
 
       <AnimatePresence>
@@ -86,13 +84,16 @@ export default function SoilClassification() {
             {/* Left: soil result */}
             <div className="flex flex-col gap-4">
               <Panel className="p-6 border-primary bg-primary-tint text-center">
-                <span className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center mx-auto mb-3">
-                  <Layers size={22} />
-                </span>
-                <div className="font-display text-2xl font-semibold mb-1">{translateSoilType(t, soilResult.soil_type)}</div>
-                <div className="text-sm text-primary font-semibold">
-                  {Math.round(soilResult.confidence)}% {t("cropTools.confidence")}
+                <div className="flex justify-center mb-3">
+                  <div className="relative">
+                    <ConfidenceRing value={soilResult.confidence} size={84} stroke={7} color="rgb(154,52,18)" trackColor="rgba(154,52,18,0.15)" />
+                    <span className="absolute inset-0 flex items-center justify-center -mt-6">
+                      <Layers size={18} className="text-primary/70" />
+                    </span>
+                  </div>
                 </div>
+                <div className="font-display text-2xl font-semibold mb-1">{translateSoilType(t, soilResult.soil_type)}</div>
+                <div className="text-xs text-primary/70 uppercase tracking-wide font-semibold">{t("cropTools.confidence")}</div>
               </Panel>
 
               {probs.length > 0 && (
@@ -148,7 +149,9 @@ export default function SoilClassification() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.2 + i * 0.08, ease: easeOut }}
                     >
-                      <Panel className={`p-4 flex items-center gap-4 ${i === 0 ? "border-primary bg-primary-tint" : ""}`}>
+                      <Panel
+                        className={`p-4 flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${i === 0 ? "border-primary bg-primary-tint" : ""}`}
+                      >
                         <span className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${i === 0 ? "bg-primary text-white" : "bg-bg text-ink-soft"}`}>
                           <Sprout size={16} />
                         </span>

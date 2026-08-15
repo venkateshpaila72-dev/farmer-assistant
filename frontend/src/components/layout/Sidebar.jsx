@@ -20,7 +20,7 @@ export function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col md:shrink-0 border-r border-border bg-surface">
+    <aside className="hidden md:flex md:w-64 md:flex-col md:shrink-0 border-r border-border bg-gradient-to-b from-surface to-bg/40">
       <div className="h-[68px] flex items-center px-6 border-b border-border">
         <Logo size="sm" showTagline />
       </div>
@@ -34,13 +34,13 @@ export function Sidebar() {
               end={end}
               className={cn(
                 "relative flex items-center gap-3 px-3.5 py-2.5 rounded-md text-[14.5px] font-medium transition-colors duration-200",
-                isActive ? "text-white" : "text-ink-soft hover:bg-bg hover:text-ink"
+                isActive ? "text-white" : "text-ink-soft hover:bg-accent-tint hover:text-accent"
               )}
             >
               {isActive && (
                 <motion.span
                   layoutId="sidebar-active-pill"
-                  className="absolute inset-0 rounded-md bg-primary"
+                  className="absolute inset-0 rounded-md bg-accent shadow-sm shadow-accent/30"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 />
               )}

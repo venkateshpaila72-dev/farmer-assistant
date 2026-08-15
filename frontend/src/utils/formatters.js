@@ -31,3 +31,17 @@ export function weatherCodeToLabel(code) {
 export function formatTemp(temp) {
   return typeof temp === "number" ? `${Math.round(temp)}°C` : "—";
 }
+
+export function titleCase(name) {
+  if (!name) return "";
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// Time-of-day greeting word, used to make the top bar read like a real
+// personal greeting ("Good morning, Divya") instead of a flat "Hi, divya123".
+export function timeOfDayGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}

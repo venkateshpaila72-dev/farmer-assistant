@@ -233,6 +233,9 @@
   },
   "topbar": {
     "greeting": "Hi, {{name}}",
+  "greetingMorning": "Good morning, {{name}}",
+  "greetingAfternoon": "Good afternoon, {{name}}",
+  "greetingEvening": "Good evening, {{name}}",
     "logout": "Log out"
   },
   "dashboardHome": {
@@ -242,6 +245,7 @@
     "yourPrices": "Your crop prices",
     "statewide": "statewide",
     "noPrices": "No price data yet for your crops",
+  "trendSteady": "Steady",
     "quickActions": "Quick actions",
     "cropToolsDesc": "Get crop, fertilizer and yield advice",
     "visionDesc": "Check a leaf or soil photo",

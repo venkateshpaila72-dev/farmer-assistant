@@ -18,17 +18,15 @@ const FLOATING_LEAVES = [
 
 export function AuthLayout({ children, maxWidth = "max-w-md" }) {
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-bg relative overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: easeOut }}
+      className="min-h-screen flex flex-col md:flex-row bg-bg relative overflow-hidden"
+    >
       {/* Illustrated side panel — hidden on small screens so the form stays
-          front and center on mobile, where there's no room to spare. Slides
-          in from the left on mount; the form column (below) is timed to
-          follow shortly after. */}
-      <motion.div
-        initial={{ x: "-100%" }}
-        animate={{ x: 0 }}
-        transition={{ duration: 0.65, ease: easeOut }}
-        className="hidden md:block md:w-[42%] lg:w-[38%] relative overflow-hidden"
-      >
+          front and center on mobile, where there's no room to spare. */}
+      <div className="hidden md:block md:w-[42%] lg:w-[38%] relative overflow-hidden">
         <motion.img
           src="/login-illustration.jpg"
           alt=""
@@ -48,7 +46,7 @@ export function AuthLayout({ children, maxWidth = "max-w-md" }) {
             <Logo size="xs" />
           </Link>
         </div>
-      </motion.div>
+      </div>
 
       <div className="flex-1 flex flex-col relative">
         {/* Greenery-themed animated backdrop for the form side: two slow,
@@ -90,16 +88,9 @@ export function AuthLayout({ children, maxWidth = "max-w-md" }) {
           </Link>
         </div>
         <div className="flex-1 flex items-center justify-center px-6 pb-16 w-full relative">
-          <motion.div
-            initial={{ opacity: 0, x: 36 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.55, delay: 0.3, ease: easeOut }}
-            className={`w-full ${maxWidth}`}
-          >
-            {children}
-          </motion.div>
+          <div className={`w-full ${maxWidth}`}>{children}</div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

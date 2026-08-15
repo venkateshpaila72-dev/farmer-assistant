@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { AlertTriangle, Leaf, ScanLine, MessageSquare, LineChart, ArrowRight, Droplets, Sun, CloudRain, Wind } from "lucide-react";
+import { AlertTriangle, Leaf, ScanLine, MessageSquare, LineChart, ArrowRight, Droplets, Sun, CloudRain, Wind, Newspaper } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Plot } from "../../components/ui/Plot";
 import { Ledger, LedgerRow } from "../../components/ui/Ledger";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
+import { useWeatherBackground } from "../../context/WeatherBackgroundContext";
 import { getOnboardingProfile } from "../../api/onboarding";
 import { getFarmerWeather } from "../../api/weather";
 import { getFarmerPrices } from "../../api/market";
@@ -65,6 +66,7 @@ function titleCase(name) {
 export default function DashboardHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { setIsRaining } = useWeatherBackground();
   const [profile, setProfile] = useState(null);
   const [weather, setWeather] = useState(null);
   const [weatherError, setWeatherError] = useState(false);
@@ -81,6 +83,13 @@ export default function DashboardHome() {
     getFarmerNews(user.username).then((data) => setNews(data.articles || [])).catch(() => setNewsError(true));
   }, [user?.username]);
 
+  // Tell the shared dashboard background whether it's actually raining —
+  // same >=70% humidity threshold the weather card itself uses to switch
+  // into its rain-cloud mood, so the two stay visually consistent.
+  useEffect(() => {
+    if (weather?.current) setIsRaining(weather.current.humidity >= 70);
+  }, [weather, setIsRaining]);
+
   const priceRows = prices?.prices ? Object.entries(prices.prices) : [];
 
   // Tones chosen to match the reference design: green for Crop Tools, warm
@@ -96,21 +105,7 @@ export default function DashboardHome() {
   const displayName = titleCase(profile?.name || user?.username);
 
   return (
-    <div className="relative">
-      {/* Ambient page backdrop — your photo, blurred and faded behind a
-          cream→green wash so it reads as atmosphere rather than a distinct
-          image, matching the reference design's soft backdrop. Fixed so it
-          stays put while the page scrolls. */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <img
-          src="/dashboard-hero.jpg"
-          alt=""
-          className="w-full h-full object-cover scale-110 blur-2xl opacity-25"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg/90 via-bg/85 to-accent-tint/70" />
-      </div>
-
-      <div className="relative z-[1] max-w-5xl mx-auto px-5 md:px-8 py-6 md:py-10 flex flex-col gap-8">
+    <div className="relative max-w-5xl mx-auto px-5 md:px-8 py-6 md:py-10 flex flex-col gap-8">
       {/* Alert banner */}
       {weather?.alerts?.[0] ? (
         <RevealOnScroll className="flex items-start gap-2.5 bg-danger-tint text-danger rounded-sm px-4 py-3 text-sm font-semibold">
@@ -279,10 +274,10 @@ export default function DashboardHome() {
         {news === null && !newsError ? (
           <div className="grid sm:grid-cols-3 gap-4">
             {[0, 1, 2].map((i) => (
-              <div key={i}>
+              <Panel key={i} className="p-4">
                 <Skeleton className="h-4 w-full mb-2" />
                 <Skeleton className="h-4 w-2/3" />
-              </div>
+              </Panel>
             ))}
           </div>
         ) : newsError || news.length === 0 ? (
@@ -295,15 +290,24 @@ export default function DashboardHome() {
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[14px] font-medium text-ink hover:text-primary transition-colors leading-snug"
+                  className="group block h-full"
                 >
-                  {article.title}
+                  <Panel className="p-4 h-full flex flex-col gap-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/40">
+                    <div className="w-8 h-8 rounded-md bg-primary-tint text-primary flex items-center justify-center shrink-0">
+                      <Newspaper size={15} />
+                    </div>
+                    <h3 className="text-[14px] font-semibold text-ink leading-snug group-hover:text-primary transition-colors">
+                      {article.title}
+                    </h3>
+                    {article.source && (
+                      <span className="text-[11.5px] text-ink-soft mt-auto pt-1">{article.source}</span>
+                    )}
+                  </Panel>
                 </a>
               </RevealOnScroll>
             ))}
           </div>
         )}
-      </div>
       </div>
     </div>
   );
