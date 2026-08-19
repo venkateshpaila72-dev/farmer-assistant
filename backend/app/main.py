@@ -18,9 +18,12 @@ from app.routes import ml, vision, ai
 # ── Phase 5 routes ────────────────────────────────────────────────────────────
 from app.routes import rag, ws
 
-# ── Phase 6 routes ────────────────────────────────────────────────────────────
+# ── Phase 6 Routes ────────────────────────────────────────────────────────────
 from app.routes import agent
 from app.utils.scheduler import start_scheduler, stop_scheduler
+
+# ── Cron trigger (for hosts where the process sleeps when idle) ─────────────
+from app.routes import cron
 
 
 @asynccontextmanager
@@ -82,6 +85,9 @@ app.include_router(ws.router,                               tags=["WebSocket"])
 
 # ── Phase 6 Routers ───────────────────────────────────────────────────────────
 app.include_router(agent.router,      prefix="/agent",      tags=["Agents"])
+
+# ── Cron trigger ──────────────────────────────────────────────────────────────
+app.include_router(cron.router,       prefix="/cron",       tags=["Cron"])
 
 
 @app.get("/", tags=["Health"])

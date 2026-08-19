@@ -6,44 +6,51 @@ import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
-import { useAuth } from "../../context/AuthContext";
 import { getPestAlerts } from "../../api/news";
 import { getAvailableStates } from "../../api/market";
-import { getOnboardingProfile } from "../../api/onboarding";
 import { getCached, setCached } from "../../utils/dataCache";
 
+/** Human-readable relative time from an ISO-8601 timestamp. */
 function timeAgo(iso) {
   if (!iso) return "";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const hrs = Math.floor(diffMs / 3600000);
-  if (hrs < 1) return "Just now";
+  const parsed = new Date(iso);
+  if (isNaN(parsed.getTime())) return "";
+  const diffMs = Date.now() - parsed.getTime();
+  if (diffMs < 0) return "Just now";
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+/** Full date for tooltip. */
+function fullDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 export default function PestAlerts() {
   const { t } = useTranslation();
-  const { user } = useAuth();
 
   const [states, setStates] = useState(() => getCached("market:states") ?? null);
-  // The chosen state itself is cached too, so coming back to this tab keeps
-  // whatever you were last looking at instead of resetting to your home state.
-  const [state, setState] = useState(() => getCached("news:alerts:selectedState") ?? "");
+  // Always default to All India ("") — never auto-select farmer's home state
+  const [state, setState] = useState("");
   const alertsCacheKey = `news:alerts:${state || "all"}`;
   const [alerts, setAlerts] = useState(() => getCached(alertsCacheKey) ?? null);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (getCached("news:alerts:selectedState") !== undefined) return; // already chosen this session
-    if (!user?.username) return;
-    getOnboardingProfile(user.username)
-      .then((profile) => {
-        const homeState = profile?.home_location?.state;
-        if (homeState) setState(homeState);
-      })
-      .catch(() => {});
-  }, [user?.username]);
+  const [isLive, setIsLive] = useState(true);
+  const [fetchedAt, setFetchedAt] = useState(null);
 
+  // Load available Indian states (reuse market data)
   useEffect(() => {
     if (states !== null) return;
     getAvailableStates()
@@ -55,20 +62,8 @@ export default function PestAlerts() {
       .catch(() => setStates([]));
   }, [states]);
 
-  // FIX: previously this only ever showed "No pest alerts right now" the
-  // moment GNews's live query for the day came back empty — which, for
-  // pest/disease-outbreak-specific English coverage of India, is common
-  // and doesn't necessarily mean there's genuinely nothing relevant to
-  // show. The backend now falls back to the most recently fetched batch
-  // for this state when today's live query is empty (see routes/news.py),
-  // flagged via is_live/fetched_at — surfaced here so it's clear these are
-  // recent past alerts, not breaking news.
-  const [isLive, setIsLive] = useState(true);
-  const [fetchedAt, setFetchedAt] = useState(null);
-
   function loadAlerts() {
     setError(false);
-    setCached("news:alerts:selectedState", state);
     getPestAlerts(state || undefined)
       .then((data) => {
         const list = data.alerts || [];
@@ -83,8 +78,6 @@ export default function PestAlerts() {
   }
 
   useEffect(() => {
-    // Cached alerts (if any) already show via the initializer — this
-    // refetches quietly in the background rather than resetting to a skeleton.
     loadAlerts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
@@ -124,8 +117,12 @@ export default function PestAlerts() {
                   <AlertTriangle size={18} className="text-danger mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-ink leading-snug">{alert.title}</h3>
-                    <p className="text-xs text-ink-soft mt-1">
-                      {alert.source} &middot; {timeAgo(alert.published_at)}
+                    <p
+                      className="text-xs text-ink-soft mt-1"
+                      title={fullDate(alert.published_at)}
+                    >
+                      {alert.source}
+                      {timeAgo(alert.published_at) ? ` · ${timeAgo(alert.published_at)}` : ""}
                     </p>
                   </div>
                 </Panel>

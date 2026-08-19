@@ -10,10 +10,11 @@ import { useWeatherBackground } from "../../context/WeatherBackgroundContext";
  * gradients + SVG + framer-motion loops, no image assets, so it's cheap and
  * scales to any screen size.
  *
- * Positioned `absolute inset-0` within its parent (NOT `fixed` — fixed would
- * cover the whole viewport including the sidebar/topbar, which is exactly
- * the bug from earlier). Mount this once inside a `position: relative`
- * container, behind the actual page content.
+ * Positioned `fixed inset-0` at a negative z-index so it sits behind the
+ * *entire* app shell — sidebar, topbar, bottom nav and page content alike —
+ * instead of just the main content column. Mount this once, near the root
+ * of the layout, alongside chrome (Sidebar/Topbar/BottomNav) that's been
+ * given a translucent background so the scene reads through everywhere.
  */
 
 function getTimeOfDay(hour) {
@@ -75,7 +76,7 @@ export function WeatherSkyBackground() {
   const scene = SCENES[timeOfDay];
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
       {/* Sky gradient, tinted grayer when raining regardless of time of day */}
       <div className={`absolute inset-0 bg-gradient-to-b ${scene.sky} ${isRaining ? "saturate-[0.55] brightness-[0.92]" : ""}`} />
 

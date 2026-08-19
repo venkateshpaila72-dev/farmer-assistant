@@ -11,7 +11,10 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 1440
+    # 5 days — was 1440 (1 day), bumped so a farmer/admin who opens the app
+    # within 5 days of last login stays signed in instead of being bounced
+    # back to the login screen.
+    JWT_EXPIRE_MINUTES: int = 5 * 24 * 60
 
     # Cloudinary
     CLOUDINARY_CLOUD_NAME: str
@@ -65,6 +68,14 @@ class Settings(BaseSettings):
     # Agent Scheduler — daily farm report at 6 AM
     AGENT_SCHEDULE_HOUR: int = 6
     AGENT_SCHEDULE_MINUTE: int = 0
+
+    # Cron trigger secret — lets an external scheduler (cron-job.org, GitHub
+    # Actions, etc.) wake this service on a free/sleeping host and kick off
+    # the daily jobs via /cron/run-daily-jobs, bypassing reliance on the
+    # in-process APScheduler ever being awake at the right minute.
+    # Optional so local dev doesn't need it set; the route 500s clearly if
+    # it's missing rather than silently running unauthenticated in prod.
+    CRON_SECRET: Optional[str] = None
 
     class Config:
         env_file = ".env"

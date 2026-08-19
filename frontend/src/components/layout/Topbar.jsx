@@ -20,7 +20,7 @@ export function Topbar() {
   const greetingKey = `topbar.greeting${titleCase(timeOfDayGreeting())}`;
 
   return (
-    <header className="h-[68px] flex items-center justify-between gap-4 px-5 md:px-8 border-b border-border bg-surface">
+    <header className="h-[68px] flex items-center justify-between gap-4 px-5 md:px-8 bg-surface/35 backdrop-blur-lg">
       <div className="flex items-center gap-3 min-w-0">
         <div className="hidden sm:flex w-9 h-9 rounded-full bg-primary-tint text-primary font-display font-semibold items-center justify-center shrink-0 text-sm">
           {initial}

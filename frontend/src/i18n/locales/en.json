@@ -91,7 +91,10 @@
     "whereToApply": "Where to apply",
     "officialLink": "Official link",
     "discontinued": "Discontinued",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "empty": "No farming news right now.",
+    "loadError": "Could not load news. Please try again.",
+    "refreshing": "Refreshing…"
   },
   "cta": {
     "title": "Set up your farm profile once. Get advice suited to it every day after.",
@@ -233,9 +236,9 @@
   },
   "topbar": {
     "greeting": "Hi, {{name}}",
-  "greetingMorning": "Good morning, {{name}}",
-  "greetingAfternoon": "Good afternoon, {{name}}",
-  "greetingEvening": "Good evening, {{name}}",
+    "greetingMorning": "Good morning, {{name}}",
+    "greetingAfternoon": "Good afternoon, {{name}}",
+    "greetingEvening": "Good evening, {{name}}",
     "logout": "Log out"
   },
   "dashboardHome": {
@@ -245,7 +248,7 @@
     "yourPrices": "Your crop prices",
     "statewide": "statewide",
     "noPrices": "No price data yet for your crops",
-  "trendSteady": "Steady",
+    "trendSteady": "Steady",
     "quickActions": "Quick actions",
     "cropToolsDesc": "Get crop, fertilizer and yield advice",
     "visionDesc": "Check a leaf or soil photo",
@@ -260,7 +263,8 @@
       "high_humidity": "⚠️ High humidity — fungal disease risk is HIGH"
     },
     "welcomeHeading": "Welcome back, {{name}}!",
-    "welcomeSub": "Your fields are looking healthy. Check today's insights to optimize your yield."
+    "welcomeSub": "Your fields are looking healthy. Check today's insights to optimize your yield.",
+    "priceFlat": "Steady"
   },
   "cropTools": {
     "title": "Crop tools",
@@ -467,5 +471,17 @@
   "welcome": {
     "title": "Welcome back, {{name}}!",
     "subtitle": "Getting your farm dashboard ready…"
+  },
+  "whatsappStep": {
+    "title": "Connect WhatsApp",
+    "subtitle": "One quick step so you actually receive your daily report."
+  },
+  "whatsappOptIn": {
+    "title": "Get your daily report on WhatsApp",
+    "description": "This app sends your daily farm report over WhatsApp. To receive it, join once by scanning the code or tapping the button below.",
+    "qrAlt": "QR code to join WhatsApp updates",
+    "scanHint": "Scan with your phone's camera, or tap to open WhatsApp directly:",
+    "openButton": "Open WhatsApp to join",
+    "manualHint": "Or send this message yourself to the number shown in WhatsApp:"
   }
 }

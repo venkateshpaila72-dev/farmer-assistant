@@ -19,6 +19,7 @@ import { CropsStep } from "../onboarding/steps/CropsStep";
 import { IrrigationStep } from "../onboarding/steps/IrrigationStep";
 import { ProblemStep } from "../onboarding/steps/ProblemStep";
 import { LocationStep } from "../onboarding/steps/LocationStep";
+import { WhatsAppOptInCard } from "../../components/whatsapp/WhatsAppOptInCard";
 
 // The soil-image classifier's 5 output classes don't perfectly overlap with
 // onboarding's 7-option list (see backend routes/ml.py for the full story).
@@ -281,6 +282,10 @@ export default function ProfilePage() {
       </RevealOnScroll>
 
       <RevealOnScroll delay={0.05}>
+        <WhatsAppOptInCard />
+      </RevealOnScroll>
+
+      <RevealOnScroll delay={0.1}>
         <Panel className="p-5 flex flex-col divide-y divide-border">
           {fields.map((f) => (
             <div key={f.key} className={f.key === editingField ? "py-4 first:pt-0 last:pb-0" : "first:pt-0 last:pb-0"}>

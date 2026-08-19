@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from datetime import datetime
 from bson import ObjectId
+import re
 from app.db.database import get_db
 from app.db.models import (
     ADMINS_COLLECTION,
     USERS_COLLECTION,
     ANNOUNCEMENTS_COLLECTION
 )
-from app.db.schemas import AdminRegister, AdminResponse, MessageResponse
+from app.db.schemas import AdminRegister, AdminResponse, MessageResponse, UpdateFarmerPhone
 from app.core.security import hash_password, get_current_admin
 from app.utils.cloudinary_utils import upload_image
 from app.utils.groq_utils import draft_scheme_from_news
@@ -64,6 +65,49 @@ async def get_all_farmers(admin: dict = Depends(get_current_admin)):
         "total": len(farmers),
         "farmers": farmers
     }
+
+
+@router.put("/farmer/{username}/phone", response_model=MessageResponse)
+async def update_farmer_phone(
+    username: str,
+    data: UpdateFarmerPhone,
+    admin: dict = Depends(get_current_admin)
+):
+    """
+    Admin — correct a farmer's phone number. This is the number the daily
+    WhatsApp report goes to (see agents/supervisor.py's _think_node, which
+    reads USERS_COLLECTION.phone) — there's no separate copy anywhere else
+    to keep in sync.
+
+    Validation here is intentionally loose (digit-count only, no country-
+    code enforcement) since farmer.phone is stored as free text elsewhere
+    in this codebase too (see UserRegister) — send_whatsapp_message's own
+    _format_whatsapp_number normalizes it at send time.
+    """
+    db = get_db()
+
+    phone = data.phone.strip()
+    digit_count = len(re.sub(r"\D", "", phone))
+    if digit_count < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number looks too short — check the digits and try again"
+        )
+
+    result = await db[USERS_COLLECTION].update_one(
+        {"username": username, "role": "user"},
+        {"$set": {"phone": phone}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Farmer not found"
+        )
+
+    return MessageResponse(
+        message=f"Phone number updated for '{username}'",
+        success=True
+    )
 
 
 @router.get("/analytics")

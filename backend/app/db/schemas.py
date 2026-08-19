@@ -39,6 +39,10 @@ class UserResponse(BaseModel):
     created_at: Optional[datetime] = None
 
 
+class UpdateFarmerPhone(BaseModel):
+    phone: str
+
+
 # ── ADMIN ─────────────────────────────────────────────────────────────────────
 
 class AdminRegister(BaseModel):

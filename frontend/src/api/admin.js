@@ -8,6 +8,11 @@ export async function getAllFarmers() {
   return data;
 }
 
+export async function updateFarmerPhone(username, phone) {
+  const { data } = await client.put(`/admins/farmer/${username}/phone`, { phone });
+  return data;
+}
+
 export async function getAnalytics() {
   const { data } = await client.get("/admins/analytics");
   return data;

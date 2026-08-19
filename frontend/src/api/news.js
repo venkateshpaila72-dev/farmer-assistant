@@ -1,8 +1,8 @@
 import client from "./client";
 
-export async function getNewsFeed({ state, maxResults = 10 } = {}) {
+export async function getNewsFeed({ maxResults = 10 } = {}) {
   const { data } = await client.get("/news/feed", {
-    params: { state, max_results: maxResults },
+    params: { max_results: maxResults },
   });
   return data;
 }

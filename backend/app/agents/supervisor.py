@@ -46,18 +46,30 @@ from app.agents.market_agent import check_market_signal
 # Fixed, code-guaranteed labels prefixing every message — never left to the
 # LLM's discretion, so daily reports and alerts are always visually distinct
 # the instant a farmer opens WhatsApp, regardless of what Groq generates.
+# Covers all 8 onboarding languages (see frontend/src/i18n/index.js) — a
+# farmer whose chat_language wasn't in this dict used to silently fall back
+# to the English label even though the report body itself was in their
+# chosen language, which is what caused the "half English, half not" look.
 _DAILY_REPORT_LABEL = {
-    "English": "🌾 Daily Farm Update",
-    "Telugu":  "🌾 రోజువారీ వ్యవసాయ నివేదిక",
-    "Hindi":   "🌾 दैनिक खेत रिपोर्ट",
-    "Tamil":   "🌾 தினசரி பண்ணை அறிக்கை",
+    "English":  "🌾 Daily Farm Update",
+    "Telugu":   "🌾 రోజువారీ వ్యవసాయ నివేదిక",
+    "Hindi":    "🌾 दैनिक खेत रिपोर्ट",
+    "Tamil":    "🌾 தினசரி பண்ணை அறிக்கை",
+    "Kannada":  "🌾 ದೈನಂದಿನ ಕೃಷಿ ವರದಿ",
+    "Marathi":  "🌾 दैनंदिन शेती अहवाल",
+    "Bengali":  "🌾 দৈনিক কৃষি প্রতিবেদন",
+    "Punjabi":  "🌾 ਰੋਜ਼ਾਨਾ ਖੇਤੀ ਰਿਪੋਰਟ",
 }
 
 _ALERT_LABEL = {
-    "English": "🚨 URGENT ALERT",
-    "Telugu":  "🚨 అత్యవసర హెచ్చరిక",
-    "Hindi":   "🚨 तत्काल चेतावनी",
-    "Tamil":   "🚨 அவசர எச்சரிக்கை",
+    "English":  "🚨 URGENT ALERT",
+    "Telugu":   "🚨 అత్యవసర హెచ్చరిక",
+    "Hindi":    "🚨 तत्काल चेतावनी",
+    "Tamil":    "🚨 அவசர எச்சரிக்கை",
+    "Kannada":  "🚨 ತುರ್ತು ಎಚ್ಚರಿಕೆ",
+    "Marathi":  "🚨 तातडीचा इशारा",
+    "Bengali":  "🚨 জরুরি সতর্কতা",
+    "Punjabi":  "🚨 ਜ਼ਰੂਰੀ ਚਿਤਾਵਨੀ",
 }
 
 
@@ -147,9 +159,10 @@ def _build_daily_report_prompt(username: str, state: str, language: str,
     soil_body = ("\n".join(f"- {f['detail']}" for f in soil_findings)
                  if soil_findings else "No soil/crop suitability issues found.")
 
-    return f"""You are writing a detailed daily farm REPORT for {username}, a farmer in {state}.
+    return f"""IMPORTANT: Write your entire response only in {language}. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols).
+
+You are writing a detailed daily farm REPORT for {username}, a farmer in {state}.
 This is a structured update the farmer will read carefully, not a quick chat reply.
-Write it in {language}.
 
 WEATHER DATA:
 {weather_body}
@@ -193,15 +206,17 @@ Rules:
 - Do not mention "agents" or "automated checks"
 - Do NOT add your own header, label, or emoji prefix at the very top of the whole
   message — that is added separately
+- Remember: the ENTIRE message must be in {language}, including the sign-off
 - End with a brief, warm sign-off, e.g. "- Farmer Assistant" """
 
 
 def _build_alert_prompt(username: str, state: str, language: str, danger_findings: list) -> str:
     findings_text = "\n".join(f"- [{f['source_agent']}] {f['detail']}" for f in danger_findings)
 
-    return f"""You are writing an URGENT, detailed alert for {username}, a farmer in {state}.
+    return f"""IMPORTANT: Write your entire response only in {language}. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols).
+
+You are writing an URGENT, detailed alert for {username}, a farmer in {state}.
 This is a structured warning the farmer needs to act on immediately, not a quick chat reply.
-Write it in {language}.
 
 Dangerous conditions detected:
 {findings_text}
@@ -225,6 +240,7 @@ Rules:
 - Do not mention "agents" or "automated checks"
 - Do NOT add your own header, label, or emoji prefix at the very top of the whole
   message — that is added separately
+- Remember: the ENTIRE message must be in {language}, including the sign-off
 - End with a brief sign-off, e.g. "- Farmer Assistant" """
 
 

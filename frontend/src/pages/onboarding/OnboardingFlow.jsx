@@ -15,10 +15,14 @@ import { CropsStep } from "./steps/CropsStep";
 import { IrrigationStep } from "./steps/IrrigationStep";
 import { ProblemStep } from "./steps/ProblemStep";
 import { LocationStep } from "./steps/LocationStep";
+import { WhatsAppConnectStep } from "./steps/WhatsAppConnectStep";
 
 // Language goes first on purpose — everything after it should render in the
 // language the farmer just picked, not just get saved for later.
-const STEPS = ["chat_language", "soil_type", "farm_acres", "preferred_crops", "irrigation_type", "main_problem", "home_location"];
+// connect_whatsapp goes last, after home_location — it's informational only
+// (no field to validate) and works better as a "last thing before you're
+// done" moment than mixed in with the data-collecting steps.
+const STEPS = ["chat_language", "soil_type", "farm_acres", "preferred_crops", "irrigation_type", "main_problem", "home_location", "connect_whatsapp"];
 
 const initial = {
   chat_language: "English",
@@ -42,6 +46,7 @@ function isStepValid(key, data) {
       const loc = data.home_location;
       return !!(loc.state && loc.district && loc.village && loc.lat && loc.lng);
     }
+    case "connect_whatsapp": return true; // informational only, nothing to validate
     default: return true;
   }
 }
@@ -93,6 +98,8 @@ export default function OnboardingFlow() {
         return <ProblemStep value={data.main_problem} onChange={(v) => setData({ ...data, main_problem: v })} />;
       case "home_location":
         return <LocationStep value={data.home_location} onChange={(v) => setData({ ...data, home_location: v })} />;
+      case "connect_whatsapp":
+        return <WhatsAppConnectStep />;
       default:
         return null;
     }

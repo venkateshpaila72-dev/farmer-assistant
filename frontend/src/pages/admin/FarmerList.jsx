@@ -1,10 +1,94 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Pencil, Check, X } from "lucide-react";
+import { toast } from "react-toastify";
 import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { getAllFarmers } from "../../api/admin";
+import { getAllFarmers, updateFarmerPhone } from "../../api/admin";
+
+// Inline phone editor for one row — a plain text field + save/cancel, not
+// a modal (this project's Modal.jsx is an unfinished stub). Mirrors the
+// click-to-edit pattern already used on the farmer's own Profile page.
+function PhoneCell({ farmer, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(farmer.phone || "");
+  const [saving, setSaving] = useState(false);
+
+  function startEdit() {
+    setValue(farmer.phone || "");
+    setEditing(true);
+  }
+
+  async function save() {
+    const trimmed = value.trim();
+    if (trimmed === (farmer.phone || "")) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateFarmerPhone(farmer.username, trimmed);
+      onSaved(farmer.username, trimmed);
+      toast.success(`Phone number updated for ${farmer.username}`);
+      setEditing(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Couldn't update phone number");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2 group">
+        <span>{farmer.phone || "—"}</span>
+        <button
+          type="button"
+          onClick={startEdit}
+          className="text-ink-soft hover:text-primary transition-colors duration-150 opacity-0 group-hover:opacity-100"
+          aria-label={`Edit phone number for ${farmer.username}`}
+        >
+          <Pencil size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        disabled={saving}
+        className="w-36 rounded-sm border border-primary bg-surface px-2 py-1 text-sm text-ink focus:outline-none"
+      />
+      <button
+        type="button"
+        onClick={save}
+        disabled={saving}
+        className="text-accent hover:text-accent-dark transition-colors duration-150 disabled:opacity-50"
+        aria-label="Save"
+      >
+        <Check size={15} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        disabled={saving}
+        className="text-ink-soft hover:text-danger transition-colors duration-150 disabled:opacity-50"
+        aria-label="Cancel"
+      >
+        <X size={15} />
+      </button>
+    </div>
+  );
+}
 
 export default function FarmerList() {
   const [farmers, setFarmers] = useState(null);
@@ -25,6 +109,10 @@ export default function FarmerList() {
       [f.username, f.phone, f.village, f.city, f.state].some((v) => (v || "").toLowerCase().includes(q))
     );
   }, [farmers, search]);
+
+  function handlePhoneSaved(username, newPhone) {
+    setFarmers((prev) => prev.map((f) => (f.username === username ? { ...f, phone: newPhone } : f)));
+  }
 
   return (
     <div className="p-5 md:p-8 flex flex-col gap-5">
@@ -68,7 +156,9 @@ export default function FarmerList() {
               {filtered.map((f) => (
                 <tr key={f.username} className="border-b border-border last:border-0 hover:bg-bg transition-colors duration-100">
                   <td className="px-4 py-3 font-medium text-ink">{f.username}</td>
-                  <td className="px-4 py-3 text-ink-soft">{f.phone || "—"}</td>
+                  <td className="px-4 py-3 text-ink-soft">
+                    <PhoneCell farmer={f} onSaved={handlePhoneSaved} />
+                  </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {[f.village, f.city, f.state].filter(Boolean).join(", ") || "—"}
                   </td>

@@ -1,0 +1,46 @@
+Total RSS items: 100
+
+--- Item 0 ---
+Title: From Traditional Fields to Thriving Herbal Farms: How Farmers in Dehradun Unlocked the Potential of Herbal Cultivation | ICAR - ICAR
+  <title> {}: From Traditional Fields to Thriving Herbal Farms: How Farmers in Dehradun Unlocked the Potential of Herbal Cultivation | ICAR - ICAR
+  <link> {}: https://news.google.com/rss/articles/CBMivwFBVV95cUxOam5GQVd4LVpmSUVtVmV4ZWJIUWUwdS0xTVQxc3RRZlBXSHEzdk9NVl8xV0Vaa3hrdzUtNlp6OUFjNTI0R3pjOHpLcndmOTdYekk5WW1lWkpBSEg2ZENJdjVCejQ5SmVJcjBqVzJqSzRXMEhOR2M0NlJBbFUzdC1uaDBNOUY4LVZxS0pHT3pSTERfcTNOcFY5VnVaU3JYTWZFbG5ab2c3V09LRC16RHdUbFBBdzRhN3IzamJGdlgwMA?oc=5
+  <guid> {'isPermaLink': 'false'}: CBMivwFBVV95cUxOam5GQVd4LVpmSUVtVmV4ZWJIUWUwdS0xTVQxc3RRZlBXSHEzdk9NVl8xV0Vaa3hrdzUtNlp6OUFjNTI0R3pjOHpLcndmOTdYekk5WW1lWkpBSEg2ZENJdjVCejQ5SmVJcjBqVzJqSzRXMEhOR2M0NlJBbFUzdC1uaDBNOUY4LVZxS0pHT3pSTERfcTNOcFY5VnVaU3JYTWZFbG5ab2c3V09LRC16RHdUbFBBdzRhN3IzamJGdlgwMA
+  <pubDate> {}: Mon, 17 Aug 2026 13:08:48 GMT
+  <description> {}: <a href="https://news.google.com/rss/articles/CBMivwFBVV95cUxOam5GQVd4LVpmSUVtVmV4ZWJIUWUwdS0xTVQxc3RRZlBXSHEzdk9NVl8xV0Vaa3hrdzUtNlp6OUFjNTI0R3pjOHpLcndmOTdYekk5WW1lWkpBSEg2ZENJdjVCejQ5SmVJcjBqVzJqSzRXMEhOR2M0NlJBbFUzdC1uaDBNOUY4LVZxS0pHT3pSTERfcTNOcFY5VnVaU3JYTWZFbG5ab2c3V09LRC16RHdUbFBBdzRhN3IzamJGdlgwMA?oc=5" target="_blank">From Traditional Fields to Thriving Herbal Farms: How Farmers in Dehradun Unlocked the Potential of Herbal Cultivation | ICAR</a>&nbsp;&nbsp;<font color="#6f6f6f">ICAR</font>
+  <source> {'url': 'https://icar.org.in'}: ICAR
+
+--- Item 1 ---
+Title: Ralph Farms: Growing crops and family while serving agriculture - Ohio's Country Journal
+  <title> {}: Ralph Farms: Growing crops and family while serving agriculture - Ohio's Country Journal
+  <link> {}: https://news.google.com/rss/articles/CBMikAFBVV95cUxQUXlQV3dlQUFYTWZhSmFwTEZ6THZZMmEwMmFHU1BuYktEb255bFY3djZ2Tl90ckhrZnF2OXpqOHY2Ym93MWlCdS1tcHFUMUtaeDk1eDhtR0xKQlhyaFAwR1pDeVd5T3lUV3M2THFzdzJGODhxVjVIMHBiUXNMbGpiNGtfeFdLTXFpQVZxQmFkV1I?oc=5
+  <guid> {'isPermaLink': 'false'}: CBMikAFBVV95cUxQUXlQV3dlQUFYTWZhSmFwTEZ6THZZMmEwMmFHU1BuYktEb255bFY3djZ2Tl90ckhrZnF2OXpqOHY2Ym93MWlCdS1tcHFUMUtaeDk1eDhtR0xKQlhyaFAwR1pDeVd5T3lUV3M2THFzdzJGODhxVjVIMHBiUXNMbGpiNGtfeFdLTXFpQVZxQmFkV1I
+  <pubDate> {}: Tue, 18 Aug 2026 19:10:00 GMT
+  <description> {}: <a href="https://news.google.com/rss/articles/CBMikAFBVV95cUxQUXlQV3dlQUFYTWZhSmFwTEZ6THZZMmEwMmFHU1BuYktEb255bFY3djZ2Tl90ckhrZnF2OXpqOHY2Ym93MWlCdS1tcHFUMUtaeDk1eDhtR0xKQlhyaFAwR1pDeVd5T3lUV3M2THFzdzJGODhxVjVIMHBiUXNMbGpiNGtfeFdLTXFpQVZxQmFkV1I?oc=5" target="_blank">Ralph Farms: Growing crops and family while serving agriculture</a>&nbsp;&nbsp;<font color="#6f6f6f">Ohio's Country Journal</font>
+  <source> {'url': 'https://ocj.com'}: Ohio's Country Journal
+
+--- Item 2 ---
+Title: Agrivoltaics: Solar and Agriculture Co-Location - Department of Energy (.gov)
+  <title> {}: Agrivoltaics: Solar and Agriculture Co-Location - Department of Energy (.gov)
+  <link> {}: https://news.google.com/rss/articles/CBMiigFBVV95cUxOUldjc1BGWmtNMTF2X25rNlNhMXVpSGxGS2FxWGZwYUdNNHI5REhJcHozazh6NzRKSDkyOWJCeUlwSlgyNkYzd3pKLU5NTVA4OGx0cGJRWGVEU3Y1ajFlM2V2NVJpYkZ2UTN4blZFWFNVcktPRURjYUtZM0t5X20zMUpvdXZueXduN0E?oc=5
+  <guid> {'isPermaLink': 'false'}: CBMiigFBVV95cUxOUldjc1BGWmtNMTF2X25rNlNhMXVpSGxGS2FxWGZwYUdNNHI5REhJcHozazh6NzRKSDkyOWJCeUlwSlgyNkYzd3pKLU5NTVA4OGx0cGJRWGVEU3Y1ajFlM2V2NVJpYkZ2UTN4blZFWFNVcktPRURjYUtZM0t5X20zMUpvdXZueXduN0E
+  <pubDate> {}: Fri, 14 Aug 2026 10:00:00 GMT
+  <description> {}: <a href="https://news.google.com/rss/articles/CBMiigFBVV95cUxOUldjc1BGWmtNMTF2X25rNlNhMXVpSGxGS2FxWGZwYUdNNHI5REhJcHozazh6NzRKSDkyOWJCeUlwSlgyNkYzd3pKLU5NTVA4OGx0cGJRWGVEU3Y1ajFlM2V2NVJpYkZ2UTN4blZFWFNVcktPRURjYUtZM0t5X20zMUpvdXZueXduN0E?oc=5" target="_blank">Agrivoltaics: Solar and Agriculture Co-Location</a>&nbsp;&nbsp;<font color="#6f6f6f">Department of Energy (.gov)</font>
+  <source> {'url': 'https://www.energy.gov'}: Department of Energy (.gov)
+
+--- Item 3 ---
+Title: Empowering India’s Annadatas - pib.gov.in
+  <title> {}: Empowering India’s Annadatas - pib.gov.in
+  <link> {}: https://news.google.com/rss/articles/CBMie0FVX3lxTE9oc1JFb00ySUZkOW9Fc0xPaks0RjNkR09aWFNWYk1BSDFJUnVodW1FdVE3V0lnLWlyX2tpQURLTWtpVHVGUFNOZ0pRajd4MmZFTl9uNDRnMTYzNnFEbVFGSnNQemk4TU93Tm8wRkFCeDFOVFFOakhtQUhYTQ?oc=5
+  <guid> {'isPermaLink': 'false'}: CBMie0FVX3lxTE9oc1JFb00ySUZkOW9Fc0xPaks0RjNkR09aWFNWYk1BSDFJUnVodW1FdVE3V0lnLWlyX2tpQURLTWtpVHVGUFNOZ0pRajd4MmZFTl9uNDRnMTYzNnFEbVFGSnNQemk4TU93Tm8wRkFCeDFOVFFOakhtQUhYTQ
+  <pubDate> {}: Fri, 05 Jun 2026 07:00:00 GMT
+  <description> {}: <a href="https://news.google.com/rss/articles/CBMie0FVX3lxTE9oc1JFb00ySUZkOW9Fc0xPaks0RjNkR09aWFNWYk1BSDFJUnVodW1FdVE3V0lnLWlyX2tpQURLTWtpVHVGUFNOZ0pRajd4MmZFTl9uNDRnMTYzNnFEbVFGSnNQemk4TU93Tm8wRkFCeDFOVFFOakhtQUhYTQ?oc=5" target="_blank">Empowering India’s Annadatas</a>&nbsp;&nbsp;<font color="#6f6f6f">pib.gov.in</font>
+  <source> {'url': 'https://www.pib.gov.in'}: pib.gov.in
+
+--- Item 4 ---
+Title: Right crop, right place - Food and Agriculture Organization
+  <title> {}: Right crop, right place - Food and Agriculture Organization
+  <link> {}: https://news.google.com/rss/articles/CBMibEFVX3lxTE51TWt0SmZmRzBxZ0tONEpScFFKVk9VbVNWVkpLNWtjaEc5WDdObmpPLWxnSDAxalFRVVMyTHFOUU8tNDE2NmRxZ3hhR2k5YUd4NTIwTWpSYTQ5T0lGTnFhOE1WVzlhSWR4UDdEdA?oc=5
+  <guid> {'isPermaLink': 'false'}: CBMibEFVX3lxTE51TWt0SmZmRzBxZ0tONEpScFFKVk9VbVNWVkpLNWtjaEc5WDdObmpPLWxnSDAxalFRVVMyTHFOUU8tNDE2NmRxZ3hhR2k5YUd4NTIwTWpSYTQ5T0lGTnFhOE1WVzlhSWR4UDdEdA
+  <pubDate> {}: Thu, 02 Jul 2026 07:00:00 GMT
+  <description> {}: <a href="https://news.google.com/rss/articles/CBMibEFVX3lxTE51TWt0SmZmRzBxZ0tONEpScFFKVk9VbVNWVkpLNWtjaEc5WDdObmpPLWxnSDAxalFRVVMyTHFOUU8tNDE2NmRxZ3hhR2k5YUd4NTIwTWpSYTQ5T0lGTnFhOE1WVzlhSWR4UDdEdA?oc=5" target="_blank">Right crop, right place</a>&nbsp;&nbsp;<font color="#6f6f6f">Food and Agriculture Organization</font>
+  <source> {'url': 'https://www.fao.org'}: Food and Agriculture Organization

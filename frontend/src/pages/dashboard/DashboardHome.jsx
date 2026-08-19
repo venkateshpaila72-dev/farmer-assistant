@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { AlertTriangle, Leaf, ScanLine, MessageSquare, LineChart, ArrowRight, Droplets, Sun, CloudRain, Wind, Newspaper } from "lucide-react";
+import { AlertTriangle, Leaf, ScanLine, MessageSquare, LineChart, ArrowRight, Droplets, Sun, CloudRain, Wind, Newspaper, TrendingUp, TrendingDown, Minus, Wheat } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Plot } from "../../components/ui/Plot";
-import { Ledger, LedgerRow } from "../../components/ui/Ledger";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
@@ -15,6 +14,16 @@ import { getFarmerWeather } from "../../api/weather";
 import { getFarmerPrices } from "../../api/market";
 import { getFarmerNews } from "../../api/news";
 import { translateCropName } from "../../utils/cropNameLabel";
+
+// Rotating icon-bubble tones so the price list reads as a set of distinct
+// crop "chips" rather than one flat list — purely visual grouping, cycles
+// every 4 rows.
+const ROW_TONES = [
+  "bg-accent-tint text-accent",
+  "bg-primary-tint text-primary",
+  "bg-gold-tint text-gold",
+  "bg-sky-50 text-sky-700",
+];
 
 // Picks a mood for the weather card from temperature + humidity, each with
 // its own gradient, animated icon, and small floating accent shapes —
@@ -61,6 +70,18 @@ function WeatherIcon({ Icon, spin }) {
 function titleCase(name) {
   if (!name) return "";
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// Compares the latest two price records (already sorted newest-first by the
+// backend) to derive a real up/down/flat trend — no new data, just reading
+// what's already in `records`.
+function priceTrend(records) {
+  const latest = records?.[0]?.modal_price;
+  const prev = records?.[1]?.modal_price;
+  if (latest == null || prev == null || prev === 0) return null;
+  const pct = ((latest - prev) / prev) * 100;
+  if (Math.abs(pct) < 0.5) return { direction: "flat", pct };
+  return { direction: pct > 0 ? "up" : "down", pct };
 }
 
 export default function DashboardHome() {
@@ -212,20 +233,44 @@ export default function DashboardHome() {
           <div className="text-[11px] uppercase tracking-wide text-ink-soft mb-3">{t("dashboardHome.yourPrices")}</div>
           {prices ? (
             priceRows.length > 0 ? (
-              <Ledger>
-                {priceRows.map(([crop, data]) => {
+              <div className="flex flex-col gap-1.5">
+                {priceRows.map(([crop, data], i) => {
                   const latest = data.records?.[0];
                   const isStatewide = data.district === "statewide";
+                  const trend = priceTrend(data.records);
+                  const tone = ROW_TONES[i % ROW_TONES.length];
+                  const TrendIcon = trend?.direction === "up" ? TrendingUp : trend?.direction === "down" ? TrendingDown : Minus;
+                  const trendColor =
+                    trend?.direction === "up" ? "text-accent" : trend?.direction === "down" ? "text-danger" : "text-ink-soft";
                   return (
-                    <LedgerRow
+                    <motion.div
                       key={crop}
-                      icon={Droplets}
-                      label={isStatewide ? `${translateCropName(t, crop)} (${t("dashboardHome.statewide")})` : translateCropName(t, crop)}
-                      value={latest ? `\u20B9${Math.round(latest.modal_price).toLocaleString("en-IN")}` : "\u2014"}
-                    />
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.35, delay: i * 0.06, ease: "easeOut" }}
+                      className="group flex items-center gap-3 rounded-md px-2 py-2.5 -mx-2 transition-colors duration-150 hover:bg-bg"
+                    >
+                      <span className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${tone}`}>
+                        <Wheat size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm text-ink truncate">
+                          {isStatewide ? `${translateCropName(t, crop)} (${t("dashboardHome.statewide")})` : translateCropName(t, crop)}
+                        </span>
+                        {trend && (
+                          <span className={`flex items-center gap-1 text-[11.5px] font-medium ${trendColor}`}>
+                            <TrendIcon size={11} />
+                            {trend.direction === "flat" ? t("dashboardHome.priceFlat") : `${Math.abs(trend.pct).toFixed(1)}%`}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-sm font-semibold text-ink shrink-0">
+                        {latest ? `\u20B9${Math.round(latest.modal_price).toLocaleString("en-IN")}` : "\u2014"}
+                      </span>
+                    </motion.div>
                   );
                 })}
-              </Ledger>
+              </div>
             ) : (
               <p className="text-sm text-ink-soft">{t("dashboardHome.noPrices")}</p>
             )

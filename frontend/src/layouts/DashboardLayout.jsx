@@ -8,12 +8,12 @@ import { WeatherBackgroundProvider } from "../context/WeatherBackgroundContext";
 export function DashboardLayout({ children }) {
   return (
     <WeatherBackgroundProvider>
+      <WeatherSkyBackground />
       <div className="min-h-screen md:flex relative">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 relative">
           <Topbar />
           <main className="flex-1 pb-20 md:pb-0 relative">
-            <WeatherSkyBackground />
             <div className="relative">
               <PageFade>{children}</PageFade>
             </div>
