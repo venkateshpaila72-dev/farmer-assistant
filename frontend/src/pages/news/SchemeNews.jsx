@@ -7,6 +7,14 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { getSchemeNews } from "../../api/news";
 import { getCached, setCached } from "../../utils/dataCache";
+import newsFallbackImg from "../../assets/news-fallback.png";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+function proxyImage(url) {
+  if (!url) return null;
+  return `${API_BASE}/news/image-proxy?url=${encodeURIComponent(url)}`;
+}
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -92,6 +100,28 @@ export default function SchemeNews() {
             <RevealOnScroll key={article.url || i} delay={i * 0.04}>
               <a href={article.url} target="_blank" rel="noopener noreferrer">
                 <Panel className="p-4 flex items-start gap-3">
+                  <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-primary-tint">
+                    {article.image ? (
+                      <img
+                        src={proxyImage(article.image)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = newsFallbackImg;
+                          e.currentTarget.className = "w-full h-full object-contain p-1.5";
+                        }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <img
+                        src={newsFallbackImg}
+                        alt=""
+                        className="w-full h-full object-contain p-1.5"
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
                   <Landmark size={18} className="text-primary mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-ink leading-snug">{article.title}</h3>

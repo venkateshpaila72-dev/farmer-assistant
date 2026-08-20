@@ -78,3 +78,7 @@ pypdf
 
 # WebSocket
 websockets
+
+# HTML Parsing — News image extraction
+beautifulsoup4
+lxml

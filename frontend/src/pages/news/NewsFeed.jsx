@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Newspaper, RotateCw } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { getNewsFeed } from "../../api/news";
 import { getCached, setCached } from "../../utils/dataCache";
+import newsFallbackImg from "../../assets/news-fallback.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -118,21 +119,24 @@ export default function NewsFeed() {
                         alt=""
                         className="w-full h-full object-cover transition-transform duration-300 ease-out-expo group-hover:scale-105"
                         onError={(e) => {
-                          // On error, hide the broken img and show the fallback icon below
-                          e.currentTarget.style.display = "none";
-                          const fb = e.currentTarget.nextElementSibling;
-                          if (fb) fb.style.display = "flex";
+                          // Broken upstream image (dead link, hotlink block, etc.)
+                          // — swap straight to our own fallback image.
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = newsFallbackImg;
+                          e.currentTarget.className =
+                            "w-full h-full object-contain p-4";
                         }}
                         loading="lazy"
                       />
-                    ) : null}
-                    {/* Fallback — always rendered, hidden when img loads, shown on error or no image */}
-                    <div
-                      className="absolute inset-0 flex items-center justify-center text-primary bg-primary-tint"
-                      style={{ display: article.image ? "none" : "flex" }}
-                    >
-                      <Newspaper size={28} />
-                    </div>
+                    ) : (
+                      // No image at all — show the fallback image directly.
+                      <img
+                        src={newsFallbackImg}
+                        alt=""
+                        className="w-full h-full object-contain p-4"
+                        loading="lazy"
+                      />
+                    )}
                   </div>
                   <div className="p-4">
                     <h3 className="text-[15px] font-display font-semibold leading-snug group-hover:text-primary transition-colors">

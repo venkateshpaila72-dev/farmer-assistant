@@ -41,10 +41,23 @@ async def farmer_news(username: str, current_user: dict = Depends(get_current_us
     if not profile:
         raise HTTPException(status_code=404, detail="Farmer profile not found")
 
-    state = profile["current_location"]["state"]
-    # For the farmer endpoint we still pull India-specific news
-    from app.utils.news_utils import _fetch_gnews, _fetch_google_news_rss, _merge_unique, parse_date
+    # Defensive: current_location (or its state field) may be missing on
+    # older/incomplete profiles. Don't let a KeyError 500 the endpoint —
+    # fall back to general India news instead.
+    state = (profile.get("current_location") or {}).get("state")
+
+    from app.utils.news_utils import _fetch_gnews, _fetch_google_news_rss, _merge_unique, parse_date, get_farming_news, enrich_articles_with_images
     from datetime import timedelta, timezone as tz
+
+    if not state:
+        # No state on file — safe fallback to general India agriculture news
+        news = await get_farming_news(max_results=10)
+        return {
+            "username": username,
+            "state":    None,
+            "total":    len(news),
+            "articles": news,
+        }
 
     q1 = f"{state} India farming crop agriculture"
     q2 = f"{state} India farmer"
@@ -56,6 +69,7 @@ async def farmer_news(username: str, current_user: dict = Depends(get_current_us
     articles = [a for a in articles if parse_date(a.get("published_at")) >= cutoff]
     articles.sort(key=lambda x: parse_date(x.get("published_at")), reverse=True)
     news = articles[:10]
+    await enrich_articles_with_images(news)
 
     return {
         "username": username,

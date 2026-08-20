@@ -35,7 +35,7 @@ async def save_message(username: str, role: str, content: str, db):
     return result
 
 
-async def load_history(username: str, db, limit: int = 10) -> list:
+async def load_history(username: str, db, limit: int = 20) -> list:
     """Load last N messages from MongoDB for conversation continuity."""
     doc = await db[CHAT_HISTORY_COLLECTION].find_one({"username": username})
     if not doc:
@@ -46,3 +46,15 @@ async def load_history(username: str, db, limit: int = 10) -> list:
         {"role": m["role"], "content": m["content"]}
         for m in messages[-limit:]
     ]
+
+
+async def get_message_count(username: str, db) -> int:
+    """Return total number of messages stored for a user."""
+    doc = await db[CHAT_HISTORY_COLLECTION].find_one(
+        {"username": username}, {"messages": {"$size": "$messages"}}
+    )
+    if not doc:
+        return 0
+    # MongoDB $size in projection doesn't work directly; count in Python
+    doc = await db[CHAT_HISTORY_COLLECTION].find_one({"username": username})
+    return len(doc.get("messages", [])) if doc else 0

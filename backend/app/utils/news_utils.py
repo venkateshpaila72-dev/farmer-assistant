@@ -1,8 +1,10 @@
+import asyncio
 import time
 import httpx
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from bs4 import BeautifulSoup
 from app.core.config import settings
 
 # ---------------------------------------------------------------------------
@@ -26,6 +28,113 @@ def _cache_get(key: str):
 
 def _cache_set(key: str, articles: list, is_failure: bool = False):
     _cache[key] = (time.time(), articles, is_failure)
+
+
+# ---------------------------------------------------------------------------
+# Image extraction cache  (separate from article cache — 6 h TTL)
+# ---------------------------------------------------------------------------
+_IMAGE_CACHE_TTL = 6 * 60 * 60        # 6 hours
+_image_cache: dict = {}                # url -> (timestamp, image_url | None)
+
+
+def _img_cache_get(url: str):
+    entry = _image_cache.get(url)
+    if not entry:
+        return ...
+    ts, img = entry
+    if time.time() - ts > _IMAGE_CACHE_TTL:
+        return ...
+    return img
+
+
+def _img_cache_set(url: str, img: str | None):
+    _image_cache[url] = (time.time(), img)
+
+
+# ---------------------------------------------------------------------------
+# OG / Twitter image extraction
+# ---------------------------------------------------------------------------
+async def extract_article_image(url: str) -> str | None:
+    """Fetch an article page and extract the best social-share image.
+
+    Priority: og:image  →  twitter:image  →  None.
+    Returns None on any failure (timeout, bad HTML, missing tags).
+    Results are cached for 6 h.
+    """
+    if not url:
+        return None
+
+    cached = _img_cache_get(url)
+    if cached is not ...:
+        return cached
+
+    try:
+        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+            resp = await client.get(url, headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+            })
+            if resp.status_code != 200:
+                _img_cache_set(url, None)
+                return None
+
+            # Only parse the first 200 KB — meta tags are always in <head>.
+            html = resp.text[:200_000]
+            soup = BeautifulSoup(html, "lxml")
+
+            # 1. og:image
+            og = soup.find("meta", property="og:image")
+            if og and og.get("content"):
+                img = og["content"].strip()
+                if img.startswith("http"):
+                    _img_cache_set(url, img)
+                    return img
+
+            # 2. twitter:image
+            tw = (
+                soup.find("meta", attrs={"name": "twitter:image"})
+                or soup.find("meta", attrs={"property": "twitter:image"})
+            )
+            if tw and tw.get("content"):
+                img = tw["content"].strip()
+                if img.startswith("http"):
+                    _img_cache_set(url, img)
+                    return img
+
+            _img_cache_set(url, None)
+            return None
+
+    except Exception as exc:
+        print(f"Image extraction failed for {url}: {type(exc).__name__}: {exc}")
+        _img_cache_set(url, None)
+        return None
+
+
+async def enrich_articles_with_images(articles: list) -> list:
+    """For articles missing an image, attempt to scrape one from the page.
+
+    Uses a semaphore to cap concurrent HTTP requests at 5.
+    Never raises — individual failures leave image as None.
+    """
+    sem = asyncio.Semaphore(5)
+
+    async def _fill(article: dict):
+        if article.get("image"):
+            return  # already has one (GNews)
+        url = article.get("url")
+        if not url:
+            return
+        async with sem:
+            img = await extract_article_image(url)
+        if img:
+            article["image"] = img
+
+    await asyncio.gather(*[_fill(a) for a in articles], return_exceptions=True)
+    return articles
 
 
 def _merge_unique(*article_lists: list, limit: int) -> list:
@@ -67,24 +176,48 @@ def parse_date(iso_str: str) -> datetime:
 # ---------------------------------------------------------------------------
 async def get_farming_news(max_results: int = 10) -> list:
     """
-    GLOBAL agriculture news feed — India + worldwide.
-    No country restriction.  Filters to last 21 days, sorted newest-first.
+    Main news feed for the News tab — ALL INDIA farming/agriculture news.
+
+    Hybrid source strategy:
+      1. GNews is tried first (better metadata: images, descriptions) but
+         has a daily quota, so it can silently return [] once exhausted.
+      2. Google News RSS (no key, no daily cap) is always fetched too and
+         acts as the reliable fallback/backbone — if GNews comes back
+         empty (quota hit or API error) we lean on RSS harder by pulling
+         extra results so the feed still fills up.
+      3. Both are merged (GNews first so its richer articles are kept
+         when duplicates exist), de-duplicated by URL, restricted to the
+         last 21 days, and sorted newest-first.
+
+    Strictly India-scoped: GNews uses country="in", RSS uses locale="IN".
     """
-    q1 = "agriculture farming crop"
-    q2 = "India agriculture farmer"
+    q1 = "India agriculture farming crop"
+    q2 = "India farmer news"
 
-    gnews_global = await _fetch_gnews(query=q1, max_results=max_results, country=None)
-    gnews_india  = await _fetch_gnews(query=q2, max_results=max_results, country=None)
+    gnews_a, gnews_b = await asyncio.gather(
+        _fetch_gnews(query=q1, max_results=max_results, country="in"),
+        _fetch_gnews(query=q2, max_results=max_results, country="in"),
+    )
+    gnews_articles = _merge_unique(gnews_a, gnews_b, limit=max_results * 2)
 
-    rss_global = await _fetch_google_news_rss(query=q1, max_results=max_results, locale=None)
-    rss_india  = await _fetch_google_news_rss(query=q2, max_results=max_results, locale="IN")
+    # GNews quota/error → lean harder on RSS to make sure the feed isn't thin.
+    rss_max = max_results if gnews_articles else max_results * 2
 
-    articles = _merge_unique(gnews_global, gnews_india, rss_global, rss_india, limit=max_results * 4)
+    rss_a, rss_b = await asyncio.gather(
+        _fetch_google_news_rss(query=q1, max_results=rss_max, locale="IN"),
+        _fetch_google_news_rss(query=q2, max_results=rss_max, locale="IN"),
+    )
+    rss_articles = _merge_unique(rss_a, rss_b, limit=rss_max * 2)
+
+    # GNews first (kept on duplicate) so richer articles win the merge.
+    articles = _merge_unique(gnews_articles, rss_articles, limit=max_results * 4)
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=21)
     filtered = [a for a in articles if parse_date(a.get("published_at")) >= cutoff]
     filtered.sort(key=lambda x: parse_date(x.get("published_at")), reverse=True)
-    return filtered[:max_results]
+    result = filtered[:max_results]
+    await enrich_articles_with_images(result)
+    return result
 
 
 async def get_pest_alerts(state: str = None, max_results: int = 12) -> list:
@@ -109,7 +242,9 @@ async def get_pest_alerts(state: str = None, max_results: int = 12) -> list:
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
     filtered = [a for a in alerts if parse_date(a.get("published_at")) >= cutoff]
     filtered.sort(key=lambda x: parse_date(x.get("published_at")), reverse=True)
-    return filtered[:max_results]
+    result = filtered[:max_results]
+    await enrich_articles_with_images(result)
+    return result
 
 
 async def get_scheme_news(state: str = None, max_results: int = 12) -> list:
@@ -135,7 +270,9 @@ async def get_scheme_news(state: str = None, max_results: int = 12) -> list:
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
     filtered = [a for a in articles if parse_date(a.get("published_at")) >= cutoff]
     filtered.sort(key=lambda x: parse_date(x.get("published_at")), reverse=True)
-    return filtered[:max_results]
+    result = filtered[:max_results]
+    await enrich_articles_with_images(result)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +369,12 @@ async def _fetch_gnews(
             )
 
             if response.status_code != 200:
-                print(f"GNews error: {response.status_code} for query '{query}'")
+                if response.status_code in (403, 429):
+                    # Quota exhausted — expected under free-tier limits.
+                    # Callers fall back to RSS when GNews comes back empty.
+                    print(f"GNews quota exceeded ({response.status_code}) for query '{query}' — falling back to RSS")
+                else:
+                    print(f"GNews error: {response.status_code} for query '{query}'")
                 _cache_set(cache_key, [], is_failure=True)
                 return []
 

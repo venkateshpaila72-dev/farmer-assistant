@@ -12,6 +12,8 @@ MARKET_PRICES_COLLECTION    = "market_prices"
 ICAR_DOCUMENTS_COLLECTION   = "icar_documents"
 PEST_ALERTS_COLLECTION      = "pest_alerts"  # last-known-good GNews pest/disease results, per state — lets the /news/alerts endpoint fall back to a recent past batch instead of a bare empty state whenever today's live query finds nothing
 SCHEME_NEWS_COLLECTION      = "scheme_news"  # last-known-good GNews government-scheme results, per state — same fallback pattern as pest_alerts, for the /news/schemes endpoint
+USER_MEMORIES_COLLECTION    = "user_memories"      # long-term extracted facts per user (preferences, crops, location, etc.)
+CHAT_SUMMARIES_COLLECTION   = "chat_summaries"     # compressed summaries of old conversations (beyond last 20 messages)
 
 
 async def create_indexes(db):
@@ -51,5 +53,11 @@ async def create_indexes(db):
     # routes/news.py always replaces rather than accumulating duplicates.
     await db[PEST_ALERTS_COLLECTION].create_index("state_key", unique=True)
     await db[SCHEME_NEWS_COLLECTION].create_index("state_key", unique=True)
+
+    # user_memories — one document per farmer, storing long-term extracted facts
+    await db[USER_MEMORIES_COLLECTION].create_index("username", unique=True)
+
+    # chat_summaries — one document per farmer, storing compressed old conversations
+    await db[CHAT_SUMMARIES_COLLECTION].create_index("username", unique=True)
 
     print("✅ MongoDB indexes created")

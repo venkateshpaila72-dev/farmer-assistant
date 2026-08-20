@@ -19,6 +19,7 @@ from app.utils.lang_detect import detect_lang_code, LANGUAGE_DISPLAY_NAMES
 from app.utils.tts_utils import synthesize_speech
 from app.utils.chat_history import save_message, load_history
 from app.utils.langgraph_chat_agent import run_chat_agent
+from app.utils.memory_utils import load_user_memories, load_chat_summary, run_memory_tasks
 from app.core.security import get_current_user, decode_token
 
 router = APIRouter()
@@ -156,6 +157,10 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
         # This can change mid-conversation if farmer says "reply in English" etc.
         session_language = profile.get("chat_language", "English")
 
+        # Load long-term memory + past conversation summary for personalization
+        user_memories = await load_user_memories(username, db)
+        past_summary  = await load_chat_summary(username, db)
+
     except Exception as e:
         await safe_send_json(websocket, {"type": "error", "message": str(e)})
         await safe_close(websocket)
@@ -215,7 +220,10 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
                 if incoming_code != "en"
                 else session_language
             )
-            system_prompt = build_system_prompt(ctx, username=username, language=turn_language)
+            system_prompt = build_system_prompt(
+                ctx, username=username, language=turn_language,
+                memories=user_memories, past_summary=past_summary,
+            )
 
             # 4. Generate response — the agent decides internally whether it needs
             #    to call any tools (market price lookup for ANY crop, price trend,
@@ -244,6 +252,11 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             # 5. Save bot response to MongoDB
             await save_message(username, "assistant", response, db)
             print(f"🤖 Bot: {response[:100]}...")
+
+            # 5b. Fire background memory tasks (extraction + summarization)
+            #     These never block the chat response.
+            if not had_error:
+                run_memory_tasks(username, message, response, db)
 
             # 6. Keep session_language in sync with the language the agent
             #    actually just replied in (detected from the reply's own

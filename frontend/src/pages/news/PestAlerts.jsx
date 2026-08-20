@@ -9,6 +9,14 @@ import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { getPestAlerts } from "../../api/news";
 import { getAvailableStates } from "../../api/market";
 import { getCached, setCached } from "../../utils/dataCache";
+import newsFallbackImg from "../../assets/news-fallback.png";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+function proxyImage(url) {
+  if (!url) return null;
+  return `${API_BASE}/news/image-proxy?url=${encodeURIComponent(url)}`;
+}
 
 /** Human-readable relative time from an ISO-8601 timestamp. */
 function timeAgo(iso) {
@@ -114,6 +122,28 @@ export default function PestAlerts() {
             <RevealOnScroll key={alert.url || i} delay={i * 0.04}>
               <a href={alert.url} target="_blank" rel="noopener noreferrer">
                 <Panel className="p-4 flex items-start gap-3 border-danger/40 bg-danger-tint">
+                  <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-danger/10">
+                    {alert.image ? (
+                      <img
+                        src={proxyImage(alert.image)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = newsFallbackImg;
+                          e.currentTarget.className = "w-full h-full object-contain p-1.5";
+                        }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <img
+                        src={newsFallbackImg}
+                        alt=""
+                        className="w-full h-full object-contain p-1.5"
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
                   <AlertTriangle size={18} className="text-danger mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-ink leading-snug">{alert.title}</h3>
