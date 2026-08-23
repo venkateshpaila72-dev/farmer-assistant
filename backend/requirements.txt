@@ -44,7 +44,7 @@ langchain-groq>=1.1.3
 langgraph>=1.2.9
 
 # Vector DB — Pinecone (RAG)
-pinecone-client
+pinecone
 sentence-transformers
 
 # ML Models
