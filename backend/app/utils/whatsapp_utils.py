@@ -18,6 +18,7 @@ participant" or similar, this is almost always the cause.
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from app.core.config import settings
+import asyncio
 
 _client = None
 
@@ -78,11 +79,12 @@ async def send_whatsapp_message(phone: str, message: str) -> dict:
 
     try:
         client = get_twilio_client()
-        msg = client.messages.create(
-            from_=settings.TWILIO_WHATSAPP_FROM,
-            to=to_number,
-            body=message
-        )
+        msg = await asyncio.to_thread(
+                client.messages.create,
+                from_=settings.TWILIO_WHATSAPP_FROM,
+                to=to_number,
+                body=message,
+            )
         return {
             "success":    True,
             "message_sid": msg.sid,

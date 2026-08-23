@@ -17,7 +17,7 @@ from app.utils.whatsapp_utils import send_whatsapp_message
 from app.utils.agmarknet_utils import sync_state_prices
 from app.core.config import settings
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
 # Same retention window as the manual CSV upload path (app/routes/market.py)
 # — kept here too since the automatic sync bypasses that upload path entirely.
