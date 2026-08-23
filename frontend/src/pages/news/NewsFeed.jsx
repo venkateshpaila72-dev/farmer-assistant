@@ -53,6 +53,8 @@ export default function NewsFeed() {
   const [articles, setArticles] = useState(() => getCached(CACHE_KEY) ?? null);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLive, setIsLive] = useState(true);
+  const [freshnessWindow, setFreshnessWindow] = useState("20 days");
 
   function load({ isManualRefresh = false } = {}) {
     setError(false);
@@ -61,6 +63,8 @@ export default function NewsFeed() {
       .then((data) => {
         const list = data.articles || [];
         setArticles(list);
+        setIsLive(data.is_live !== false);
+        setFreshnessWindow(data.freshness_window || "20 days");
         setCached(CACHE_KEY, list);
       })
       .catch(() => {
@@ -108,6 +112,11 @@ export default function NewsFeed() {
         <Panel className="p-8 text-center text-ink-soft">{t("news.empty")}</Panel>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2 -mb-2">
+            <p className="text-xs text-ink-soft italic">
+              {isLive ? `Real-time updates available. Showing the last ${freshnessWindow}.` : `Offline fallback. Showing the last ${freshnessWindow}.`}
+            </p>
+          </div>
           {articles.map((article, i) => (
             <RevealOnScroll key={article.url || i} delay={i * 0.05}>
               <a href={article.url} target="_blank" rel="noopener noreferrer" className="group block">

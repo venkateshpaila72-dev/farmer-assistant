@@ -54,9 +54,9 @@ export default function PestAlerts() {
   const alertsCacheKey = `news:alerts:${state || "all"}`;
   const [alerts, setAlerts] = useState(() => getCached(alertsCacheKey) ?? null);
   const [error, setError] = useState(false);
-
   const [isLive, setIsLive] = useState(true);
   const [fetchedAt, setFetchedAt] = useState(null);
+  const [freshnessWindow, setFreshnessWindow] = useState("30 days");
 
   // Load available Indian states (reuse market data)
   useEffect(() => {
@@ -77,6 +77,7 @@ export default function PestAlerts() {
         const list = data.alerts || [];
         setAlerts(list);
         setIsLive(data.is_live !== false);
+        setFreshnessWindow(data.freshness_window || "30 days");
         setFetchedAt(data.fetched_at || null);
         setCached(alertsCacheKey, list);
       })
@@ -113,11 +114,17 @@ export default function PestAlerts() {
         <Panel className="p-8 text-center text-ink-soft">{t("news.noAlerts")}</Panel>
       ) : (
         <div className="flex flex-col gap-3">
-          {!isLive && (
-            <p className="text-xs text-ink-soft italic">
-              {t("news.pastAlertsNote", { time: timeAgo(fetchedAt) || t("news.recently") })}
-            </p>
-          )}
+          <div className="flex flex-col gap-1 -mt-2">
+            {isLive ? (
+              <p className="text-xs text-ink-soft italic">
+                Real-time updates available. Showing the last {freshnessWindow}.
+              </p>
+            ) : (
+              <p className="text-xs text-ink-soft italic">
+                {t("news.pastAlertsNote", { time: timeAgo(fetchedAt) || t("news.recently") })} (Showing the last {freshnessWindow})
+              </p>
+            )}
+          </div>
           {alerts.map((alert, i) => (
             <RevealOnScroll key={alert.url || i} delay={i * 0.04}>
               <a href={alert.url} target="_blank" rel="noopener noreferrer">

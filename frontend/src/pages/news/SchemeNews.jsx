@@ -33,6 +33,7 @@ export default function SchemeNews() {
   const [error, setError] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [fetchedAt, setFetchedAt] = useState(null);
+  const [freshnessWindow, setFreshnessWindow] = useState("30 days");
   const [refreshing, setRefreshing] = useState(false);
 
   function loadNews(isManualRefresh = false) {
@@ -43,6 +44,7 @@ export default function SchemeNews() {
         const list = data.articles || [];
         setArticles(list);
         setIsLive(data.is_live !== false);
+        setFreshnessWindow(data.freshness_window || "30 days");
         setFetchedAt(data.fetched_at || null);
         setCached(newsCacheKey, list);
       })
@@ -91,11 +93,17 @@ export default function SchemeNews() {
         <Panel className="p-8 text-center text-ink-soft">{t("news.noSchemeNews")}</Panel>
       ) : (
         <div className="flex flex-col gap-3">
-          {!isLive && (
-            <p className="text-xs text-ink-soft italic">
-              {t("news.pastAlertsNote", { time: timeAgo(fetchedAt) || t("news.recently") })}
-            </p>
-          )}
+          <div className="flex flex-col gap-1 -mt-2">
+            {isLive ? (
+              <p className="text-xs text-ink-soft italic">
+                Real-time updates available. Showing the last {freshnessWindow}.
+              </p>
+            ) : (
+              <p className="text-xs text-ink-soft italic">
+                {t("news.pastAlertsNote", { time: timeAgo(fetchedAt) || t("news.recently") })} (Showing the last {freshnessWindow})
+              </p>
+            )}
+          </div>
           {articles.map((article, i) => (
             <RevealOnScroll key={article.url || i} delay={i * 0.04}>
               <a href={article.url} target="_blank" rel="noopener noreferrer">

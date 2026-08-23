@@ -49,6 +49,7 @@ class AdminRegister(BaseModel):
     name: str
     email: EmailStr
     password: str
+    admin_secret: str  # must match ADMIN_SIGNUP_SECRET env var
 
 
 class AdminLogin(BaseModel):

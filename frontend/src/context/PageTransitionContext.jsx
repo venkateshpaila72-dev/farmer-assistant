@@ -27,9 +27,9 @@ export function PageTransitionProvider({ children }) {
 
   async function transitionTo(path, options) {
     await controls.start({
-      y: "-6%",
+      y: -16,
       opacity: 0,
-      transition: { duration: 0.45, ease: [0.7, 0, 0.84, 0] },
+      transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
     });
     navigate(path, options);
     // Reset for the next mount — the page that just mounted underneath

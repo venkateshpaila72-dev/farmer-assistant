@@ -11,20 +11,27 @@ from app.db.models import (
 from app.db.schemas import AdminRegister, AdminResponse, MessageResponse, UpdateFarmerPhone
 from app.core.security import hash_password, get_current_admin
 from app.utils.cloudinary_utils import upload_image
+from app.core.config import settings
 from app.utils.groq_utils import draft_scheme_from_news
 from pydantic import BaseModel
 
 router = APIRouter()
 
 
-# NOTE: addnewadmin is intentionally left OPEN (no auth) so the very first
-# admin account can be created on a fresh deployment. Once at least one
-# admin exists, protect this in production by either:
-#   (a) disabling this route after first use, or
-#   (b) requiring an ADMIN_SIGNUP_SECRET passed alongside the request
-# Everything else below requires a valid admin token.
 @router.post("/addnewadmin", response_model=MessageResponse)
 async def register_admin(data: AdminRegister):
+    # ── Require admin signup secret ───────────────────────────────────────
+    if not settings.ADMIN_SIGNUP_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin registration is disabled (ADMIN_SIGNUP_SECRET not configured)"
+        )
+    if data.admin_secret != settings.ADMIN_SIGNUP_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid admin signup secret"
+        )
+
     db = get_db()
 
     # Check email not already taken

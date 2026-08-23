@@ -7,7 +7,7 @@ from app.utils.groq_utils import chat_with_groq, build_system_prompt
 from app.db.database import get_db
 from app.db.models import FARMER_PROFILES_COLLECTION, ICAR_DOCUMENTS_COLLECTION
 from app.utils.weather_utils import get_current_weather, get_season_from_month
-from app.core.security import get_current_admin
+from app.core.security import get_current_admin, get_current_user
 from datetime import datetime
 
 router = APIRouter()
@@ -165,8 +165,10 @@ async def debug_search(question: str, admin: dict = Depends(get_current_admin)):
 # ── RAG Question Answering ────────────────────────────────────────────────────
 
 @router.post("/ask")
-async def ask_question(question: str, username: str = None):
-    """Answer farming question using RAG from ICAR documents."""
+async def ask_question(question: str, current_user: dict = Depends(get_current_user)):
+    """Answer farming question using RAG from ICAR documents.
+    Username is derived from the authenticated user's token."""
+    username = current_user["username"]
 
     # Search Pinecone
     rag_result = await retrieve_context(question, top_k=3)
@@ -211,6 +213,5 @@ async def ask_question(question: str, username: str = None):
         "question": question,
         "answer":   answer,
         "sources":  rag_result.get("sources", []),
-        "used_rag": rag_result["found"],
-        "username": username
+        "used_rag": rag_result["found"]
     }

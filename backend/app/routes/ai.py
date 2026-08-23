@@ -168,11 +168,12 @@ Keep it practical, specific to {state}, and under 200 words."""
 # ── General Farming Advice ────────────────────────────────────────────────────
 
 @router.post("/advice")
-async def get_farming_advice(question: str, username: str = None):
+async def get_farming_advice(question: str, current_user: dict = Depends(get_current_user)):
     """
     Answer any farming question using Groq.
-    If username provided — uses farmer profile as context.
+    Uses the authenticated user's profile as context.
     """
+    username = current_user["username"]
     context = ""
 
     if username:

@@ -41,9 +41,21 @@ class Settings(BaseSettings):
     PINECONE_INDEX_NAME: str = "farmer-assistant"
     PINECONE_ENVIRONMENT: str = "us-east-1"
 
-    # GNews — Farming News
+    # GNews — Farming News (Tier 1, primary)
     GNEWS_API_KEY: str
     GNEWS_BASE_URL: str = "https://gnews.io/api/v4"
+
+    # NewsData.io — Farming News (Tier 1, secondary — fetched in parallel with
+    # GNews to diversify quota and richness). Free tier: 200 credits/day.
+    # Required, since it's now a first-class source in get_farming_news().
+    NEWSDATA_API_KEY: str
+    NEWSDATA_BASE_URL: str = "https://newsdata.io/api/1"
+
+    # Currents API — optional low-priority fallback source (Tier 4). Only
+    # invoked when GNews + NewsData + curated RSS + Google News RSS all come
+    # back thin. Optional — if not set in .env, this tier is simply skipped.
+    CURRENTS_API_KEY: Optional[str] = None
+    CURRENTS_BASE_URL: str = "https://api.currentsapi.services/v1"
 
     # AGMARKNET — Live Market Prices (data.gov.in)
     AGMARKNET_API_KEY: str

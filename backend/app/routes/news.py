@@ -1,7 +1,7 @@
 from datetime import datetime
 from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Depends, Query
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 import httpx
 from app.utils.news_utils import get_farming_news, get_pest_alerts, get_scheme_news
 from app.db.database import get_db
@@ -215,36 +215,60 @@ async def image_proxy(url: str = Query(..., description="HTTPS image URL to prox
     upstream images from loading directly in <img> tags.
 
     Only proxies HTTPS URLs that actually return image content-types.
+
+    Streams the upstream response back to the client rather than buffering
+    the whole image in memory first — uses httpx's async streaming API
+    (aiter_bytes(), NOT the sync iter_bytes()) since this runs on an
+    AsyncClient. The upstream response is explicitly closed once the stream
+    finishes (success or error) because get_image_http_client() is a shared,
+    long-lived client — leaving a streamed response unclosed would leak a
+    connection out of its keepalive pool on every request.
     """
     if not _is_allowed_image_url(url):
         raise HTTPException(status_code=400, detail="Invalid image URL")
 
+    client = get_image_http_client()
+
     try:
-        client = get_image_http_client()
-        # Use the global HTTP client with standard browser headers to bypass CDN blocks
-        resp = await client.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-        })
-
-        if resp.status_code != 200:
-            raise HTTPException(status_code=502, detail="Upstream image not available")
-
-        content_type = resp.headers.get("content-type", "")
-        if not content_type.startswith("image/"):
-            raise HTTPException(status_code=502, detail="Upstream did not return an image")
-
-        return Response(
-            content=resp.content,
-            media_type=content_type,
+        request = client.build_request(
+            "GET",
+            url,
             headers={
-                "Cache-Control": "public, max-age=86400",  # cache 24h
-                "X-Content-Type-Options": "nosniff",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
             },
         )
-
+        resp = await client.send(request, stream=True)
     except httpx.HTTPError as e:
-        # Print or handle error for debugging
-        print(f"Proxy request error for {url}: {e}")
+        print(f"Proxy request connection error for {url}: {e}")
         raise HTTPException(status_code=502, detail="Failed to fetch upstream image")
+
+    if resp.status_code != 200:
+        await resp.aclose()
+        raise HTTPException(status_code=502, detail="Upstream image not available")
+
+    content_type = resp.headers.get("content-type", "")
+    if not content_type.startswith("image/"):
+        await resp.aclose()
+        raise HTTPException(status_code=502, detail="Upstream did not return an image")
+
+    async def _stream_body():
+        try:
+            async for chunk in resp.aiter_bytes():
+                yield chunk
+        except httpx.HTTPError as e:
+            # Upstream dropped mid-stream — nothing more we can do once
+            # headers are already sent, just stop yielding.
+            print(f"Proxy stream error for {url}: {e}")
+        finally:
+            await resp.aclose()
+
+    return StreamingResponse(
+        _stream_body(),
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=86400",  # cache 24h
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

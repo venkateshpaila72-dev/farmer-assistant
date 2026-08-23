@@ -8,13 +8,17 @@ const easeOut = [0.16, 1, 0.3, 1];
 
 // A handful of soft leaf shapes that drift upward and sway, looping
 // forever, at staggered speeds/delays so the motion never feels mechanical.
-const FLOATING_LEAVES = [
-  { left: "8%", size: 22, duration: 14, delay: 0 },
-  { left: "22%", size: 16, duration: 18, delay: 3 },
-  { left: "40%", size: 26, duration: 16, delay: 1.2 },
-  { left: "58%", size: 18, duration: 20, delay: 5 },
-  { left: "74%", size: 24, duration: 15, delay: 2.4 },
-  { left: "88%", size: 17, duration: 19, delay: 4.2 },
+// A handful of soft leaf shapes that fall gracefully from the top with easing,
+// random sizes, rotation cycles, speed delays, and sways.
+const FALLING_LEAVES = [
+  { left: "5%", size: 14, duration: 12, delay: 0, sway: 40, rotate: 360 },
+  { left: "20%", size: 24, duration: 16, delay: 2, sway: 60, rotate: -240 },
+  { left: "38%", size: 18, duration: 14, delay: 4, sway: -50, rotate: 180 },
+  { left: "55%", size: 28, duration: 20, delay: 1, sway: 70, rotate: 540 },
+  { left: "72%", size: 16, duration: 15, delay: 5.5, sway: -30, rotate: -180 },
+  { left: "88%", size: 22, duration: 13, delay: 3, sway: 50, rotate: 270 },
+  { left: "12%", size: 20, duration: 17, delay: 8, sway: -45, rotate: -360 },
+  { left: "65%", size: 25, duration: 18, delay: 7, sway: -60, rotate: -270 },
 ];
 
 /**
@@ -79,9 +83,8 @@ export function AuthLayout({
         ref={panelRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
-        className={`hidden md:block md:w-[42%] lg:w-[38%] relative overflow-hidden ${
-          panelVariant === "split" ? "bg-bg" : "bg-white"
-        }`}
+        className={`hidden md:block md:w-[42%] lg:w-[38%] relative overflow-hidden ${panelVariant === "split" ? "bg-bg" : "bg-white"
+          }`}
       >
         {panelVariant === "split" && (
           // Flat two-tone backdrop, drawn ourselves — the illustration
@@ -186,22 +189,30 @@ export function AuthLayout({
             animate={{ x: [0, 26, 0], y: [0, -20, 0] }}
             transition={{ duration: 19, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
           />
-          {FLOATING_LEAVES.map((leaf, i) => (
+          {FALLING_LEAVES.map((leaf, i) => (
             <motion.span
               key={i}
-              className="absolute bottom-[-40px] text-accent/70"
-              style={{ left: leaf.left }}
-              initial={{ y: 0, opacity: 0 }}
-              animate={{ y: "-110vh", opacity: [0, 0.7, 0.7, 0], rotate: [0, 25, -15, 10] }}
+              className="absolute text-accent/70 pointer-events-none"
+              style={{
+                left: leaf.left,
+                top: -48,
+              }}
+              initial={{ y: 0, x: 0, opacity: 0, rotate: 0 }}
+              animate={{
+                y: "115vh",
+                x: [0, leaf.sway, -leaf.sway, leaf.sway / 2, 0],
+                rotate: [0, leaf.rotate / 2, leaf.rotate, leaf.rotate * 1.5, leaf.rotate * 2],
+                opacity: [0, 0.7, 0.7, 0]
+              }}
               transition={{
                 duration: leaf.duration,
                 delay: leaf.delay,
-                times: [0, 0.22, 0.78, 1],
+                times: [0, 0.15, 0.8, 0.95, 1],
                 repeat: Infinity,
-                ease: "linear",
+                ease: "easeInOut",
               }}
             >
-              <Leaf size={leaf.size} strokeWidth={2.25} />
+              <Leaf size={leaf.size} strokeWidth={2.25} className="transform-gpu" />
             </motion.span>
           ))}
         </div>

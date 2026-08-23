@@ -5,7 +5,7 @@ from PIL import Image
 import io
 
 # ── Load model once at startup ────────────────────────────────────────────────
-BASE = Path("saved_models")
+BASE = Path(__file__).resolve().parent.parent.parent / "saved_models"
 
 # Load class info
 with open(BASE / "soil_classes.json", "r") as f:

@@ -51,6 +51,7 @@ sentence-transformers
 scikit-learn
 xgboost
 shap
+tensorflow>=2.15,<2.18
 
 
 Pillow

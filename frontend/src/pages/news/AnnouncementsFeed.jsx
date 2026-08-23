@@ -7,6 +7,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { getPublicAnnouncements } from "../../api/news";
 import { getCached, setCached } from "../../utils/dataCache";
+import newsFallbackImg from "../../assets/news-fallback.png";
 
 function timeAgo(iso) {
   if (!iso) return "";
@@ -63,9 +64,19 @@ export default function AnnouncementsFeed() {
       {announcements.map((a, i) => (
         <RevealOnScroll key={i} delay={Math.min(i, 6) * 0.04}>
           <Panel className="p-4">
-            {a.image_url && (
-              <img src={a.image_url} alt="" className="w-full max-h-64 object-cover rounded-sm border border-border mb-3" />
-            )}
+            <div className="w-full max-h-64 h-48 bg-primary-tint relative rounded-sm border border-border mb-3 overflow-hidden flex items-center justify-center">
+              <img
+                src={a.image_url || newsFallbackImg}
+                alt=""
+                className={a.image_url ? "w-full h-full object-cover" : "w-full h-full object-contain p-8 max-h-36"}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = newsFallbackImg;
+                  e.currentTarget.className = "w-full h-full object-contain p-8 max-h-36";
+                }}
+                loading="lazy"
+              />
+            </div>
             <div className="flex items-start gap-2.5">
               <Megaphone size={17} className="text-primary mt-0.5 shrink-0" />
               <div className="min-w-0">

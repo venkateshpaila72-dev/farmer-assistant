@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 # ── Load all three unit-group models once at startup ─────────────────────────
-BASE = Path("saved_models")
+BASE = Path(__file__).resolve().parent.parent.parent / "saved_models"
 
 with open(BASE / "yield_metadata.json", "r") as f:
     metadata = json.load(f)

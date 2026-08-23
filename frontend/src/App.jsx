@@ -78,56 +78,56 @@ function App() {
   return (
     <PageTransitionProvider>
       <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<AuthPageRoute><FarmerLogin /></AuthPageRoute>} />
-      <Route path="/register" element={<AuthPageRoute><FarmerRegister /></AuthPageRoute>} />
-      <Route path="/admin/login" element={<AuthPageRoute><AdminLogin /></AuthPageRoute>} />
+        <Route path="/" element={<AuthPageRoute><Home /></AuthPageRoute>} />
+        <Route path="/login" element={<AuthPageRoute><FarmerLogin /></AuthPageRoute>} />
+        <Route path="/register" element={<AuthPageRoute><FarmerRegister /></AuthPageRoute>} />
+        <Route path="/admin/login" element={<AuthPageRoute><AdminLogin /></AuthPageRoute>} />
 
-      <Route
-        path="/onboarding"
-        element={
-          <ProtectedRoute>
-            <OnboardingFlow />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <OnboardingFlow />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route path="/dashboard" element={<DashboardRoute><DashboardHome /></DashboardRoute>} />
+        <Route path="/dashboard" element={<DashboardRoute><DashboardHome /></DashboardRoute>} />
 
-      <Route path="/crop-tools" element={<DashboardRoute><CropToolsLayout /></DashboardRoute>}>
-        <Route index element={<CropRecommendation />} />
-        <Route path="fertilizer" element={<FertilizerSuggestion />} />
-        <Route path="yield" element={<YieldPrediction />} />
-      </Route>
+        <Route path="/crop-tools" element={<DashboardRoute><CropToolsLayout /></DashboardRoute>}>
+          <Route index element={<CropRecommendation />} />
+          <Route path="fertilizer" element={<FertilizerSuggestion />} />
+          <Route path="yield" element={<YieldPrediction />} />
+        </Route>
 
-      <Route path="/vision" element={<DashboardRoute><VisionLayout /></DashboardRoute>}>
-        <Route index element={<DiseaseDetection />} />
-        <Route path="soil" element={<SoilClassification />} />
-        <Route path="history" element={<DiseaseHistory />} />
-      </Route>
+        <Route path="/vision" element={<DashboardRoute><VisionLayout /></DashboardRoute>}>
+          <Route index element={<DiseaseDetection />} />
+          <Route path="soil" element={<SoilClassification />} />
+          <Route path="history" element={<DiseaseHistory />} />
+        </Route>
 
-      <Route path="/market" element={<DashboardRoute><MarketLayout /></DashboardRoute>}>
-        <Route index element={<MarketPrices />} />
-        <Route path="trending" element={<TrendingCrops />} />
-      </Route>
+        <Route path="/market" element={<DashboardRoute><MarketLayout /></DashboardRoute>}>
+          <Route index element={<MarketPrices />} />
+          <Route path="trending" element={<TrendingCrops />} />
+        </Route>
 
-      <Route path="/news" element={<DashboardRoute><NewsLayout /></DashboardRoute>}>
-        <Route index element={<NewsFeed />} />
-        <Route path="alerts" element={<PestAlerts />} />
-        <Route path="schemes" element={<SchemeNews />} />
-        <Route path="announcements" element={<AnnouncementsFeed />} />
-      </Route>
+        <Route path="/news" element={<DashboardRoute><NewsLayout /></DashboardRoute>}>
+          <Route index element={<NewsFeed />} />
+          <Route path="alerts" element={<PestAlerts />} />
+          <Route path="schemes" element={<SchemeNews />} />
+          <Route path="announcements" element={<AnnouncementsFeed />} />
+        </Route>
 
-      <Route path="/chat" element={<DashboardRoute><ChatPage /></DashboardRoute>} />
-      <Route path="/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
+        <Route path="/chat" element={<DashboardRoute><ChatPage /></DashboardRoute>} />
+        <Route path="/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
 
-      <Route path="/admin" element={<AdminPageRoute><AdminDashboard /></AdminPageRoute>} />
-      <Route path="/admin/farmers" element={<AdminPageRoute><FarmerList /></AdminPageRoute>} />
-      <Route path="/admin/analytics" element={<AdminPageRoute><Analytics /></AdminPageRoute>} />
-      <Route path="/admin/announcements" element={<AdminPageRoute><Announcements /></AdminPageRoute>} />
-      <Route path="/admin/market-upload" element={<AdminPageRoute><MarketDataUpload /></AdminPageRoute>} />
+        <Route path="/admin" element={<AdminPageRoute><AdminDashboard /></AdminPageRoute>} />
+        <Route path="/admin/farmers" element={<AdminPageRoute><FarmerList /></AdminPageRoute>} />
+        <Route path="/admin/analytics" element={<AdminPageRoute><Analytics /></AdminPageRoute>} />
+        <Route path="/admin/announcements" element={<AdminPageRoute><Announcements /></AdminPageRoute>} />
+        <Route path="/admin/market-upload" element={<AdminPageRoute><MarketDataUpload /></AdminPageRoute>} />
 
-      <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </PageTransitionProvider>
   );

@@ -3,7 +3,7 @@ import json
 import numpy as np
 from pathlib import Path
 
-BASE = Path("saved_models")
+BASE = Path(__file__).resolve().parent.parent.parent / "saved_models"
 
 with open(BASE / "fertilizer_metadata.json") as f:
     metadata = json.load(f)

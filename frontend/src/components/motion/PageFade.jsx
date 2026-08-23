@@ -35,10 +35,10 @@ export function PageFade({ children }) {
     <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
         key={section}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.22, ease: easeOut }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -16 }}
+        transition={{ duration: 0.3, ease: easeOut }}
       >
         {children}
       </motion.div>
