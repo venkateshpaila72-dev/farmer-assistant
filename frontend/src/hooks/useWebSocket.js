@@ -143,7 +143,7 @@ export function useWebSocket(username) {
         }));
         if (mountedRef.current) setMessages(past);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         // The StrictMode cleanup can fire while this fetch is still in
         // flight — if it did, don't open a socket for an instance that's
@@ -174,7 +174,22 @@ export function useWebSocket(username) {
     connect();
   }, [connect]);
 
-  const clearMessages = useCallback(() => setMessages([]), []);
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    setThinking(false);
+    welcomedRef.current = false;
+    // Close current socket and reconnect for a fresh session
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+    attemptRef.current = 0;
+    manualCloseRef.current = false;
+    // Short delay to let the close complete before reconnecting
+    setTimeout(() => {
+      if (mountedRef.current) connect();
+    }, 300);
+  }, [connect]);
 
   // Photo analysis (soil/disease) doesn't go through the chat socket — it's
   // a plain REST call to the vision endpoints. This drops the exchange into

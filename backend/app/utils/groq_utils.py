@@ -161,7 +161,7 @@ def transcribe_audio_with_rotation(audio_bytes: bytes, filename: str = "voice.we
     raise last_error
 
 
-def build_system_prompt(farmer_context: dict, username: str, language: str = None, memories: list = None, past_summary: str = None) -> str:
+def build_system_prompt(farmer_context: dict, username: str, language: str = None, past_summary: str = None) -> str:
     """
     Build system prompt with full farmer context.
 
@@ -170,9 +170,6 @@ def build_system_prompt(farmer_context: dict, username: str, language: str = Non
     language     -> optional override for the CURRENT session (e.g. farmer said
                     "reply in English"). Falls back to profile's saved chat_language
                     if not provided.
-    memories     -> list of long-term extracted facts about this farmer (loaded
-                    from user_memories collection). Injected so the assistant
-                    "remembers" across sessions.
     past_summary -> compressed summary of older conversations (from
                     chat_summaries collection). Gives context beyond the last
                     20 messages.
@@ -307,21 +304,6 @@ summarize them unprompted. Never bring up an item from them (a news
 headline, an unrelated price) unless the farmer's question is actually
 about that item. Use them silently to inform your answer when relevant.
 """
-
-    # ── Long-term memory section ──
-    if memories:
-        memory_lines = "\n".join(f"  - {m}" for m in memories[:20])  # cap at 20 facts
-        system += f"""
-
-═══════════════════════════════════════════════════════════
-LONG-TERM MEMORY — facts you know about this farmer from past chats
-═══════════════════════════════════════════════════════════
-{memory_lines}
-
-Use these facts naturally when relevant — e.g. if the farmer asks about
-crops, you already know what they grow. Do NOT recite these back to the
-farmer unprompted. Do NOT say "I remember" or "from your past chats" —
-just use the information naturally as if you've always known it."""
 
     # ── Past conversation summary section ──
     if past_summary:

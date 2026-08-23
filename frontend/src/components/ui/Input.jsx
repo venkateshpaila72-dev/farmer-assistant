@@ -17,9 +17,9 @@ export const Input = forwardRef(function Input(
         ref={ref}
         id={inputId}
         className={cn(
-          "w-full rounded-sm border border-border bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 transition-colors duration-150",
-          "focus:border-primary focus:outline-none",
-          error && "border-danger",
+          "w-full rounded-sm border border-border bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 transition-all duration-200 ease-out",
+          "focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 focus:-translate-y-[1px]",
+          error && "border-danger focus:ring-danger/10",
           className
         )}
         {...props}

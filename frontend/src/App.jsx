@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { PageTransitionProvider } from "./context/PageTransitionContext.jsx";
+import { PageFade } from "./components/motion/PageFade.jsx";
 import Home from "./pages/public/Home.jsx";
 import FarmerLogin from "./pages/auth/FarmerLogin.jsx";
 import FarmerRegister from "./pages/auth/FarmerRegister.jsx";
@@ -45,6 +46,16 @@ function ToolPlaceholder({ label }) {
   );
 }
 
+// Wraps /login, /register, /admin/login with the SAME component reference
+// at the same position in the tree across all three routes — that's what
+// lets React keep this instance (and its PageFade/AnimatePresence) mounted
+// across navigation between them, so the outgoing page can crossfade out
+// instead of hard-cutting. Mirrors the DashboardRoute/AdminPageRoute
+// pattern below, which relies on the same mechanism.
+function AuthPageRoute({ children }) {
+  return <PageFade>{children}</PageFade>;
+}
+
 function DashboardRoute({ children }) {
   return (
     <ProtectedRoute>
@@ -68,9 +79,9 @@ function App() {
     <PageTransitionProvider>
       <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/login" element={<FarmerLogin />} />
-      <Route path="/register" element={<FarmerRegister />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/login" element={<AuthPageRoute><FarmerLogin /></AuthPageRoute>} />
+      <Route path="/register" element={<AuthPageRoute><FarmerRegister /></AuthPageRoute>} />
+      <Route path="/admin/login" element={<AuthPageRoute><AdminLogin /></AuthPageRoute>} />
 
       <Route
         path="/onboarding"

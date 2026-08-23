@@ -4,6 +4,8 @@ import {
   Send, Sparkles, BookOpen, RotateCcw, WifiOff, Copy, Check, Pencil,
   Mic, MicOff, Paperclip, Volume2, VolumeX, Sprout, Leaf, X,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useAuth } from "../../context/AuthContext";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { clearChatHistory, transcribeAudio, synthesizeSpeech } from "../../api/chat";
@@ -74,13 +76,12 @@ function MessageBubble({ message, t, onEdit, onSpeak, speakingId, loadingSpeechI
   return (
     <div className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[85%] md:max-w-[65%] rounded-md px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap ${
-          isUser
-            ? "bg-primary text-white"
-            : isError
-              ? "bg-danger-tint border border-danger/30 text-danger"
-              : "bg-surface border border-border text-ink"
-        }`}
+        className={`max-w-[85%] md:max-w-[65%] rounded-md px-4 py-2.5 text-[15px] leading-relaxed ${isUser
+          ? "bg-primary text-white whitespace-pre-wrap"
+          : isError
+            ? "bg-danger-tint border border-danger/30 text-danger whitespace-pre-wrap"
+            : "bg-surface border border-border text-ink"
+          }`}
       >
         {analysis && (
           <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
@@ -88,7 +89,11 @@ function MessageBubble({ message, t, onEdit, onSpeak, speakingId, loadingSpeechI
             {analysis.kind === "soil" ? t("chat.soilAnalysis") : t("chat.diseaseAnalysis")}
           </div>
         )}
-        {message.content}
+        {isUser ? message.content : (
+          <div className="markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          </div>
+        )}
         {message.usedRag && message.sources?.length > 0 && (
           <div className="mt-2.5 pt-2.5 border-t border-border/70 flex flex-wrap items-center gap-1.5">
             <BookOpen size={12} className="text-accent shrink-0" />
@@ -128,9 +133,8 @@ function MessageBubble({ message, t, onEdit, onSpeak, speakingId, loadingSpeechI
             type="button"
             onClick={() => onSpeak(message)}
             disabled={isLoadingSpeech}
-            className={`flex items-center gap-1 text-[11px] transition-colors duration-150 disabled:opacity-50 ${
-              isSpeakingThis ? "text-primary" : "text-ink-soft hover:text-ink"
-            }`}
+            className={`flex items-center gap-1 text-[11px] transition-colors duration-150 disabled:opacity-50 ${isSpeakingThis ? "text-primary" : "text-ink-soft hover:text-ink"
+              }`}
           >
             {isLoadingSpeech ? (
               <span className="w-3 h-3 rounded-full border-2 border-ink-soft/40 border-t-ink-soft animate-spin" />
@@ -191,6 +195,8 @@ export default function ChatPage() {
   const readyRef = useRef(false);
   const ttsAudioRef = useRef(null); // single reused <audio> element for playback
   const ttsCacheRef = useRef(new Map()); // messageId -> object URL, so re-tapping a message doesn't re-synthesize
+  const ttsGenRef = useRef(0); // generation counter — incremented on every stop, so stale speak() calls bail out
+  const autoTtsRef = useRef(true); // auto-read-aloud for new messages — disabled once mic is used
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -226,43 +232,60 @@ export default function ChatPage() {
     if (!last) return;
     if (last.role === "assistant" && !last.isError && !last.imageUrl && !spokenIdsRef.current.has(last.id)) {
       spokenIdsRef.current.add(last.id);
-      speak(last);
+      // Only auto-speak if auto-TTS is still enabled (disabled once mic is used)
+      if (autoTtsRef.current) speak(last);
     } else {
       spokenIdsRef.current.add(last.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
+  // ── Central stop — kills any in-progress or playing TTS audio and
+  // bumps the generation counter so any in-flight speak() calls that
+  // are still awaiting their synthesizeSpeech() response will see a
+  // stale generation and bail out instead of starting playback. ──
+  function stopSpeaking() {
+    ttsGenRef.current += 1;
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current.removeAttribute("src");
+    }
+    setSpeakingId(null);
+    setLoadingSpeechId(null);
+  }
+
   // Text-to-speech via the backend's edge-tts endpoint — real neural audio
   // generated server-side, so it sounds the same (and actually correct) on
   // every farmer's phone, instead of depending on which voices happen to be
   // installed locally the way the browser's speechSynthesis did.
   async function speak(message) {
+    // Always stop whatever is currently playing/loading first
+    stopSpeaking();
+
     if (!ttsAudioRef.current) ttsAudioRef.current = new Audio();
     const audio = ttsAudioRef.current;
-    audio.pause();
-    setSpeakingId(null);
+    const gen = ttsGenRef.current; // snapshot — if this changes, we were preempted
 
     let url = ttsCacheRef.current.get(message.id);
     if (!url) {
       setLoadingSpeechId(message.id);
       try {
         const blob = await synthesizeSpeech(message.content);
+        // Check if we were preempted while awaiting the network call
+        if (ttsGenRef.current !== gen) return;
         url = URL.createObjectURL(blob);
         ttsCacheRef.current.set(message.id, url);
       } catch (err) {
-        // FIX: previously caught with an empty `catch {}` — a fully broken
-        // TTS backend (stale edge-tts install, blocked outbound network,
-        // etc.) was indistinguishable from a harmless one-off network
-        // blip, since nothing was ever logged. Logging the actual error
-        // (check the browser console + Network tab on /chat/speak) is
-        // what makes "read aloud does nothing" actually diagnosable.
         console.error("TTS synthesis failed:", err?.response?.data || err?.message || err);
-        setLoadingSpeechId((id) => (id === message.id ? null : id));
+        if (ttsGenRef.current === gen) setLoadingSpeechId(null);
         return;
       }
-      setLoadingSpeechId((id) => (id === message.id ? null : id));
+      if (ttsGenRef.current !== gen) return;
+      setLoadingSpeechId(null);
     }
+
+    // Final preemption check right before playback
+    if (ttsGenRef.current !== gen) return;
 
     audio.src = url;
     audio.onplay = () => setSpeakingId(message.id);
@@ -271,12 +294,6 @@ export default function ChatPage() {
     try {
       await audio.play();
     } catch (err) {
-      // FIX: distinct failure mode from the synthesis catch above — audio
-      // WAS generated fine here, but the browser blocked playback, most
-      // commonly its autoplay policy (this fires automatically from a
-      // useEffect on new messages, not a fresh click). Logging separately
-      // makes the two failure modes distinguishable instead of both just
-      // going silent.
       console.error("Audio playback blocked/failed:", err?.name || err);
       setSpeakingId(null);
     }
@@ -284,8 +301,7 @@ export default function ChatPage() {
 
   function handleSpeakToggle(message) {
     if (speakingId === message.id) {
-      ttsAudioRef.current?.pause();
-      setSpeakingId(null);
+      stopSpeaking();
       return;
     }
     speak(message);
@@ -293,8 +309,7 @@ export default function ChatPage() {
 
   function handleSend(e) {
     e.preventDefault();
-    ttsAudioRef.current?.pause();
-    setSpeakingId(null);
+    stopSpeaking();
     if (sendMessage(input)) setInput("");
   }
 
@@ -319,6 +334,12 @@ export default function ChatPage() {
       mediaRecorderRef.current?.stop();
       return;
     }
+
+    // Kill any playing TTS immediately — mic and TTS must never overlap.
+    // Also permanently disable auto-TTS so replies don't auto-speak
+    // while the farmer is using voice input. Manual read-aloud still works.
+    stopSpeaking();
+    autoTtsRef.current = false;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -399,13 +420,13 @@ export default function ChatPage() {
         const summary = result.is_healthy
           ? t("chat.healthyResult")
           : t("chat.diseaseResult", {
-              disease: result.disease,
-              confidence: Math.round(result.confidence),
-              severity: result.severity,
-              treatment: result.treatment,
-              fertilizer: formatFertilizer(result.fertilizer),
-              prevention: result.prevention,
-            });
+            disease: result.disease,
+            confidence: Math.round(result.confidence),
+            severity: result.severity,
+            treatment: result.treatment,
+            fertilizer: formatFertilizer(result.fertilizer),
+            prevention: result.prevention,
+          });
         addPhotoExchange(previewUrl, summary, { kind: "disease", ...result });
       }
     } catch {
@@ -423,6 +444,11 @@ export default function ChatPage() {
     } catch {
       // Not critical if this fails — the visible chat still clears below.
     }
+    // Stop any in-progress TTS playback and clear the cache
+    stopSpeaking();
+    ttsCacheRef.current.forEach((url) => URL.revokeObjectURL(url));
+    ttsCacheRef.current.clear();
+    spokenIdsRef.current.clear();
     clearMessages();
   }
 
@@ -520,14 +546,24 @@ export default function ChatPage() {
         className="flex items-center gap-2.5 px-4 md:px-8 py-3.5 border-t border-border bg-surface shrink-0"
       >
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelected} />
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={transcribing ? t("chat.transcribing") : t("chat.placeholder")}
-          disabled={status !== "open"}
-          className="flex-1 rounded-sm border border-border bg-bg px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-soft/60 focus:border-primary focus:outline-none transition-colors duration-150 disabled:opacity-60"
-        />
+        <div className={`flex-1 flex items-center gap-2 rounded-sm border bg-bg px-3.5 py-2.5 transition-colors duration-150 ${isListening ? "border-danger/60" : "border-border focus-within:border-primary"
+          }`}>
+          {isListening && (
+            <div className="mic-waveform" aria-hidden="true">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span key={i} className="mic-waveform-bar" style={{ animationDelay: `${i * 0.12}s` }} />
+              ))}
+            </div>
+          )}
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={isListening ? t("chat.listening") : transcribing ? t("chat.transcribing") : t("chat.placeholder")}
+            disabled={status !== "open"}
+            className="flex-1 bg-transparent text-[15px] text-ink placeholder:text-ink-soft/60 focus:outline-none disabled:opacity-60"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setPickerOpen((v) => !v)}
@@ -543,11 +579,10 @@ export default function ChatPage() {
             onClick={toggleVoiceInput}
             disabled={status !== "open" || transcribing}
             title={isListening ? t("chat.listening") : t("chat.voiceInput")}
-            className={`shrink-0 w-11 h-11 rounded-sm border flex items-center justify-center transition-all duration-200 ease-out-expo active:scale-[0.97] disabled:opacity-40 ${
-              isListening
-                ? "bg-danger text-white border-danger animate-pulse"
-                : "bg-surface text-ink-soft border-border hover:text-ink hover:border-ink-soft"
-            }`}
+            className={`shrink-0 w-11 h-11 rounded-sm border flex items-center justify-center transition-all duration-200 ease-out-expo active:scale-[0.97] disabled:opacity-40 ${isListening
+              ? "bg-danger text-white border-danger animate-pulse"
+              : "bg-surface text-ink-soft border-border hover:text-ink hover:border-ink-soft"
+              }`}
           >
             {isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </button>

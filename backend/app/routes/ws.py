@@ -7,7 +7,8 @@ from app.db.database import get_db
 from app.db.models import (
     FARMER_PROFILES_COLLECTION,
     CHAT_HISTORY_COLLECTION,
-    MARKET_PRICES_COLLECTION
+    MARKET_PRICES_COLLECTION,
+    CHAT_SUMMARIES_COLLECTION
 )
 from app.utils.weather_utils import get_current_weather, get_season_from_month
 from app.utils.news_utils import get_farming_news
@@ -19,7 +20,7 @@ from app.utils.lang_detect import detect_lang_code, LANGUAGE_DISPLAY_NAMES
 from app.utils.tts_utils import synthesize_speech
 from app.utils.chat_history import save_message, load_history
 from app.utils.langgraph_chat_agent import run_chat_agent
-from app.utils.memory_utils import load_user_memories, load_chat_summary, run_memory_tasks
+from app.utils.memory_utils import load_chat_summary, run_memory_tasks
 from app.core.security import get_current_user, decode_token
 
 router = APIRouter()
@@ -157,8 +158,7 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
         # This can change mid-conversation if farmer says "reply in English" etc.
         session_language = profile.get("chat_language", "English")
 
-        # Load long-term memory + past conversation summary for personalization
-        user_memories = await load_user_memories(username, db)
+        # Load past conversation summary for personalization
         past_summary  = await load_chat_summary(username, db)
 
     except Exception as e:
@@ -222,7 +222,7 @@ async def websocket_chat(websocket: WebSocket, username: str, token: str = None)
             )
             system_prompt = build_system_prompt(
                 ctx, username=username, language=turn_language,
-                memories=user_memories, past_summary=past_summary,
+                past_summary=past_summary,
             )
 
             # 4. Generate response — the agent decides internally whether it needs
@@ -407,4 +407,7 @@ async def clear_chat_history(username: str, current_user: dict = Depends(get_cur
         {"username": username},
         {"$set": {"messages": [], "updated_at": datetime.utcnow()}}
     )
+    # Also delete the compressed conversation summary so a cleared chat
+    # starts completely fresh with no memory of past conversations.
+    await db[CHAT_SUMMARIES_COLLECTION].delete_one({"username": username})
     return {"message": f"Chat history cleared for {username}"}

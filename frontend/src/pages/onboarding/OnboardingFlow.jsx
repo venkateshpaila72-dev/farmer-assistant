@@ -8,6 +8,7 @@ import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { saveOnboarding } from "../../api/onboarding";
+import { OnboardingIllustration } from "../../components/illustrations/OnboardingIllustrations";
 import { LanguageStep } from "./steps/LanguageStep";
 import { SoilTypeStep } from "./steps/SoilTypeStep";
 import { FarmSizeStep } from "./steps/FarmSizeStep";
@@ -106,7 +107,11 @@ export default function OnboardingFlow() {
   }
 
   return (
-    <AuthLayout maxWidth="max-w-lg">
+    <AuthLayout
+      maxWidth="max-w-lg"
+      panelVariant="split"
+      illustrationNode={<OnboardingIllustration stepKey={stepKey} />}
+    >
       <div className="flex gap-1.5 mb-6">
         {STEPS.map((s, i) => (
           <div
