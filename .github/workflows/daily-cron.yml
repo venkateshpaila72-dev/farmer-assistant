@@ -2,27 +2,68 @@ name: Daily Farmer Assistant Jobs
 
 on:
   schedule:
-    # 00:00 UTC = 5:30 AM IST — a bit before the 5:30 AM target so the
-    # wake-up ping (below) has time to finish before the real job call.
+    # Runs every day at 5:30 AM IST (00:00 UTC)
     - cron: "0 0 * * *"
-  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+
+  # Allows manual testing from GitHub Actions
+  workflow_dispatch:
 
 jobs:
-  run-daily-jobs:
+  daily-jobs:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Wake up the Render instance
+      # ---------------------------------------------------
+      # 1. Wake up the Render backend
+      # ---------------------------------------------------
+      - name: Wake up Render backend
         run: |
-          curl -sS -o /dev/null -w "Wake-up status: %{http_code}\n" \
-            https://kishan-sahayak-gdpl.onrender.com/health || true
+          echo "Waking up Render backend..."
 
-      - name: Wait for cold start to finish
-        run: sleep 45
+          curl -sS --max-time 30 \
+            "${{ secrets.BACKEND_URL }}/health" || true
 
-      - name: Trigger daily market sync + farmer reports
+      # ---------------------------------------------------
+      # 2. Wait until backend is actually ready
+      # ---------------------------------------------------
+      - name: Wait for backend to become ready
         run: |
-          curl -sS -X POST \
-            --max-time 280 \
+          echo "Waiting for backend..."
+
+          for i in {1..30}; do
+            echo "Health check attempt $i/30..."
+
+            if curl -fsS --max-time 20 \
+              "${{ secrets.BACKEND_URL }}/health"; then
+
+              echo ""
+              echo "Backend is ready!"
+              break
+            fi
+
+            if [ "$i" -eq 30 ]; then
+              echo "Backend did not become ready in time."
+              exit 1
+            fi
+
+            echo "Backend not ready yet. Waiting 20 seconds..."
+            sleep 20
+          done
+
+      # ---------------------------------------------------
+      # 3. Run the daily jobs
+      # ---------------------------------------------------
+      - name: Trigger daily market sync and farmer reports
+        run: |
+          echo "Starting daily jobs..."
+
+          curl -fS \
+            --connect-timeout 30 \
+            --max-time 3600 \
+            -X POST \
+            "${{ secrets.BACKEND_URL }}/cron/run-daily-jobs" \
             -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
-            -w "\nHTTP status: %{http_code}\n" \
-            https://kishan-sahayak-gdpl.onrender.com/cron/run-daily-jobs
+            -H "Content-Type: application/json"
+
+          echo ""
+          echo "Daily jobs completed successfully."
