@@ -1,0 +1,28 @@
+name: Daily Farmer Assistant Jobs
+
+on:
+  schedule:
+    # 00:00 UTC = 5:30 AM IST — a bit before the 5:30 AM target so the
+    # wake-up ping (below) has time to finish before the real job call.
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+
+jobs:
+  run-daily-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up the Render instance
+        run: |
+          curl -sS -o /dev/null -w "Wake-up status: %{http_code}\n" \
+            https://kishan-sahayak-gdpl.onrender.com/health || true
+
+      - name: Wait for cold start to finish
+        run: sleep 45
+
+      - name: Trigger daily market sync + farmer reports
+        run: |
+          curl -sS -X POST \
+            --max-time 280 \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP status: %{http_code}\n" \
+            https://kishan-sahayak-gdpl.onrender.com/cron/run-daily-jobs
