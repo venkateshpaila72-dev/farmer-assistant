@@ -77,13 +77,13 @@ export function AuthLayout({
       transition={{ duration: 0.45, ease: easeOut }}
       className="min-h-screen flex flex-col md:flex-row bg-bg relative overflow-hidden"
     >
-      {/* Illustrated side panel — hidden on small screens so the form stays
-          front and center on mobile, where there's no room to spare. */}
+      {/* Illustrated side panel — stacked above the form on small screens
+          (fixed, capped height) and becomes a side column from md up. */}
       <div
         ref={panelRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
-        className={`hidden md:block md:w-[42%] lg:w-[38%] relative overflow-hidden ${panelVariant === "split" ? "bg-bg" : "bg-white"
+        className={`block w-full h-48 sm:h-60 md:h-auto md:w-[42%] lg:w-[38%] relative overflow-hidden shrink-0 ${panelVariant === "split" ? "bg-bg" : "bg-white"
           }`}
       >
         {panelVariant === "split" && (
@@ -164,7 +164,7 @@ export function AuthLayout({
 
         {/* Soft fade at the top so the logo stays legible over the sky. */}
         <div className="absolute inset-0 bg-gradient-to-b from-bg/70 via-transparent to-transparent" aria-hidden="true" />
-        <div className="relative h-full flex flex-col justify-between p-8">
+        <div className="hidden md:flex relative h-full flex-col justify-between p-8">
           <Link
             to="/"
             className="w-fit rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
@@ -174,7 +174,7 @@ export function AuthLayout({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col relative">
+      <div className="flex-1 flex flex-col relative min-w-0">
         {/* Greenery-themed animated backdrop for the form side: two slow,
             drifting green glows plus gently rising leaves. All decorative
             and non-interactive, sitting behind the actual form content. */}

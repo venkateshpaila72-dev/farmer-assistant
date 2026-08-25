@@ -19,7 +19,7 @@ export default function VisionLayout() {
       <h1 className="text-2xl mb-1">{t("vision.title")}</h1>
       <p className="text-ink-soft text-sm mb-6">{t("vision.subtitle")}</p>
 
-      <div className="flex gap-1 border-b border-border mb-6">
+      <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto">
         {tabs.map((tab) => {
           const isActive = tab.end ? location.pathname === tab.to : location.pathname.startsWith(tab.to);
           return (
@@ -28,7 +28,7 @@ export default function VisionLayout() {
               to={tab.to}
               end={tab.end}
               className={cn(
-                "relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors duration-150",
+                "relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors duration-150",
                 isActive ? "text-primary" : "text-ink-soft hover:text-ink"
               )}
             >

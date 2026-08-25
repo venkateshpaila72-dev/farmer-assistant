@@ -14,7 +14,7 @@ export default function MarketLayout() {
       <h1 className="text-2xl mb-1">{t("market.title")}</h1>
       <p className="text-ink-soft text-sm mb-6">{t("market.subtitle")}</p>
 
-      <div className="flex gap-1.5 border-b border-border mb-6">
+      <div className="flex gap-1.5 border-b border-border mb-6 overflow-x-auto">
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}
@@ -22,7 +22,7 @@ export default function MarketLayout() {
             end={tab.end}
             className={({ isActive }) =>
               cn(
-                "px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors duration-150",
+                "px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors duration-150",
                 isActive ? "border-primary text-primary" : "border-transparent text-ink-soft hover:text-ink"
               )
             }
