@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Uploads
+    # Maximum upload size (in megabytes) for `upload` endpoints. Can be
+    # overridden via the .env file as `MAX_UPLOAD_SIZE_MB`.
+    MAX_UPLOAD_SIZE_MB: int = 10
+
     # Agent Scheduler — daily farm report at 6 AM
     AGENT_SCHEDULE_HOUR: int = 6
     AGENT_SCHEDULE_MINUTE: int = 0
