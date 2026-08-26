@@ -14,17 +14,19 @@ body,
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge legacy */
 }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-#root::-webkit-scrollbar,
-*::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+/* Hide the native scrollbar (and its up/down arrow buttons) everywhere,
+   while keeping the page fully scrollable via mouse wheel, trackpad,
+   touch, and keyboard. Applied globally since scroll happens on the
+   document itself, not per-page. */
+html {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* old Edge / IE */
+}
+
+html::-webkit-scrollbar {
+  display: none;               /* Chrome, Edge (Chromium), Safari */
 }
 
 img,
