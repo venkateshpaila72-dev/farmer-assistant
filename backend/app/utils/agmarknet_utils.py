@@ -16,6 +16,7 @@ import subprocess
 import httpx
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
+from pymongo import UpdateOne
 from app.core.config import settings
 
 AGMARKNET_URL = settings.AGMARKNET_API_URL
@@ -149,5 +150,27 @@ async def sync_state_prices(state: str) -> int:
         return 0
 
     db = get_db()
-    await db[MARKET_PRICES_COLLECTION].insert_many(docs)
+
+    # Upsert on the natural identity of a price record (state/district/
+    # market/commodity/variety/arrival_date) instead of insert_many, so
+    # re-running the sync for a day that's already synced UPDATES the
+    # existing record (fresher prices, fresher uploaded_at) rather than
+    # inserting a duplicate copy. Paired with the unique index on this
+    # same key in db/models.py.
+    operations = [
+        UpdateOne(
+            {
+                "state":        doc["state"],
+                "district":     doc["district"],
+                "market":       doc["market"],
+                "commodity":    doc["commodity"],
+                "variety":      doc["variety"],
+                "arrival_date": doc["arrival_date"],
+            },
+            {"$set": doc},
+            upsert=True,
+        )
+        for doc in docs
+    ]
+    await db[MARKET_PRICES_COLLECTION].bulk_write(operations, ordered=False)
     return len(docs)

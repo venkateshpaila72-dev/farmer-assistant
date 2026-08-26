@@ -43,7 +43,25 @@ async def create_indexes(db):
     # disease_logs — fast lookup by username
     await db[DISEASE_LOGS_COLLECTION].create_index("username")
 
-    # market_prices — fast lookup by state + commodity + latest date
+    # market_prices — one document per real-world price record (state +
+    # district + market + commodity + variety + arrival_date). Unique so
+    # re-running the sync (manual test, retried cron, etc.) upserts the
+    # existing record instead of accumulating duplicates. See the
+    # bulk_write/upsert in agmarknet_utils.sync_state_prices(), which
+    # relies on this exact key.
+    await db[MARKET_PRICES_COLLECTION].create_index(
+        [
+            ("state", 1),
+            ("district", 1),
+            ("market", 1),
+            ("commodity", 1),
+            ("variety", 1),
+            ("arrival_date", 1),
+        ],
+        unique=True,
+    )
+    # Kept alongside the unique index above for read performance on the
+    # common "latest price for state+commodity" query pattern.
     await db[MARKET_PRICES_COLLECTION].create_index(
         [("state", 1), ("commodity", 1), ("date", -1)]
     )
