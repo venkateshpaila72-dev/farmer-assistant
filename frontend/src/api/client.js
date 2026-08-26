@@ -13,11 +13,18 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status;
+
+    if (status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
+    } else if (status >= 500) {
+      // 401 and 422 are intentionally excluded — those are shown as
+      // inline form/page messages by the calling code instead.
+      window.location.href = "/server-error";
     }
+
     return Promise.reject(err);
   }
 );

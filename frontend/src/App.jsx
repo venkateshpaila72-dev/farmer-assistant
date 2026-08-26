@@ -36,6 +36,7 @@ import Analytics from "./pages/admin/Analytics.jsx";
 import Announcements from "./pages/admin/Announcements.jsx";
 import MarketDataUpload from "./pages/admin/MarketDataUpload.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import ServerError from "./pages/ServerError.jsx";
 
 // Placeholders for tool pages not yet built (Phase 7).
 function ToolPlaceholder({ label }) {
@@ -127,6 +128,7 @@ function App() {
         <Route path="/admin/announcements" element={<AdminPageRoute><Announcements /></AdminPageRoute>} />
         <Route path="/admin/market-upload" element={<AdminPageRoute><MarketDataUpload /></AdminPageRoute>} />
 
+        <Route path="/server-error" element={<ServerError />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </PageTransitionProvider>
