@@ -49,8 +49,12 @@ def _format_whatsapp_number(phone: str) -> str:
     if phone.startswith("+"):
         return f"whatsapp:{phone}"
 
-    # Strip any leading zeros or spaces, assume Indian number if 10 digits
-    digits = "".join(c for c in phone if c.isdigit())
+    # Strip any leading zeros or spaces, assume Indian number if 10 digits.
+    # Farmers sometimes enter their number with an accidental leading 0
+    # (e.g. "09618169018") — lstrip("0") here removes that before the
+    # length check, so it's correctly recognized as a 10-digit number
+    # instead of falling through to the broken 11-digit fallback below.
+    digits = "".join(c for c in phone if c.isdigit()).lstrip("0")
     if len(digits) == 10:
         return f"whatsapp:+91{digits}"
     if len(digits) == 12 and digits.startswith("91"):
