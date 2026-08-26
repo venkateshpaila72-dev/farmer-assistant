@@ -1,0 +1,70 @@
+=====================================================
+=================
+ERROR: test_verify_admin_endpoint (__main__.TestAuthe
+ntication.test_verify_admin_endpoint)
+-----------------------------------------------------
+-----------------
+Traceback (most recent call last):
+  File "C:\Users\venka\AppData\Local\Programs\Python\
+Python311\Lib\unittest\mock.py", line 1378, in 
+patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File 
+"D:\exp1\farmer-assistant\backend\test_auth.py", 
+-----------------------------------------------------
+-----------------
+Traceback (most recent call last):
+  File "C:\Users\venka\AppData\Local\Programs\Python\
+Python311\Lib\unittest\mock.py", line 1378, in 
+patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File 
+"D:\exp1\farmer-assistant\backend\test_auth.py", 
+line 96, in test_verify_admin_endpoint
+    response = client.post("/auth/verifyadmin", 
+json={
+               
+=====================================================
+=================
+FAIL: test_legacy_bcrypt_hash_compatibility (__main__
+.TestAuthentication.test_legacy_bcrypt_hash_compatibi
+lity)
+-----------------------------------------------------
+-----------------
+Traceback (most recent call last):
+  File 
+"D:\exp1\farmer-assistant\backend\test_auth.py", 
+line 35, in test_legacy_bcrypt_hash_compatibility
+    self.assertTrue(verify_password("testpassword", 
+hashed))
+AssertionError: False is not true
+-----------------------------------------------------
+-----------------
+Traceback (most recent call last):
+  File 
+"D:\exp1\farmer-assistant\backend\test_auth.py", 
+line 35, in test_legacy_bcrypt_hash_compatibility
+    self.assertTrue(verify_password("testpassword", 
+hashed))
+AssertionError: False is not true
+
+-----------------------------------------------------
+-----------------
+Ran 6 tests in 1.288s
+
+    self.assertTrue(verify_password("testpassword", 
+hashed))
+AssertionError: False is not true
+
+-----------------------------------------------------
+-----------------
+Ran 6 tests in 1.288s
+
+FAILED (failures=1, errors=1)
+Γ£à Pinecone connected ΓÇö index: farmer-assistant
+Γ£à Crop Recommender model loaded
+Γ£à Fertilizer Suggester v2 loaded ΓÇö 7 classes, 11 crops, deficit-based features (cv accuracy 0.63 ┬▒ 0.12)
+   ΓÜá∩╕Å  Low-sample classes (fewer training examples, less reliable): ['17-17-17', '10-26-26']
+Γ£à Yield Predictor models loaded ΓÇö 55 crops across 3 unit groups

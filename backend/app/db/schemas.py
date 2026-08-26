@@ -1,6 +1,11 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
+
+def validate_password_length(v: str) -> str:
+    if len(v.encode("utf-8")) > 72:
+        raise ValueError("Password cannot be longer than 72 bytes")
+    return v
 
 
 # ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -23,10 +28,20 @@ class UserRegister(BaseModel):
     city: str
     state: str
 
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return validate_password_length(v)
+
 
 class UserLogin(BaseModel):
     username: str
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return validate_password_length(v)
 
 
 class UserResponse(BaseModel):
@@ -51,10 +66,20 @@ class AdminRegister(BaseModel):
     password: str
     admin_secret: str  # must match ADMIN_SIGNUP_SECRET env var
 
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return validate_password_length(v)
+
 
 class AdminLogin(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return validate_password_length(v)
 
 
 class AdminResponse(BaseModel):

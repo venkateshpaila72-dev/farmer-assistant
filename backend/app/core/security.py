@@ -1,3 +1,9 @@
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    class DummyAbout:
+        __version__ = getattr(bcrypt, "__version__", "4.0.0")
+    bcrypt.__about__ = DummyAbout
+
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -12,11 +18,21 @@ oauth2_scheme = HTTPBearer()
 
 def hash_password(password: str) -> str:
     """Hash a plain text password using bcrypt."""
+    if len(password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password cannot be longer than 72 bytes"
+        )
     return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Verify a plain password against a bcrypt hash."""
+    if len(plain.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password cannot be longer than 72 bytes"
+        )
     return pwd_context.verify(plain, hashed)
 
 
