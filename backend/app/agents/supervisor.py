@@ -110,6 +110,28 @@ def _strip_empty_section_lines(text: str) -> str:
     return "\n".join(result_lines).strip()
 
 
+def _sanitize_whatsapp_formatting(text: str) -> str:
+    """
+    Guarantee WhatsApp-valid formatting regardless of what the LLM actually
+    produced.
+
+    WhatsApp's bold syntax is a SINGLE asterisk pair (*bold*), not standard
+    Markdown's double asterisk (**bold**). Groq/Llama defaults to standard
+    Markdown habits and, despite prompt instructions, sometimes emits
+    "**text**" anyway — WhatsApp doesn't parse that as bold at all, so the
+    literal "**" characters show up in the farmer's message. This is a
+    belt-and-suspenders fix on top of the prompt-level instruction: even if
+    the model slips up, this guarantees the farmer never sees a raw "**".
+
+    - "**text**" -> "*text*"           (the common case: matched pairs)
+    - any leftover run of 2+ asterisks -> single "*"  (unmatched/stray cases,
+      e.g. the model only closes one side, or triple-asterisks for emphasis)
+    """
+    text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)
+    text = re.sub(r"\*{2,}", "*", text)
+    return text
+
+
 def _collect(results: list, key: str) -> list:
     """Flatten findings/danger_findings from all 4 agent results, tagged with source agent."""
     out = []
@@ -159,7 +181,15 @@ def _build_daily_report_prompt(username: str, state: str, language: str,
     soil_body = ("\n".join(f"- {f['detail']}" for f in soil_findings)
                  if soil_findings else "No soil/crop suitability issues found.")
 
-    return f"""IMPORTANT: Write your entire response only in {language}. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols).
+    return f"""IMPORTANT: Write your entire response only in {language}, and ONLY in {language} — this is the farmer's saved language preference and it is not optional or a suggestion. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols). Never switch to English or any other language partway through, even for a single word or section.
+
+FORMATTING — this message is sent directly to WhatsApp, not rendered as Markdown:
+- Bold text uses a SINGLE asterisk on each side, like *this* — never double
+  asterisks like **this**. WhatsApp does not understand "**" at all; it will
+  show up as literal asterisk characters in the farmer's message, which
+  looks broken and unprofessional.
+- Do not use any other Markdown syntax (no #, no [links](url), no ``` code
+  blocks, no double-underscore).
 
 You are writing a detailed daily farm REPORT for {username}, a farmer in {state}.
 This is a structured update the farmer will read carefully, not a quick chat reply.
@@ -213,7 +243,15 @@ Rules:
 def _build_alert_prompt(username: str, state: str, language: str, danger_findings: list) -> str:
     findings_text = "\n".join(f"- [{f['source_agent']}] {f['detail']}" for f in danger_findings)
 
-    return f"""IMPORTANT: Write your entire response only in {language}. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols).
+    return f"""IMPORTANT: Write your entire response only in {language}, and ONLY in {language} — this is the farmer's saved language preference and it is not optional or a suggestion. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols). Never switch to English or any other language partway through, even for a single word or section.
+
+FORMATTING — this message is sent directly to WhatsApp, not rendered as Markdown:
+- Bold text uses a SINGLE asterisk on each side, like *this* — never double
+  asterisks like **this**. WhatsApp does not understand "**" at all; it will
+  show up as literal asterisk characters in the farmer's message, which
+  looks broken and unprofessional.
+- Do not use any other Markdown syntax (no #, no [links](url), no ``` code
+  blocks, no double-underscore).
 
 You are writing an URGENT, detailed alert for {username}, a farmer in {state}.
 This is a structured warning the farmer needs to act on immediately, not a quick chat reply.
@@ -392,6 +430,7 @@ async def _synthesize_node(state: SupervisorState) -> dict:
         )
         report_result = await _call_groq(report_prompt, max_tokens=900)
         report_text   = _strip_empty_section_lines(report_result["text"])
+        report_text   = _sanitize_whatsapp_formatting(report_text)
         out["daily_report"]           = f"{_DAILY_REPORT_LABEL.get(language, _DAILY_REPORT_LABEL['English'])}\n\n{report_text}"
         out["daily_report_truncated"] = report_result["truncated"]
     except Exception as e:
@@ -403,6 +442,7 @@ async def _synthesize_node(state: SupervisorState) -> dict:
             alert_prompt = _build_alert_prompt(username, st, language, state["danger_findings"])
             alert_result = await _call_groq(alert_prompt, max_tokens=500)
             alert_text   = _strip_empty_section_lines(alert_result["text"])
+            alert_text   = _sanitize_whatsapp_formatting(alert_text)
             out["alert"]           = f"{_ALERT_LABEL.get(language, _ALERT_LABEL['English'])}\n\n{alert_text}"
             out["alert_truncated"] = alert_result["truncated"]
         except Exception as e:
