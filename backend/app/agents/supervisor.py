@@ -33,6 +33,7 @@ import re
 from typing import Optional, TypedDict
 
 from langgraph.graph import StateGraph, START, END
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.utils.langchain_groq_rotation import get_rotating_chat_groq
 from app.db.database import get_db
@@ -244,25 +245,88 @@ Rules:
 - End with a brief sign-off, e.g. "- Farmer Assistant" """
 
 
-async def _call_groq(prompt: str, max_tokens: int = 200) -> dict:
+# Unicode-block check for non-Latin-script languages — lets us tell when
+# Groq ignored the language instruction and answered in English instead.
+# Latin-script languages (English, and anything not listed) aren't
+# checked here; there's no reliable script signal to catch drift for them.
+_SCRIPT_PATTERNS = {
+    "Hindi":   r'[\u0900-\u097F]',  # Devanagari
+    "Marathi": r'[\u0900-\u097F]',  # Devanagari
+    "Telugu":  r'[\u0C00-\u0C7F]',
+    "Tamil":   r'[\u0B80-\u0BFF]',
+    "Kannada": r'[\u0C80-\u0CFF]',
+    "Bengali": r'[\u0980-\u09FF]',
+}
+
+
+def _looks_like_wrong_language(text: str, language: str) -> bool:
+    """
+    Cheap script-based sanity check. Counts what fraction of alphabetic
+    characters fall in the target language's expected Unicode block; if
+    it's mostly Latin/ASCII instead, the model almost certainly answered
+    in English despite the instruction.
+    """
+    pattern = _SCRIPT_PATTERNS.get(language)
+    if not pattern or not text:
+        return False
+    letters = [c for c in text if c.isalpha()]
+    if len(letters) < 20:
+        return False  # too short to judge reliably — don't false-positive
+    matches = len(re.findall(pattern, text))
+    return (matches / len(letters)) < 0.3
+
+
+async def _call_groq(prompt: str, max_tokens: int = 200, language: str = "English") -> dict:
     """LangChain equivalent of the old raw-SDK _call_groq — same rotation
-    behavior (via RotatingChatGroq), same truncation detection."""
-    model = get_rotating_chat_groq(max_tokens=max_tokens, temperature=0.6)
-    ai_msg = await model.ainvoke(prompt)
+    behavior (via RotatingChatGroq), same truncation detection, plus:
+    - the language rule is now also a dedicated SystemMessage (system-level
+      instructions are followed more reliably than one line buried inside
+      a long, English-heavy data prompt)
+    - temperature lowered from 0.6 to 0.3 — these are structured factual
+      reports, not creative writing, and lower temperature measurably
+      improves instruction-following (including language adherence)
+    - one automatic retry with a stronger, more explicit reminder if the
+      first attempt comes back in the wrong script for non-Latin-script
+      languages (Hindi/Marathi/Telugu/Tamil/Kannada/Bengali)
+    """
+    system_msg = SystemMessage(content=(
+        f"You are a careful multilingual writing assistant for Indian farmers. "
+        f"You must write your ENTIRE response only in {language}, using {language}'s "
+        f"native script. This applies even though the farm data given to you is in "
+        f"English — translate everything into {language}. Never answer in English "
+        f"unless the target language is itself English."
+    ))
 
-    truncated = ai_msg.response_metadata.get("finish_reason") == "length"
+    async def _once(p: str) -> tuple[str, bool]:
+        model = get_rotating_chat_groq(max_tokens=max_tokens, temperature=0.3)
+        ai_msg = await model.ainvoke([system_msg, HumanMessage(content=p)])
+        truncated = ai_msg.response_metadata.get("finish_reason") == "length"
+        if truncated:
+            print(f"⚠️ Groq response TRUNCATED at max_tokens={max_tokens} — "
+                  f"consider raising the limit further for this language/content length")
+        return (ai_msg.content or "").strip(), truncated
 
-    # Groq reports finish_reason="length" when the response was cut off by
-    # max_tokens rather than the model finishing naturally. Log this clearly
-    # so a truncated message is immediately diagnosable instead of silently
-    # shipping cut-off text — this is exactly what caused the earlier bug
-    # where Telugu reports ran out of room mid-sentence.
-    if truncated:
-        print(f"⚠️ Groq response TRUNCATED at max_tokens={max_tokens} — "
-              f"consider raising the limit further for this language/content length")
+    text, truncated = await _once(prompt)
+
+    if _looks_like_wrong_language(text, language):
+        print(f"⚠️ Response came back in the wrong script for {language} — retrying once")
+        retry_prompt = (
+            prompt
+            + f"\n\nYour previous attempt was NOT in {language} — it must be "
+            f"rewritten. Respond again, and this time write the ENTIRE message "
+            f"strictly in {language}'s native script. Do not use English."
+        )
+        retried_text, retried_truncated = await _once(retry_prompt)
+        # Only take the retry if it actually looks right — never overwrite a
+        # (possibly imperfect) result with something worse.
+        if not _looks_like_wrong_language(retried_text, language):
+            text, truncated = retried_text, retried_truncated
+        else:
+            print(f"⚠️ Retry still came back wrong for {language} — sending the "
+                  f"original response rather than trying indefinitely")
 
     return {
-        "text":      (ai_msg.content or "").strip(),
+        "text":      text,
         "truncated": truncated
     }
 
@@ -390,7 +454,7 @@ async def _synthesize_node(state: SupervisorState) -> dict:
             username, st, language, state["notable_findings"],
             weather_raw, current_prices, disease_raw
         )
-        report_result = await _call_groq(report_prompt, max_tokens=900)
+        report_result = await _call_groq(report_prompt, max_tokens=900, language=language)
         report_text   = _strip_empty_section_lines(report_result["text"])
         out["daily_report"]           = f"{_DAILY_REPORT_LABEL.get(language, _DAILY_REPORT_LABEL['English'])}\n\n{report_text}"
         out["daily_report_truncated"] = report_result["truncated"]
@@ -401,7 +465,7 @@ async def _synthesize_node(state: SupervisorState) -> dict:
     if state.get("alert_needed"):
         try:
             alert_prompt = _build_alert_prompt(username, st, language, state["danger_findings"])
-            alert_result = await _call_groq(alert_prompt, max_tokens=500)
+            alert_result = await _call_groq(alert_prompt, max_tokens=500, language=language)
             alert_text   = _strip_empty_section_lines(alert_result["text"])
             out["alert"]           = f"{_ALERT_LABEL.get(language, _ALERT_LABEL['English'])}\n\n{alert_text}"
             out["alert_truncated"] = alert_result["truncated"]
