@@ -63,14 +63,18 @@ async def get_current_weather(lat: float, lng: float) -> dict:
     last_error = None
     for attempt in range(2):
         try:
-            # local_address="0.0.0.0" forces an IPv4 local socket, which in
-            # turn makes the connection attempt only viable against IPv4
-            # remote addresses — sidesteps a separate failure mode where a
-            # newly-available NAT64-synthesized IPv6 route gets tried first
-            # and hangs, even though a fast working IPv4 path exists
-            # alongside it (confirmed via curl showing both routes present).
-            transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
-            async with httpx.AsyncClient(timeout=20, verify=_ssl_context, transport=transport) as client:
+            # Attempt 1: no transport override — works correctly on Linux
+            # (Render) and most other environments.
+            # Attempt 2 (after a ConnectTimeout): same client, just retries —
+            # catches transient network blips on the first try.
+            # NOTE: We intentionally do NOT use local_address="0.0.0.0" here.
+            # That parameter forces an IPv4 local socket and was added to work
+            # around a Windows/corporate-proxy IPv6 preference issue, but it
+            # raises OSError 99 (Cannot assign requested address) on Linux
+            # containers such as Render, crashing the endpoint for all users.
+            # If you are seeing IPv6 preference issues on Windows locally, run
+            # the backend with the HTTPX_IPV4_ONLY=1 env var as a workaround.
+            async with httpx.AsyncClient(timeout=20, verify=_ssl_context) as client:
                 response = await client.get(settings.OPEN_METEO_BASE_URL, params=params)
                 response.raise_for_status()
                 data = response.json()
