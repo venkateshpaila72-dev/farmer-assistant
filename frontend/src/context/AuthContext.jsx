@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import i18n from "../i18n";
 import { getOnboardingProfile } from "../api/onboarding";
 
@@ -12,6 +13,7 @@ const BACKEND_NAME_TO_CODE = {
 };
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
@@ -54,6 +56,22 @@ export function AuthProvider({ children }) {
     setUser(null);
     syncedForRef.current = null;
   }, []);
+
+  // Listen for the auth:logout custom event dispatched by the Axios
+  // interceptor when any protected API request receives a 401 response.
+  // Using React Router navigate() keeps us inside the SPA — no hard reload,
+  // no blowing away component state, and no redirect loops because the
+  // interceptor already guards against firing on public pages.
+  useEffect(() => {
+    function handleForcedLogout() {
+      logout();
+      const dest = sessionStorage.getItem("redirectAfterLogin") || "/login";
+      sessionStorage.removeItem("redirectAfterLogin");
+      navigate("/login", { state: { from: { pathname: dest } }, replace: true });
+    }
+    window.addEventListener("auth:logout", handleForcedLogout);
+    return () => window.removeEventListener("auth:logout", handleForcedLogout);
+  }, [logout, navigate]);
 
   return (
     <AuthContext.Provider

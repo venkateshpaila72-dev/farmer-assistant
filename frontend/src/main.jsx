@@ -6,6 +6,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { ToastProvider } from "./context/ToastProvider.jsx";
 import { BackendWakeGate } from "./components/system/BackendWakeGate.jsx";
 import { OfflineBanner } from "./components/system/OfflineBanner.jsx";
+import { ErrorBoundary } from "./components/system/ErrorBoundary.jsx";
 import "./i18n/index.js";
 import "./styles/index.css";
 
@@ -16,7 +17,9 @@ createRoot(document.getElementById("root")).render(
         <AuthProvider>
           <ToastProvider>
             <OfflineBanner />
-            <App />
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
           </ToastProvider>
         </AuthProvider>
       </BackendWakeGate>
