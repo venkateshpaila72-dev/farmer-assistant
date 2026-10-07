@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     AGMARKNET_API_KEY: str
     AGMARKNET_API_URL: str = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24"
 
+    # Azure AI Translator — dynamic content translation (news, announcements).
+    # All optional: if the key is missing, translation is simply skipped and
+    # the original text is shown. Credentials stay on the backend only.
+    AZURE_TRANSLATOR_KEY: Optional[str] = None
+    AZURE_TRANSLATOR_REGION: Optional[str] = None
+    AZURE_TRANSLATOR_ENDPOINT: str = "https://api.cognitive.microsofttranslator.com"
+    # Texts longer than this are left untranslated (keeps free-tier usage low).
+    TRANSLATION_MAX_CHARS: int = 1500
+
     # Open-Meteo — No key needed
     OPEN_METEO_BASE_URL: str = "https://api.open-meteo.com/v1/forecast"
 

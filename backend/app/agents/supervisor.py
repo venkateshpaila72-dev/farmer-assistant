@@ -22,6 +22,15 @@ part of this flow. This rewrite preserves that as-is ("same work as of
 now"), so the diagram is aspirational in that respect — ask if you want
 RAG/news genuinely folded into the daily report next.
 
+WHATSAPP LANGUAGE RULE (strict): every message goes out ONLY in the language
+saved in the farmer's profile (chat_language). For non-English languages the
+report is first written in English (stable, accurate numbers), translated by
+Azure AI Translator line by line (utils/whatsapp_translate.py), then given
+valid WhatsApp formatting by code. If Azure fails, the LLM is asked to write
+directly in the language as a fallback; if the final text still isn't in the
+farmer's language, NO message is produced (reported as an error instead of
+sending the wrong language).
+
 Public entrypoint: generate_daily_report(username) -> dict
 Same return shape as before (success, phone, agent_summary, daily_report,
 daily_report_truncated, alert, alert_truncated, alert_needed, and the
@@ -42,6 +51,9 @@ from app.agents.weather_agent import check_weather
 from app.agents.soil_agent import check_soil_suitability
 from app.agents.disease_agent import check_disease_status
 from app.agents.market_agent import check_market_signal
+from app.utils.whatsapp_translate import (
+    translate_whatsapp_text, canonical_language,
+)
 
 
 # Fixed, code-guaranteed labels prefixing every message — never left to the
@@ -142,6 +154,21 @@ def _collect(results: list, key: str) -> list:
     return out
 
 
+def _language_rule(language: str) -> str:
+    """The opening instruction of both prompts. For English it's a plain
+    'write in English' (used for the draft that Azure then translates); for
+    any other language it's the strict single-language rule (used only by
+    the fallback path where the LLM writes directly in that language)."""
+    if language == "English":
+        return ("IMPORTANT: Write your entire response in simple, clear English. "
+                "Keep every number, unit and symbol (like °C or ₹) exactly as given.")
+    return (f"IMPORTANT: Write your entire response only in {language}, and ONLY in {language} — "
+            f"this is the farmer's saved language preference and it is not optional or a suggestion. "
+            f"Do not use English words except for proper nouns, brand names, or terms with no real "
+            f"{language} equivalent (like °C or ₹ symbols). Never switch to English or any other "
+            f"language partway through, even for a single word or section.")
+
+
 def _build_daily_report_prompt(username: str, state: str, language: str,
                                   notable_findings: list, weather_raw: dict,
                                   current_prices: list, disease_raw: dict) -> str:
@@ -182,7 +209,7 @@ def _build_daily_report_prompt(username: str, state: str, language: str,
     soil_body = ("\n".join(f"- {f['detail']}" for f in soil_findings)
                  if soil_findings else "No soil/crop suitability issues found.")
 
-    return f"""IMPORTANT: Write your entire response only in {language}, and ONLY in {language} — this is the farmer's saved language preference and it is not optional or a suggestion. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols). Never switch to English or any other language partway through, even for a single word or section.
+    return f"""{_language_rule(language)}
 
 FORMATTING — this message is sent directly to WhatsApp, not rendered as Markdown:
 - Bold text uses a SINGLE asterisk on each side, like *this* — never double
@@ -244,7 +271,7 @@ Rules:
 def _build_alert_prompt(username: str, state: str, language: str, danger_findings: list) -> str:
     findings_text = "\n".join(f"- [{f['source_agent']}] {f['detail']}" for f in danger_findings)
 
-    return f"""IMPORTANT: Write your entire response only in {language}, and ONLY in {language} — this is the farmer's saved language preference and it is not optional or a suggestion. Do not use English words except for proper nouns, brand names, or terms with no real {language} equivalent (like °C or ₹ symbols). Never switch to English or any other language partway through, even for a single word or section.
+    return f"""{_language_rule(language)}
 
 FORMATTING — this message is sent directly to WhatsApp, not rendered as Markdown:
 - Bold text uses a SINGLE asterisk on each side, like *this* — never double
@@ -294,6 +321,7 @@ _SCRIPT_PATTERNS = {
     "Tamil":   r'[\u0B80-\u0BFF]',
     "Kannada": r'[\u0C80-\u0CFF]',
     "Bengali": r'[\u0980-\u09FF]',
+    "Punjabi": r'[\u0A00-\u0A7F]',  # Gurmukhi
 }
 
 
@@ -369,6 +397,43 @@ async def _call_groq(prompt: str, max_tokens: int = 200, language: str = "Englis
     }
 
 
+async def _compose_whatsapp_message(build_prompt, language: str, max_tokens: int, label: str) -> dict:
+    """
+    Produces the final WhatsApp text in the farmer's profile language ONLY.
+
+    English  -> LLM writes it directly.
+    Others   -> LLM writes an English draft -> Azure translates -> formatting
+                fixed in code. If Azure fails, fall back to the LLM writing
+                directly in the language. If the result still isn't in the
+                farmer's language, raise — nothing wrong-language is sent.
+
+    build_prompt(language_name) -> prompt string.
+    """
+    def _clean(t: str) -> str:
+        return _sanitize_whatsapp_formatting(_strip_empty_section_lines(t))
+
+    if language == "English":
+        r = await _call_groq(build_prompt("English"), max_tokens=max_tokens, language="English")
+        return {"text": f"{label}\n\n{_clean(r['text'])}", "truncated": r["truncated"]}
+
+    body, truncated = None, False
+    try:
+        draft = await _call_groq(build_prompt("English"), max_tokens=max_tokens, language="English")
+        translated = await translate_whatsapp_text(_clean(draft["text"]), language)
+        body, truncated = _clean(translated), draft["truncated"]
+    except Exception as e:
+        print(f"⚠️ Azure translation path failed for {language} ({type(e).__name__}: {e}) "
+              f"— falling back to the LLM writing directly in {language}")
+        direct = await _call_groq(build_prompt(language), max_tokens=max_tokens, language=language)
+        body, truncated = _clean(direct["text"]), direct["truncated"]
+
+    # Strict check — never deliver the wrong language.
+    if not body or _looks_like_wrong_language(body, language):
+        raise ValueError(f"message could not be produced in {language}; not sending a wrong-language message")
+
+    return {"text": f"{label}\n\n{body}", "truncated": truncated}
+
+
 # ── LangGraph state + nodes ─────────────────────────────────────────────
 
 class SupervisorState(TypedDict, total=False):
@@ -420,7 +485,7 @@ async def _think_node(state: SupervisorState) -> dict:
         "lng":             location.get("lng", 79.59),
         "soil_type":       profile.get("soil_type"),
         "preferred_crops": profile.get("preferred_crops", []),
-        "language":        profile.get("chat_language", "English"),
+        "language":        canonical_language(profile.get("chat_language")),
     }
 
 
@@ -471,46 +536,51 @@ async def _observe_node(state: SupervisorState) -> dict:
 
 async def _synthesize_node(state: SupervisorState) -> dict:
     """
-    Groq generates the daily report (always, one call) and the alert
-    (only if dangerous findings exist, a separate call) — language is
-    baked directly into each prompt ("Write it in {language}"), which is
-    also how the original implementation handled translation; there was
-    never a separate translate step to preserve.
+    Generates the daily report (always) and the alert (only if dangerous
+    findings exist). Each message is composed in English and translated to
+    the farmer's profile language with Azure, with the LLM writing directly
+    in that language only as a fallback — see _compose_whatsapp_message.
     """
     out: dict = {}
     username = state["username"]
     st       = state["state"]
     language = state["language"]
 
-    # Daily report — ALWAYS generated, one Groq call
+    # Daily report — ALWAYS generated
     try:
         weather_raw    = state["weather_result"].get("raw", {})
         current_prices = state["market_result"].get("current_prices", [])
         disease_raw    = state["disease_result"].get("raw", {})
 
-        report_prompt = _build_daily_report_prompt(
-            username, st, language, state["notable_findings"],
-            weather_raw, current_prices, disease_raw
-        )
-        report_result = await _call_groq(report_prompt, max_tokens=900, language=language)
-        report_text   = _strip_empty_section_lines(report_result["text"])
-        report_text   = _sanitize_whatsapp_formatting(report_text)
-        out["daily_report"]           = f"{_DAILY_REPORT_LABEL.get(language, _DAILY_REPORT_LABEL['English'])}\n\n{report_text}"
-        out["daily_report_truncated"] = report_result["truncated"]
-    except Exception as e:
-        out["daily_report_error"] = f"Groq error generating daily report: {str(e)}"
+        def _report_prompt(lang: str) -> str:
+            return _build_daily_report_prompt(
+                username, st, lang, state["notable_findings"],
+                weather_raw, current_prices, disease_raw
+            )
 
-    # Alert — only generated if dangerous findings exist, separate Groq call
+        report = await _compose_whatsapp_message(
+            _report_prompt, language, max_tokens=900,
+            label=_DAILY_REPORT_LABEL[language],
+        )
+        out["daily_report"]           = report["text"]
+        out["daily_report_truncated"] = report["truncated"]
+    except Exception as e:
+        out["daily_report_error"] = f"Error generating daily report ({language}): {str(e)}"
+
+    # Alert — only generated if dangerous findings exist
     if state.get("alert_needed"):
         try:
-            alert_prompt = _build_alert_prompt(username, st, language, state["danger_findings"])
-            alert_result = await _call_groq(alert_prompt, max_tokens=500, language=language)
-            alert_text   = _strip_empty_section_lines(alert_result["text"])
-            alert_text   = _sanitize_whatsapp_formatting(alert_text)
-            out["alert"]           = f"{_ALERT_LABEL.get(language, _ALERT_LABEL['English'])}\n\n{alert_text}"
-            out["alert_truncated"] = alert_result["truncated"]
+            def _alert_prompt(lang: str) -> str:
+                return _build_alert_prompt(username, st, lang, state["danger_findings"])
+
+            alert = await _compose_whatsapp_message(
+                _alert_prompt, language, max_tokens=500,
+                label=_ALERT_LABEL[language],
+            )
+            out["alert"]           = alert["text"]
+            out["alert_truncated"] = alert["truncated"]
         except Exception as e:
-            out["alert_error"] = f"Groq error generating alert: {str(e)}"
+            out["alert_error"] = f"Error generating alert ({language}): {str(e)}"
 
     return out
 
@@ -572,6 +642,7 @@ async def generate_daily_report(username: str) -> dict:
         "username":               username,
         "success":                True,
         "phone":                  final_state.get("phone"),
+        "language":               final_state.get("language", "English"),
         "agent_summary":          agent_summary,
         "daily_report":           final_state.get("daily_report"),
         "daily_report_truncated": final_state.get("daily_report_truncated", False),

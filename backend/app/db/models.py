@@ -13,6 +13,7 @@ ICAR_DOCUMENTS_COLLECTION   = "icar_documents"
 PEST_ALERTS_COLLECTION      = "pest_alerts"  # last-known-good GNews pest/disease results, per state — lets the /news/alerts endpoint fall back to a recent past batch instead of a bare empty state whenever today's live query finds nothing
 SCHEME_NEWS_COLLECTION      = "scheme_news"  # last-known-good GNews government-scheme results, per state — same fallback pattern as pest_alerts, for the /news/schemes endpoint
 USER_MEMORIES_COLLECTION    = "user_memories"      # long-term extracted facts per user (preferences, crops, location, etc.)
+TRANSLATIONS_COLLECTION     = "translations"       # translation cache: _id = sha256(src|tgt|text), no expiry — see utils/translator.py
 CHAT_SUMMARIES_COLLECTION   = "chat_summaries"     # compressed summaries of old conversations (beyond last 20 messages)
 
 

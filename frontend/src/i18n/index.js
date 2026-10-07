@@ -8,6 +8,7 @@ import kn from "./locales/kn.json";
 import mr from "./locales/mr.json";
 import bn from "./locales/bn.json";
 import pa from "./locales/pa.json";
+import { clearCache } from "../utils/dataCache";
 
 // Maps the display names used in the onboarding language picker to i18next
 // language codes. Keep this in sync with LanguageStep's option list.
@@ -42,6 +43,7 @@ i18n.use(initReactI18next).init({
 // syncs this to the farmer's saved chat_language automatically at login.
 i18n.on("languageChanged", (lng) => {
   localStorage.setItem("language", lng);
+  clearCache(); // translated API data is language-specific
 });
 
 export default i18n;

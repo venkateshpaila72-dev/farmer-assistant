@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { PageTransitionProvider } from "./context/PageTransitionContext.jsx";
 import { PageFade } from "./components/motion/PageFade.jsx";
 import Home from "./pages/public/Home.jsx";
@@ -75,11 +76,19 @@ function AdminPageRoute({ children }) {
   );
 }
 
+// Re-mounts its children whenever the site language changes, so pages that
+// show translated API data (news, announcements) fetch again in the new
+// language. Only wrapped around those pages — nothing else is remounted.
+function LangKey({ children }) {
+  const { i18n } = useTranslation();
+  return <div key={i18n.language} style={{ display: "contents" }}>{children}</div>;
+}
+
 function App() {
   return (
     <PageTransitionProvider>
       <Routes>
-        <Route path="/" element={<AuthPageRoute><Home /></AuthPageRoute>} />
+        <Route path="/" element={<AuthPageRoute><LangKey><Home /></LangKey></AuthPageRoute>} />
         <Route path="/login" element={<AuthPageRoute><FarmerLogin /></AuthPageRoute>} />
         <Route path="/register" element={<AuthPageRoute><FarmerRegister /></AuthPageRoute>} />
         <Route path="/admin/login" element={<AuthPageRoute><AdminLogin /></AuthPageRoute>} />
@@ -93,7 +102,7 @@ function App() {
           }
         />
 
-        <Route path="/dashboard" element={<DashboardRoute><DashboardHome /></DashboardRoute>} />
+        <Route path="/dashboard" element={<DashboardRoute><LangKey><DashboardHome /></LangKey></DashboardRoute>} />
 
         <Route path="/crop-tools" element={<DashboardRoute><CropToolsLayout /></DashboardRoute>}>
           <Route index element={<CropRecommendation />} />
@@ -113,10 +122,10 @@ function App() {
         </Route>
 
         <Route path="/news" element={<DashboardRoute><NewsLayout /></DashboardRoute>}>
-          <Route index element={<NewsFeed />} />
-          <Route path="alerts" element={<PestAlerts />} />
-          <Route path="schemes" element={<SchemeNews />} />
-          <Route path="announcements" element={<AnnouncementsFeed />} />
+          <Route index element={<LangKey><NewsFeed /></LangKey>} />
+          <Route path="alerts" element={<LangKey><PestAlerts /></LangKey>} />
+          <Route path="schemes" element={<LangKey><SchemeNews /></LangKey>} />
+          <Route path="announcements" element={<LangKey><AnnouncementsFeed /></LangKey>} />
         </Route>
 
         <Route path="/chat" element={<DashboardRoute><ChatPage /></DashboardRoute>} />

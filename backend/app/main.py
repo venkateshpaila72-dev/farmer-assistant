@@ -25,6 +25,9 @@ from app.utils.scheduler import start_scheduler, stop_scheduler
 # ── Cron trigger (for hosts where the process sleeps when idle) ─────────────
 from app.routes import cron
 
+# ── Translation layer (Azure + Mongo cache) ──────────────────────────────────
+from app.utils.translation_middleware import TranslationMiddleware
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,6 +53,9 @@ app = FastAPI(
     swagger_ui_parameters={"persistAuthorization": True},
 )
 
+
+# ── Translation layer (added BEFORE CORS so CORS stays the outermost layer) ───
+app.add_middleware(TranslationMiddleware)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(

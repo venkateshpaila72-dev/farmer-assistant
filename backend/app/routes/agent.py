@@ -7,6 +7,7 @@ from app.agents.disease_agent import check_disease_status
 from app.agents.market_agent import check_market_signal
 from app.agents.supervisor import generate_daily_report
 from app.utils.whatsapp_utils import send_whatsapp_message
+from app.utils.whatsapp_translate import translate_whatsapp_text, canonical_language
 from app.utils.scheduler import scheduler, run_daily_reports_for_all_farmers, sync_daily_market_prices
 from app.core.config import settings
 from app.core.security import get_current_admin
@@ -79,7 +80,12 @@ async def run_report(username: str, send_report: bool = True, send_alert: bool =
         "alert_text":        result.get("alert"),
         "agent_summary":     result.get("agent_summary"),
         "daily_report_sent": False,
-        "alert_sent":        False
+        "alert_sent":        False,
+        "language":          result.get("language"),
+        # Set when a message could not be produced in the farmer's profile
+        # language — such a message is deliberately NOT sent.
+        "daily_report_error": result.get("daily_report_error"),
+        "alert_error":        result.get("alert_error"),
     }
 
     phone = result.get("phone")
@@ -156,5 +162,18 @@ async def test_whatsapp(username: str, message: str = "Test message from Farmer 
     if not phone:
         raise HTTPException(status_code=400, detail="No phone number on file for this farmer")
 
+    # Strict language rule: the test message goes out ONLY in the farmer's
+    # profile language, translated with Azure. If that fails, nothing is sent
+    # (rather than sending the wrong language).
+    language = canonical_language(profile.get("chat_language"))
+    try:
+        message = await translate_whatsapp_text(message, language)
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not translate the message to {language}, so it was not sent: {e}",
+        )
+
     result = await send_whatsapp_message(phone, message)
+    result["language"] = language
     return result

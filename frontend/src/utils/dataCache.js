@@ -15,3 +15,9 @@ export function getCached(key) {
 export function setCached(key, value) {
   store.set(key, value);
 }
+
+// Called when the site language changes: cached lists (news, announcements…)
+// hold text in the OLD language, so drop them and let pages refetch.
+export function clearCache() {
+  store.clear();
+}
