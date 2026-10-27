@@ -1,63 +1,26 @@
-import os
-import sys
-import requests
-from dotenv import load_dotenv
 
-load_dotenv()
-KEY = os.getenv("NEWSDATA_API_KEY")
-if not KEY:
-    sys.exit("NEWSDATA_API_KEY not found in .env")
+import asyncio
+import httpx
 
-BASE = "https://newsdata.io/api/1"
+async def main():
+    url = "https://mandi-api.onrender.com/v1/prices"
+    params = {"state": "Maharashtra", "commodity": "Onion"}
 
-TESTS = [
-    # (label, endpoint, params)
-    ("1. Your Query Builder URL (title 'FARMERS', 5 categories)", "latest", {
-        "qInTitle": "FARMERS", "country": "in",
-        "language": "te,hi,en",
-        "category": "breaking,business,lifestyle,top,science",
-    }),
-    ("2. Farming keywords, India, English", "latest", {
-        "q": "farmer OR agriculture OR crop", "country": "in", "language": "en",
-    }),
-    ("3. Farming keywords, India, Hindi + Telugu", "latest", {
-        "q": "farmer OR agriculture OR crop", "country": "in", "language": "hi,te",
-    }),
-    ("4. What the current backend does: OLD /news endpoint", "news", {
-        "q": "India farming crop agriculture", "language": "en", "country": "in",
-    }),
-]
+    async with httpx.AsyncClient(timeout=60) as client:
+        response = await client.get(url, params=params)
+        print("HTTP:", response.status_code)
+        response.raise_for_status()
 
-for label, endpoint, params in TESTS:
-    print(f"\n=== {label} ===")
-    try:
-        r = requests.get(f"{BASE}/{endpoint}", params={"apikey": KEY, **params}, timeout=30)
-    except requests.RequestException as e:
-        print("CONNECTION FAILED:", e)
-        continue
+        payload = response.json()
+        print("Success:", payload.get("success"))
+        print("Records:", len(payload.get("data", [])))
 
-    print("HTTP status:", r.status_code)
-    try:
-        data = r.json()
-    except ValueError:
-        print("Not JSON:", r.text[:200])
-        continue
+        for row in payload.get("data", [])[:5]:
+            print({
+                "market": row.get("market"),
+                "commodity": row.get("commodity"),
+                "arrival_date": row.get("arrival_date"),
+                "modal_price": row.get("modal_price"),
+            })
 
-    status = data.get("status")
-    print("API status:", status, "| totalResults:", data.get("totalResults"))
-    articles = data.get("results", []) or []
-    with_img = [a for a in articles if a.get("image_url")]
-    print(f"Articles returned: {len(articles)} | with image: {len(with_img)}")
-    for a in articles[:5]:
-        print("  -", a.get("title"))
-        print("     image:", a.get("image_url"))
-    if status != "success":
-        # NewsData puts the real reason in results.message / results.code
-        print("Error detail:", data.get("results"))
-        continue
-
-    articles = data.get("results", []) or []
-    print("Articles returned:", len(articles))
-    for a in articles[:3]:
-        print("  -", a.get("title"))
-        print("    ", a.get("source_id"), "|", a.get("pubDate"), "|", a.get("link"))
+asyncio.run(main())

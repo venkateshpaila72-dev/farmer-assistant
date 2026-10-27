@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HarvestStore — Crop Storage Simulator</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f3f6f8,#0a1119);--panel:light-dark(#fff,#111c27);--panel2:light-dark(#f7fafb,#172431);--text:light-dark(#172632,#e9f1f6);--muted:light-dark(#647582,#9aabb8);--border:light-dark(#dce5ea,#293947);--green:#52e0ad;--cyan:#60d8ee;--amber:#f4bd68;--red:#ff7f86;--blue:#7ea8ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;background:var(--bg)}.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--border);background:var(--panel)}.brand{display:flex;align-items:center;gap:12px;font-weight:750;letter-spacing:-.03em;font-size:18px}.brandmark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#163f3a;color:var(--green);font-size:20px}.brand small{display:block;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase}.topright{display:flex;align-items:center;gap:14px}.livepill{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:99px;padding:7px 11px;color:var(--muted);font-size:12px}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 12px #52e0ad77}.btn{border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:9px;padding:9px 12px;font-weight:650}.btn.primary{background:var(--green);color:#08231d;border-color:var(--green)}.btn.small{font-size:12px;padding:7px 10px}.shell{max-width:1500px;margin:auto;padding:26px 28px 38px}.eyebrow{font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);font-weight:750}.heading{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:22px}.heading h1{font-size:28px;letter-spacing:-.045em;margin:5px 0 4px}.heading p{margin:0;color:var(--muted)}.heading-actions{display:flex;gap:8px;flex-wrap:wrap}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:16px}.stat,.panel{border:1px solid var(--border);background:var(--panel);border-radius:15px}.stat{padding:17px 18px;position:relative;overflow:hidden}.stat-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px}.stat-icon{width:31px;height:31px;display:grid;place-items:center;border-radius:9px;background:var(--panel2);font-size:17px}.stat-value{font-size:30px;font-weight:760;letter-spacing:-.05em;margin-top:12px}.stat-value span{font-size:13px;font-weight:550;letter-spacing:0;color:var(--muted);margin-left:3px}.stat-foot{font-size:11px;color:var(--muted);margin-top:5px}.good{color:var(--green)}.workspace{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.85fr);gap:16px;align-items:stretch}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:17px 19px;border-bottom:1px solid var(--border);gap:12px}.panel-title{font-weight:740;letter-spacing:-.015em}.panel-sub{color:var(--muted);font-size:11px;margin-top:3px}.room-wrap{padding:12px 16px 16px;position:relative}.room-scene{width:100%;height:auto;display:block;min-height:280px}.scene-label{font-size:10px;letter-spacing:.08em;fill:#d3e9ed;font-weight:700}.sensor-tag{fill:#122c35;stroke:#4d9da6;stroke-width:1}.sensor-number{font-size:11px;fill:#b9f4ed;font-weight:800}.scene-legend{display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:11px;padding:0 4px 3px}.legend-item{display:flex;align-items:center;gap:6px}.legend-dot{width:7px;height:7px;border-radius:50%}.sim-badge{border:1px solid #316d5f;color:var(--green);background:#12342e;border-radius:6px;padding:4px 7px;font-size:10px;font-weight:800;letter-spacing:.08em}.room-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}.controls{padding-bottom:4px}.control{padding:14px 18px;border-bottom:1px solid var(--border)}.control:last-child{border-bottom:0}.control-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.control-label{display:flex;align-items:center;gap:9px;font-weight:650}.control-icon{width:29px;height:29px;border-radius:8px;background:var(--panel2);display:grid;place-items:center}.control-value{font-weight:760;font-size:17px;letter-spacing:-.03em}.control-value small{font-size:11px;color:var(--muted);font-weight:550}.control-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:6px}.range{width:100%;accent-color:var(--green);height:5px;cursor:pointer}.control-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px}.status-text{font-size:10px;color:var(--muted)}.reset{font-size:10px;color:var(--cyan);border:0;background:transparent;padding:0}.lower{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;margin-top:16px}.section-body{padding:16px 18px}.sensor-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.sensor-row{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--panel2);padding:10px;border-radius:10px;min-width:0}.sensor-symbol{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;background:var(--panel);font-size:17px}.sensor-info{min-width:0;flex:1}.sensor-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sensor-id{font-size:9px;color:var(--muted);margin-top:2px}.sensor-reading{text-align:right;font-weight:750;font-size:13px;white-space:nowrap}.sensor-reading small{display:block;color:var(--green);font-size:9px;font-weight:600}.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:10px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.08em}.field input,.field select{width:100%;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:8px;padding:10px 11px;outline:none}.field input:focus,.field select:focus{border-color:var(--cyan)}.inline-check{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}.inline-check input{accent-color:var(--green)}.config-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px}.send-state{font-size:10px;color:var(--muted);margin-left:auto}.payload{margin-top:13px;border:1px solid var(--border);border-radius:9px;overflow:hidden}.payload-head{display:flex;justify-content:space-between;padding:9px 11px;background:var(--panel2);font-size:10px;font-weight:750}.payload pre{margin:0;padding:12px;max-height:160px;overflow:auto;color:light-dark(#315466,#a5dfe4);font:10px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;word-break:break-word}.event-list{display:flex;flex-direction:column;gap:0}.event{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:11px}.event:last-child{border-bottom:0}.event-time{color:var(--muted);font-variant-numeric:tabular-nums;min-width:55px}.event-mark{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;background:var(--green)}.event-mark.warn{background:var(--amber)}.event-text{flex:1}.event-text strong{display:block;font-size:11px}.event-text span{color:var(--muted);font-size:10px}.footer-note{margin-top:16px;padding:12px 14px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:11px;display:flex;gap:9px;align-items:flex-start}.footer-note b{color:var(--text)}.toast{position:fixed;right:20px;bottom:20px;max-width:340px;background:var(--panel);border:1px solid var(--border);box-shadow:0 12px 40px #0003;border-radius:12px;padding:13px 16px;z-index:10;display:none}.toast.show{display:block}.toast strong{display:block;margin-bottom:3px}.toast span{font-size:12px;color:var(--muted)}
+@media(max-width:1000px){.workspace{grid-template-columns:1fr}.lower{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.heading{align-items:start;flex-direction:column}.heading-actions{align-self:stretch}.heading-actions .btn{flex:1}}@media(max-width:560px){.topbar{padding:0 15px}.shell{padding:20px 13px}.topright .livepill{display:none}.stats{gap:8px}.stat{padding:13px}.stat-value{font-size:25px}.sensor-list{grid-template-columns:1fr}.config-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.heading h1{font-size:24px}.room-wrap{padding:8px}.room-scene{min-height:220px}.panel-head{padding:14px}.control{padding:13px}.room-bottom{align-items:flex-start;flex-direction:column}}
+</style>
+
+<style>
+.auth-gate,.batch-gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(5,11,18,.94);backdrop-filter:blur(12px)}
+.auth-gate[hidden],.batch-gate[hidden]{display:none!important}
+.auth-card,.batch-card{width:min(100%,440px);padding:30px;border:1px solid #304253;border-radius:20px;background:#101c28;color:#edf5ff;box-shadow:0 24px 80px #0008;font-family:inherit}
+.auth-brand{font-weight:900;letter-spacing:.08em;color:#4adeb2;margin-bottom:20px}.auth-brand span{font-weight:500;color:#91a9bd}
+.auth-card h1,.batch-card h2{margin:0 0 10px;font-size:28px}.auth-card p,.batch-card p{color:#9db0c3;line-height:1.5}
+.auth-card label,.batch-card label{display:block;margin:16px 0 7px;color:#c8d7e5;font-size:14px}
+.auth-card input,.batch-card select{box-sizing:border-box;width:100%;padding:12px 13px;border:1px solid #3b5267;border-radius:10px;background:#09131e;color:#f4f8ff;font:inherit;outline:none}
+.auth-card input:focus,.batch-card select:focus{border-color:#4adeb2}
+.auth-card button,.batch-card button{width:100%;margin-top:16px;padding:12px 15px;border:0;border-radius:10px;font:inherit;font-weight:800;cursor:pointer}
+.auth-card .primary,.batch-card .primary{background:#4adeb2;color:#082018}.batch-card .secondary{background:#233242;color:#e6f1fa}
+.auth-status{min-height:20px;font-size:13px;overflow-wrap:anywhere}.auth-note{font-size:12px}
+</style>
+
+</head>
+<body>
+
+<div id="authGate" class="auth-gate">
+  <form id="loginForm" class="auth-card">
+    <div class="auth-brand">HARVESTSTORE <span>· FarmShield</span></div>
+    <h1>Farmer Login</h1>
+    <p>Sign in with your existing FarmShield farmer account to load your storage batches.</p>
+    <label for="loginEmail">Email</label>
+    <input id="loginEmail" name="email" type="email" autocomplete="username" required placeholder="farmer@example.com">
+    <label for="loginPassword">Password</label>
+    <input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="Your FarmShield password">
+    <label for="loginBaseUrl">FarmShield API URL</label>
+    <input id="loginBaseUrl" name="apiBaseUrl" type="url" value="http://127.0.0.1:8000" required>
+    <button id="loginButton" class="primary" type="submit">Login</button>
+    <p id="loginStatus" class="auth-status" role="status"></p>
+    <p class="auth-note">Your password is sent only to the API URL shown above. Use your trusted FarmShield backend.</p>
+  </form>
+</div>
+<div id="batchGate" class="batch-gate" hidden>
+  <section class="batch-card">
+    <div class="auth-brand">HARVESTSTORE <span>· FarmShield</span></div>
+    <h2>Select storage batch</h2>
+    <p>Choose a batch belonging to your signed-in farmer account.</p>
+    <label for="batchSelect">Storage batch</label>
+    <select id="batchSelect" required><option value="">Loading batches…</option></select>
+    <button id="loadBatchButton" class="primary" type="button">Use selected batch</button>
+    <button id="logoutButton" class="secondary" type="button">Log out</button>
+    <p id="batchStatus" class="auth-status" role="status"></p>
+  </section>
+</div>
+
+
+<div class="app" id="appRoot">
+<header class="topbar"><div class="brand"><div class="brandmark">🌾</div><div>HARVEST<span style="color:var(--green)">STORE</span><small>Harvested crop storage</small></div></div><div class="topright"><div class="livepill"><span class="dot"></span> SIMULATION ACTIVE</div><button class="btn small" id="resetAll">↻ Reset room</button></div></header>
+<main class="shell">
+<div class="heading"><div><div class="eyebrow">CROP STORAGE / ROOM 01</div><h1>Harvested crop storage simulator</h1><p>Simulate the storage-room climate around harvested crops and stream sensor readings to your application.</p></div><div class="heading-actions"><button class="btn" id="pauseBtn">Ⅱ Pause airflow</button><button class="btn" id="sendReadingsBtn">⬆ Send readings</button><button class="btn primary" id="randomizeBtn">✦ Generate conditions</button></div></div>
+<section class="stats">
+<div class="stat"><div class="stat-top"><span>Air temperature</span><span class="stat-icon">🌡</span></div><div class="stat-value" id="statTemp">24.5<span>°C</span></div><div class="stat-foot"><span class="good">●</span> <span id="tempState">Within target range</span></div></div>
+<div class="stat"><div class="stat-top"><span>Relative humidity</span><span class="stat-icon">💧</span></div><div class="stat-value" id="statHumidity">58<span>% RH</span></div><div class="stat-foot"><span class="good">●</span> <span id="humidityState">Stable moisture level</span></div></div>
+<div class="stat"><div class="stat-top"><span>Air velocity</span><span class="stat-icon">〰</span></div><div class="stat-value" id="statAirflow">0.8<span>m/s</span></div><div class="stat-foot">Supply fan <span class="good" id="fanState">● Running</span></div></div>
+<div class="stat"><div class="stat-top"><span>CO₂ concentration</span><span class="stat-icon">◉</span></div><div class="stat-value" id="statCo2">620<span>ppm</span></div><div class="stat-foot"><span class="good">●</span> <span id="co2State">Air quality acceptable</span></div></div>
+</section>
+<section class="workspace">
+<div class="panel"><div class="panel-head"><div><div class="panel-title">Crop storage room view</div><div class="panel-sub">3D-style storage space · sensor positions are illustrative</div></div><span class="sim-badge">● LIVE MODEL</span></div>
+<div class="room-wrap"><svg class="room-scene" viewBox="0 0 760 400" role="img" aria-label="Illustrated environmental test room with labeled temperature, humidity, airflow, pressure, carbon dioxide, and light sensors">
+<defs><linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#24414d"/><stop offset="1" stop-color="#172a36"/></linearGradient><linearGradient id="side" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#1c3542"/><stop offset="1" stop-color="#142733"/></linearGradient><linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#24414c"/><stop offset="1" stop-color="#10212c"/></linearGradient><linearGradient id="air" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#55d9ed" stop-opacity=".03"/><stop offset=".5" stop-color="#55d9ed" stop-opacity=".35"/><stop offset="1" stop-color="#55d9ed" stop-opacity=".02"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<ellipse cx="384" cy="355" rx="300" ry="24" fill="#07131b" opacity=".45"/><polygon points="125,112 425,35 680,120 377,205" fill="#294956" stroke="#52707a" stroke-width="1.4"/><polygon points="125,112 377,205 377,345 125,255" fill="url(#side)" stroke="#45636d" stroke-width="1.4"/><polygon points="377,205 680,120 680,260 377,345" fill="url(#wall)" stroke="#45636d" stroke-width="1.4"/><polygon points="125,255 377,345 680,260 425,180" fill="url(#floor)" stroke="#45636d" stroke-width="1.4"/>
+<path d="M160 126 L377 206 L647 130 M160 154 L377 233 L647 158 M160 184 L377 262 L647 186 M160 214 L377 291 L647 215" stroke="#496773" stroke-width=".8" opacity=".48" fill="none"/><path d="M420 53 L420 190 M470 69 L470 176 M520 85 L520 162 M570 101 L570 148" stroke="#54737c" stroke-width=".8" opacity=".4"/>
+<!-- Harvested crop sacks stacked on pallets -->
+<g id="crop-stacks" stroke-linejoin="round">
+<polygon points="394,276 479,251 541,272 455,300" fill="#765b37" stroke="#b18a53" stroke-width="1.2"/><path d="M405 278 L489 254 M420 284 L504 260 M435 290 L519 266" stroke="#d2ae70" stroke-width="2" opacity=".8"/>
+<path d="M408 253 Q410 239 428 238 L449 245 Q455 256 445 265 L421 271 Q408 266 408 253Z" fill="#b9955b" stroke="#e1c28a"/><path d="M449 244 Q451 231 469 231 L489 238 Q495 249 484 258 L461 264 Q449 258 449 244Z" fill="#c4a269" stroke="#e1c28a"/><path d="M489 256 Q491 243 508 243 L528 250 Q534 261 523 270 L501 276 Q489 270 489 256Z" fill="#aa864e" stroke="#d6b77f"/>
+<path d="M420 237 Q422 223 440 222 L460 229 Q466 240 455 249 L433 255 Q420 249 420 237Z" fill="#c5a36a" stroke="#e1c28a"/><path d="M461 228 Q463 215 480 215 L500 222 Q506 233 495 242 L473 248 Q461 242 461 228Z" fill="#b18d54" stroke="#e1c28a"/><path d="M502 240 Q504 227 521 227 L541 234 Q547 245 536 254 L514 260 Q502 254 502 240Z" fill="#c6a66e" stroke="#e1c28a"/>
+<path d="M426 238 Q440 242 455 237 M467 229 Q480 233 495 228 M508 241 Q521 245 536 240 M414 254 Q427 258 443 253 M455 245 Q468 249 482 244 M496 257 Q509 261 523 256" stroke="#8d6c3f" stroke-width="1.4" fill="none"/>
+<text x="466" y="294" fill="#f1d7a6" font-size="8" font-weight="800" text-anchor="middle">HARVEST BAGS</text>
+</g>
+<polygon points="185,132 250,154 250,206 185,183" fill="#0e1f29" stroke="#45636d"/><polygon points="194,139 241,155 241,194 194,178" fill="#183d49"/><path d="M202 153 L233 164 M202 162 L233 173 M202 171 L233 182" stroke="#60d8ee" stroke-width="1.4" opacity=".7"/>
+<polygon points="488,108 548,91 548,128 488,146" fill="#10222c" stroke="#51717a"/><circle cx="518" cy="118" r="15" fill="#1c3b46" stroke="#60d8ee" stroke-width="1.2"/><circle cx="518" cy="118" r="9" fill="none" stroke="#60d8ee" stroke-width="1"/><circle cx="518" cy="118" r="3" fill="#60d8ee"/><path d="M518 103 L518 133 M503 118 L533 118" stroke="#60d8ee" stroke-width=".7"/>
+<polygon points="287,263 337,281 337,326 287,308" fill="#132a35" stroke="#466671"/><polygon points="295,269 329,281 329,315 295,303" fill="#0a1821"/><rect x="300" y="277" width="24" height="16" rx="2" fill="#1c4a4d" transform="skewY(20)"/><text x="308" y="296" fill="#7ef2c4" font-size="7" transform="skewY(20)">ROOM</text>
+<path id="airflow1" d="M190 175 C260 150 310 195 375 188 S510 155 615 164" stroke="url(#air)" stroke-width="22" fill="none"/><path id="airflow2" d="M190 175 C260 150 310 195 375 188 S510 155 615 164" stroke="#5eddf0" stroke-width="1.8" stroke-dasharray="7 12" fill="none" opacity=".9"><animate attributeName="stroke-dashoffset" from="0" to="-38" dur="2s" repeatCount="indefinite"/></path>
+<path d="M220 229 L290 253 L358 232 M418 302 L493 280 L550 295 M450 227 L507 211 L568 230" stroke="#63838b" stroke-width=".8" stroke-dasharray="3 5" fill="none" opacity=".7"/>
+<g id="sensor-temp" transform="translate(385 153)"><circle r="13" fill="#173d3b" stroke="#52e0ad" stroke-width="1.5" filter="url(#glow)"/><text text-anchor="middle" y="4" fill="#a9ffe2" font-size="13">T</text><path d="M0 13 L0 27 L-28 27" stroke="#52e0ad" fill="none"/><rect class="sensor-tag" x="-85" y="18" width="91" height="23" rx="5"/><text class="sensor-number" x="-77" y="33">S-01 TEMP</text></g>
+<g id="sensor-humidity" transform="translate(292 211)"><circle r="12" fill="#153a4a" stroke="#60d8ee" stroke-width="1.5"/><text text-anchor="middle" y="4" fill="#b5f3ff" font-size="12">H</text><path d="M-12 0 L-26 0 L-26 -17" stroke="#60d8ee" fill="none"/><rect class="sensor-tag" x="-73" y="-40" width="85" height="22" rx="5"/><text class="sensor-number" x="-66" y="-26">S-02 HUM</text></g>
+<g id="sensor-airflow" transform="translate(493 203)"><circle r="12" fill="#3a3220" stroke="#f4bd68" stroke-width="1.5"/><text text-anchor="middle" y="4" fill="#ffe0a5" font-size="12">A</text><path d="M12 0 L30 0 L30 -18" stroke="#f4bd68" fill="none"/><rect class="sensor-tag" x="13" y="-42" width="92" height="22" rx="5"/><text class="sensor-number" x="20" y="-28">S-03 AIR</text></g>
+<g id="sensor-co2" transform="translate(573 250)"><circle r="12" fill="#352b47" stroke="#b89bff" stroke-width="1.5"/><text text-anchor="middle" y="4" fill="#ded1ff" font-size="11">CO₂</text><path d="M0 12 L0 25 L-32 25" stroke="#b89bff" fill="none"/><rect class="sensor-tag" x="-94" y="18" width="76" height="22" rx="5"/><text class="sensor-number" x="-87" y="33">S-04 CO₂</text></g>
+<g id="sensor-pressure" transform="translate(202 267)"><circle r="11" fill="#19394b" stroke="#7ea8ff" stroke-width="1.5"/><text text-anchor="middle" y="4" fill="#d4e3ff" font-size="11">P</text><path d="M-11 0 L-24 0 L-24 -16" stroke="#7ea8ff" fill="none"/><rect class="sensor-tag" x="-78" y="-39" width="86" height="21" rx="5"/><text class="sensor-number" x="-71" y="-25">S-05 PRESS</text></g>
+<g id="sensor-light" transform="translate(600 145)"><circle r="11" fill="#42391d" stroke="#f6d46b" stroke-width="1.5"/><text text-anchor="middle" y="4" fill="#fff0ae" font-size="13">☼</text><path d="M0 -11 L0 -22 L-32 -22" stroke="#f6d46b" fill="none"/><rect class="sensor-tag" x="-90" y="-33" width="58" height="21" rx="5"/><text class="sensor-number" x="-83" y="-19">S-06 LUX</text></g>
+<text class="scene-label" x="146" y="91">ROOM 01 / HARVEST STORAGE</text><text x="148" y="107" fill="#9dbbc3" font-size="9">CROP CLIMATE SENSOR NETWORK</text><g transform="translate(620 324)"><rect width="42" height="20" rx="5" fill="#14352f" stroke="#326c5b"/><circle cx="10" cy="10" r="3" fill="#52e0ad"/><text x="18" y="13" fill="#a7f8d9" font-size="8" font-weight="700">ON</text></g>
+</svg><div class="scene-legend"><span class="legend-item"><i class="legend-dot" style="background:#52e0ad"></i>Temperature</span><span class="legend-item"><i class="legend-dot" style="background:#60d8ee"></i>Humidity</span><span class="legend-item"><i class="legend-dot" style="background:#f4bd68"></i>Airflow</span><span class="legend-item"><i class="legend-dot" style="background:#b89bff"></i>CO₂</span><span class="legend-item"><i class="legend-dot" style="background:#7ea8ff"></i>Pressure</span><span class="legend-item"><i class="legend-dot" style="background:#f6d46b"></i>Light</span></div></div>
+<div class="room-bottom"><span>CHAMBER ID: <b style="color:var(--text)">ATM-ROOM-001</b> · Virtual hardware profile</span><span id="lastUpdate">Last change: just now</span></div></div>
+<div class="panel"><div class="panel-head"><div><div class="panel-title">Atmosphere controls</div><div class="panel-sub">Move a slider to change a sensor reading</div></div><button class="btn small" id="defaultsBtn">Defaults</button></div><div class="controls" id="controls">
+<div class="control" data-key="temperature"><div class="control-head"><div class="control-label"><span class="control-icon">🌡</span><span>Temperature</span></div><div class="control-value" id="val-temperature">24.5 <small>°C</small></div></div><input class="range" id="temperature" type="range" min="-5" max="55" step="0.5" value="24.5"><div class="control-meta"><span>-5 °C</span><span>55 °C</span></div><div class="control-foot"><span class="status-text" id="state-temperature">Comfort zone</span><button class="reset" data-reset="temperature">Reset value ↺</button></div></div>
+<div class="control" data-key="humidity"><div class="control-head"><div class="control-label"><span class="control-icon">💧</span><span>Relative humidity</span></div><div class="control-value" id="val-humidity">58 <small>% RH</small></div></div><input class="range" id="humidity" type="range" min="10" max="100" step="1" value="58"><div class="control-meta"><span>10% RH</span><span>100% RH</span></div><div class="control-foot"><span class="status-text" id="state-humidity">Moderate moisture</span><button class="reset" data-reset="humidity">Reset value ↺</button></div></div>
+<div class="control" data-key="airflow"><div class="control-head"><div class="control-label"><span class="control-icon">〰</span><span>Air velocity</span></div><div class="control-value" id="val-airflow">0.8 <small>m/s</small></div></div><input class="range" id="airflow" type="range" min="0" max="5" step="0.1" value="0.8"><div class="control-meta"><span>0 m/s</span><span>5 m/s</span></div><div class="control-foot"><span class="status-text" id="state-airflow">Low circulation</span><button class="reset" data-reset="airflow">Reset value ↺</button></div></div>
+<div class="control" data-key="co2"><div class="control-head"><div class="control-label"><span class="control-icon">◉</span><span>CO₂ concentration</span></div><div class="control-value" id="val-co2">620 <small>ppm</small></div></div><input class="range" id="co2" type="range" min="350" max="5000" step="10" value="620"><div class="control-meta"><span>350 ppm</span><span>5000 ppm</span></div><div class="control-foot"><span class="status-text" id="state-co2">Typical indoor level</span><button class="reset" data-reset="co2">Reset value ↺</button></div></div>
+<div class="control" data-key="pressure"><div class="control-head"><div class="control-label"><span class="control-icon">⏱</span><span>Atmospheric pressure</span></div><div class="control-value" id="val-pressure">101.3 <small>kPa</small></div></div><input class="range" id="pressure" type="range" min="80" max="110" step="0.1" value="101.3"><div class="control-meta"><span>80 kPa</span><span>110 kPa</span></div><div class="control-foot"><span class="status-text" id="state-pressure">Near standard pressure</span><button class="reset" data-reset="pressure">Reset value ↺</button></div></div>
+<div class="control" data-key="light"><div class="control-head"><div class="control-label"><span class="control-icon">☼</span><span>Light intensity</span></div><div class="control-value" id="val-light">420 <small>lux</small></div></div><input class="range" id="light" type="range" min="0" max="2000" step="10" value="420"><div class="control-meta"><span>0 lux</span><span>2000 lux</span></div><div class="control-foot"><span class="status-text" id="state-light">Moderate lighting</span><button class="reset" data-reset="light">Reset value ↺</button></div></div>
+</div></div>
+</section>
+<section class="lower">
+<div class="panel"><div class="panel-head"><div><div class="panel-title">Sensor inventory</div><div class="panel-sub">Named virtual sensors and current readings</div></div><span class="sim-badge">6 SENSORS</span></div><div class="section-body"><div class="sensor-list" id="sensorList"></div></div></div>
+<div hidden><span id="sendState">Connecting…</span><span id="payloadSize"></span><pre id="payload"></pre></div>
+</section>
+<section class="panel" style="margin-top:16px"><div class="panel-head"><div><div class="panel-title">Activity log</div><div class="panel-sub">Local simulation events and outbound delivery status</div></div><button class="btn small" id="clearLog">Clear log</button></div><div class="section-body"><div class="event-list" id="eventList"></div></div></section>
+<div class="footer-note"><span>ⓘ</span><div><b>Live simulation.</b> Change sensor values, then click <b>Send readings</b> to submit all six readings together to FarmShield. Readings are marked as simulated.</div></div>
+</main><div class="toast" id="toast"><strong id="toastTitle">Updated</strong><span id="toastBody"></span></div></div>
+<script>
+(()=>{
+const CONFIG={
+  backendBaseUrl: 'http://127.0.0.1:8000', // Hardcoded local FastAPI URL; change only if backend is deployed elsewhere.
+  batchId: window.FARMSHIELD_BATCH_ID || '',
+  bearerToken: window.FARMSHIELD_ACCESS_TOKEN || '',
+  endpointPath: '/api/v1/batches/{batch_id}/readings',
+  deviceId: 'ATM-ROOM-001'
+};
+// You can enter connection details when clicking Send readings.
+// Do not commit a real bearer token to a public repository.
+const defaults={temperature:24.5,humidity:58,airflow:0.8,co2:620,pressure:101.3,light:420};
+const meta={temperature:{name:'Air temperature',unit:'°C',icon:'🌡',id:'S-01',fmt:v=>Number(v).toFixed(1)},humidity:{name:'Relative humidity',unit:'% RH',icon:'💧',id:'S-02',fmt:v=>String(Math.round(v))},airflow:{name:'Air velocity',unit:'m/s',icon:'〰',id:'S-03',fmt:v=>Number(v).toFixed(1)},co2:{name:'CO₂ concentration',unit:'ppm',icon:'◉',id:'S-04',fmt:v=>String(Math.round(v))},pressure:{name:'Atmospheric pressure',unit:'kPa',icon:'⏱',id:'S-05',fmt:v=>Number(v).toFixed(1)},light:{name:'Light intensity',unit:'lux',icon:'☼',id:'S-06',fmt:v=>String(Math.round(v))}};
+let values={...defaults},paused=false,changeTimer=null,events=[],changeCount=0;
+const $=id=>document.getElementById(id);
+const stamp=()=>new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+function condition(k,v){if(k==='temperature')return v<10?'Cold condition':v>35?'High temperature': 'Comfort zone';if(k==='humidity')return v<30?'Dry air':v>70?'High moisture':'Moderate moisture';if(k==='airflow')return v<.4?'Minimal circulation':v>3?'Strong airflow':'Low circulation';if(k==='co2')return v>1500?'Elevated CO₂':v>1000?'CO₂ rising':'Typical indoor level';if(k==='pressure')return v<95?'Low pressure':v>105?'High pressure':'Near standard pressure';if(k==='light')return v<100?'Low lighting':v>1000?'Bright lighting':'Moderate lighting'}
+function snapshot(){return {device_id:CONFIG.deviceId,batch_id:CONFIG.batchId,room_id:'ROOM-01',simulation:true,provenance:'simulated',timestamp:new Date().toISOString(),readings:Object.keys(meta).map(k=>({sensor_id:meta[k].id,sensor_name:meta[k].name,metric:k,value:Number(values[k]),unit:meta[k].unit})),environment:{temperature_c:Number(values.temperature),relative_humidity_pct:Number(values.humidity),air_velocity_m_s:Number(values.airflow),co2_ppm:Number(values.co2),pressure_kpa:Number(values.pressure),light_lux:Number(values.light)}}}
+function endpointUrl(baseOverride='',batchOverride=''){
+  const auth=window.FARMSHIELD_AUTH||{};
+  const base=String(baseOverride||auth.apiBaseUrl||CONFIG.backendBaseUrl||'').trim().replace(/\/+$/,'');
+  const batch=String(batchOverride||auth.batchId||CONFIG.batchId||'').trim();
+  let path=String(CONFIG.endpointPath||'/api/v1/batches/{batch_id}/readings').trim();
+  if(path.includes('{batch_id}')){
+    if(!batch) throw new Error('Missing storage batch ID');
+    path=path.replaceAll('{batch_id}',encodeURIComponent(batch));
+  } else if(path.includes('/batches//')) {
+    if(!batch) throw new Error('Missing storage batch ID');
+    path=path.replace('/batches//','/batches/'+encodeURIComponent(batch)+'/');
+  }
+  return base+(path.startsWith('/')?path:'/'+path);
+}
+function readingPayload(){return {batch_id:CONFIG.batchId.trim(),temperature_c:Number(values.temperature),relative_humidity_percent:Number(values.humidity),crop_moisture_percent:null,co2_ppm:Number(values.co2),air_velocity_m_s:Number(values.airflow),pressure_kpa:Number(values.pressure),light_lux:Number(values.light),sensor_id:CONFIG.deviceId||'ATM-ROOM-001',provenance:'simulated',timestamp:new Date().toISOString(),notes:JSON.stringify({simulation_source:'HarvestStore HTML',room_id:'ROOM-01',air_velocity_m_s:Number(values.airflow),pressure_kpa:Number(values.pressure),light_lux:Number(values.light),all_readings:snapshot().readings})}}
+async function sendToBackend(label){
+const auth=window.FARMSHIELD_AUTH||{};
+let base=(auth.apiBaseUrl||CONFIG.backendBaseUrl||'').trim();
+let batch=(auth.batchId||CONFIG.batchId||'').trim();
+let token=(auth.token||CONFIG.bearerToken||'').trim();
+if(location.protocol==='file:'){
+  $('sendState').textContent='Not connected · open via HTTP/HTTPS';
+  addEvent('Send blocked','Open this HTML using Live Server or a hosted HTTP/HTTPS URL, not file://','warn');
+  toast('Open through Live Server','This page needs an HTTP/HTTPS origin to send requests reliably.');
+  return false;
+}
+if(!base){
+  $('sendState').textContent='Not connected · backend URL is not configured';
+  addEvent('Send blocked','Set CONFIG.backendBaseUrl to your running FarmShield API URL','warn');
+  return false;
+}
+if(!batch || !token){
+  $('sendState').textContent='Login and select a storage batch first';
+  addEvent('Send blocked','Use the farmer login screen and select a batch before sending readings','warn');
+  toast('Login required','Sign in and select your storage batch first.');
+  return false;
+}
+let url;try{url=endpointUrl(base,batch);new URL(url)}catch(e){$('sendState').textContent='Cannot send · '+e.message;toast('Invalid request',e.message);return false}const method='POST';$('sendState').textContent='Sending readings…';try{const response=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({...readingPayload(),batch_id:batch})});const text=await response.text();let data;try{data=JSON.parse(text)}catch{data={detail:text}}if(!response.ok){const msg=data.detail||data.message||('HTTP '+response.status);$('sendState').textContent='Failed · HTTP '+response.status;addEvent('Backend rejected reading',String(msg).slice(0,180),'warn');toast('Send failed','HTTP '+response.status+': '+String(msg).slice(0,140));return false}$('sendState').textContent='Sent successfully · HTTP '+response.status;addEvent(label,'Backend accepted sensor reading · HTTP '+response.status);toast('Reading sent','FarmShield accepted the simulated sensor reading.');return true}catch(error){$('sendState').textContent='Network error · check URL/CORS';addEvent('Network request failed',error.message+' · check HTTPS, CORS, and API availability','warn');toast('Could not reach FarmShield','Check backend URL, CORS, and network connectivity.');return false}}
+function renderPayload(){const p=JSON.stringify(snapshot(),null,2);$('payload').textContent=p;$('payloadSize').textContent=new Blob([p]).size+' bytes'}
+function renderSensors(){$('sensorList').innerHTML=Object.keys(meta).map(k=>`<div class="sensor-row"><div class="sensor-symbol">${meta[k].icon}</div><div class="sensor-info"><div class="sensor-name">${meta[k].name}</div><div class="sensor-id">${meta[k].id} · SIMULATED</div></div><div class="sensor-reading">${meta[k].fmt(values[k])}<small>${meta[k].unit}</small></div></div>`).join('')}
+function renderStats(){const set=(id,k)=>$(id).innerHTML=meta[k].fmt(values[k])+`<span>${meta[k].unit}</span>`;set('statTemp','temperature');set('statHumidity','humidity');set('statAirflow','airflow');set('statCo2','co2');$('tempState').textContent=condition('temperature',values.temperature);$('humidityState').textContent=condition('humidity',values.humidity);$('fanState').textContent=values.airflow===0?'● Stopped':'● Running';$('co2State').textContent=condition('co2',values.co2)}
+function renderControls(){Object.keys(meta).forEach(k=>{$('val-'+k).innerHTML=meta[k].fmt(values[k])+` <small>${meta[k].unit}</small>`;$('state-'+k).textContent=condition(k,values[k]);$(k).value=values[k]});renderStats();renderSensors();renderPayload();$('lastUpdate').textContent='Last change: '+stamp()}
+function addEvent(title,detail,type='ok'){events.unshift({time:stamp(),title,detail,type});events=events.slice(0,7);$('eventList').innerHTML=events.map(e=>`<div class="event"><div class="event-time">${e.time}</div><i class="event-mark ${e.type==='warn'?'warn':''}"></i><div class="event-text"><strong>${e.title}</strong><span>${e.detail}</span></div></div>`).join('')}
+function toast(title,body){$('toastTitle').textContent=title;$('toastBody').textContent=body;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),3200)}
+function changed(k){values[k]=Number($(k).value);changeCount++;renderControls();addEvent('Sensor value changed',`${meta[k].name} → ${meta[k].fmt(values[k])} ${meta[k].unit}`);$('sendState').textContent='Ready to send · '+changeCount+' changes since load'}
+function queueDemoSend(label){sendToBackend(label)}
+Object.keys(meta).forEach(k=>$(k).addEventListener('input',()=>changed(k)));
+document.querySelectorAll('[data-reset]').forEach(b=>b.addEventListener('click',()=>{$(b.dataset.reset).value=defaults[b.dataset.reset];changed(b.dataset.reset)}));
+function resetAll(){values={...defaults};paused=false;renderControls();$('pauseBtn').textContent='Ⅱ Pause simulation';$('sendState').textContent='Preview mode · not connected';addEvent('Room reset','All six sensors restored to default values');toast('Room reset','Default atmospheric values restored.')}
+$('resetAll').addEventListener('click',resetAll);$('defaultsBtn').addEventListener('click',resetAll);
+$('pauseBtn').addEventListener('click',()=>{paused=!paused;$('pauseBtn').textContent=paused?'▶ Resume simulation':'Ⅱ Pause simulation';$('airflow2').style.animationPlayState=paused?'paused':'running';addEvent(paused?'Simulation paused':'Simulation resumed',paused?'Animated airflow is paused':'Animated airflow is running')});
+$('randomizeBtn').addEventListener('click',()=>{values.temperature=+(Math.random()*45+5).toFixed(1);values.humidity=Math.round(Math.random()*70+20);values.airflow=+(Math.random()*4.5+.2).toFixed(1);values.co2=Math.round(Math.random()*1800+400);values.pressure=+(Math.random()*12+95).toFixed(1);values.light=Math.round(Math.random()*1400+100);renderControls();addEvent('New environment generated','All six sensor values changed together; click Send readings to submit');$('sendState').textContent='New snapshot ready to send';toast('Environment generated','All six simulated sensors have new readings. Click Send readings to submit them.')});
+$('sendReadingsBtn').addEventListener('click',()=>sendToBackend('Send readings button · all six sensors'));
+$('clearLog').addEventListener('click',()=>{events=[];$('eventList').innerHTML='';addEvent('Log cleared','Activity log restarted')});
+renderControls();addEvent('Simulation started','Six virtual sensors initialized with default values');addEvent('Ready to send','Change any sensor values and click Send readings to send one combined snapshot','warn');
+})();
+</script>
+
+<script>
+(() => {
+  const $auth = (id) => document.getElementById(id);
+  const state = { apiBase: 'http://127.0.0.1:8000', token: '', batches: [], selectedBatchId: '' };
+  const setStatus = (id, message, bad = false) => {
+    const el = $auth(id);
+    if (el) { el.textContent = message; el.style.color = bad ? '#ff9b9b' : '#9db0c3'; }
+  };
+  const setApiBase = (value) => value.trim().replace(/\/+$/, '');
+  const apiFetch = async (url, options = {}) => {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...(options.headers || {}), ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}) }
+    });
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { detail: text }; }
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}${data.detail ? ` — ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}` : ''}`);
+    return data;
+  };
+  const firstValue = (obj, keys) => {
+    for (const key of keys) if (obj && obj[key] != null) return obj[key];
+    return null;
+  };
+  const normalizeList = (data) => {
+    const value = Array.isArray(data) ? data : firstValue(data, ['items','batches','data','results']);
+    return Array.isArray(value) ? value : [];
+  };
+  const loginCandidates = (base) => [
+    { path: '/api/v1/auth/login', body: { email: $auth('loginEmail').value.trim(), password: $auth('loginPassword').value }, mode: 'json' },
+    { path: '/api/v1/auth/login', body: new URLSearchParams({ username: $auth('loginEmail').value.trim(), password: $auth('loginPassword').value }), mode: 'form' },
+    { path: '/api/v1/auth/token', body: new URLSearchParams({ username: $auth('loginEmail').value.trim(), password: $auth('loginPassword').value }), mode: 'form' },
+    { path: '/auth/login', body: { email: $auth('loginEmail').value.trim(), password: $auth('loginPassword').value }, mode: 'json' }
+  ];
+  async function doLogin(event) {
+    event.preventDefault();
+    state.apiBase = setApiBase($auth('loginBaseUrl').value);
+    if (!/^https?:\/\//i.test(state.apiBase)) { setStatus('loginStatus', 'Enter a valid http:// or https:// API URL.', true); return; }
+    const button = $auth('loginButton'); button.disabled = true; button.textContent = 'Signing in…';
+    setStatus('loginStatus', 'Connecting to FarmShield…');
+    let lastError = null;
+    for (const candidate of loginCandidates(state.apiBase)) {
+      try {
+        const response = await fetch(state.apiBase + candidate.path, {
+          method: 'POST',
+          headers: candidate.mode === 'form' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : { 'Content-Type': 'application/json' },
+          body: candidate.mode === 'form' ? candidate.body.toString() : JSON.stringify(candidate.body)
+        });
+        const text = await response.text();
+        let data = {}; try { data = text ? JSON.parse(text) : {}; } catch { data = { detail: text }; }
+        if (response.status === 404 || response.status === 405) { lastError = new Error(`${response.status} at ${candidate.path}`); continue; }
+        if (!response.ok) { lastError = new Error(`${response.status}: ${data.detail || response.statusText}`); continue; }
+        const token = firstValue(data, ['access_token','token','jwt']) || firstValue(data.data, ['access_token','token','jwt']);
+        if (!token) { lastError = new Error('Login endpoint responded, but no access token was found in its response.'); continue; }
+        state.token = token;
+        $auth('authGate').hidden = true;
+        $auth('batchGate').hidden = false;
+        await loadBatches();
+        return;
+      } catch (error) { lastError = error; }
+    }
+    setStatus('loginStatus', `Login failed: ${lastError?.message || 'No compatible login endpoint found'}. Check API URL, backend routes, and CORS.`, true);
+    button.disabled = false; button.textContent = 'Login';
+  }
+  async function loadBatches() {
+    const select = $auth('batchSelect'); select.innerHTML = '<option value="">Loading batches…</option>';
+    setStatus('batchStatus', 'Fetching batches for this account…');
+    const candidates = ['/api/v1/batches', '/api/v1/batches/my', '/api/v1/farmer/batches', '/api/v1/batches/'];
+    let lastError = null;
+    for (const path of candidates) {
+      try {
+        const data = await apiFetch(state.apiBase + path);
+        const list = normalizeList(data);
+        if (!list.length) { lastError = new Error(`No batches returned from ${path}`); continue; }
+        state.batches = list;
+        select.innerHTML = '<option value="">Choose a batch…</option>';
+        list.forEach((batch) => {
+          const id = firstValue(batch, ['batch_id','id','_id']);
+          if (!id) return;
+          const name = firstValue(batch, ['name','batch_name','crop_name','title']) || `Batch ${id}`;
+          const crop = firstValue(batch, ['crop','crop_type']);
+          const option = document.createElement('option');
+          option.value = String(id);
+          option.textContent = `${name}${crop ? ` (${crop})` : ''}`;
+          select.appendChild(option);
+        });
+        setStatus('batchStatus', `${select.options.length - 1} batch(es) loaded.`);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (!/404|405/.test(error.message)) break;
+      }
+    }
+    select.innerHTML = '<option value="">Could not load batches</option>';
+    setStatus('batchStatus', `Could not load batches: ${lastError?.message || 'No compatible batch endpoint found'}. The simulator needs the actual FarmShield batch-list API route.`, true);
+  }
+  $auth('loginForm')?.addEventListener('submit', doLogin);
+  $auth('logoutButton')?.addEventListener('click', () => {
+    state.token = ''; state.batches = []; state.selectedBatchId = '';
+    $auth('batchGate').hidden = true; $auth('authGate').hidden = false;
+    $auth('loginPassword').value = ''; setStatus('loginStatus', 'Signed out.');
+  });
+  $auth('loadBatchButton')?.addEventListener('click', () => {
+    const id = $auth('batchSelect').value;
+    if (!id) { setStatus('batchStatus', 'Select a storage batch first.', true); return; }
+    state.selectedBatchId = id;
+    // Share the authenticated configuration with the existing simulator sender.
+    if (window.HarvestStoreConfig) Object.assign(window.HarvestStoreConfig, { backendBaseUrl: state.apiBase, batchId: id, bearerToken: state.token });
+    window.FARMSHIELD_AUTH = { apiBaseUrl: state.apiBase, batchId: id, token: state.token };
+    $auth('batchGate').hidden = true;
+    setStatus('batchStatus', `Selected batch ${id}. You can now send readings.`);
+    const badge = document.getElementById('sendState');
+    if (badge) badge.textContent = `Connected · batch ${id}`;
+  });
+})();
+</script>
+
+</body>
+</html>

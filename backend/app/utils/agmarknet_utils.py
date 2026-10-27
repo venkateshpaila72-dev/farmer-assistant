@@ -1,176 +1,412 @@
 """
-AGMARKNET live price fetching (data.gov.in).
+Mandi Price API adapter for the Farmer Assistant backend.
 
-Why this file looks the way it does:
-On some Windows dev machines, Python's own hostname resolution for
-api.data.gov.in hangs indefinitely (a Windows DNS-resolver quirk) even
-though curl and raw sockets connect to the same host instantly. httpx
-usually works fine in production (Linux), so we try the fast native path
-first and only fall back to a curl subprocess if it stalls — the fallback
-never fires on a healthy network, so it costs nothing when things are normal.
+API: https://mandi-api.onrender.com/v1
+
+Supported states:
+- Maharashtra
+- Uttar Pradesh
+- Punjab
+- Madhya Pradesh
+- Karnataka
+
+Note:
+This is a community API, not an official government API.
+Andhra Pradesh and Telangana are not supported by this provider.
 """
 
-import asyncio
-import json
-import subprocess
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Any
+
 import httpx
-from datetime import datetime, timedelta
-from urllib.parse import urlencode
 from pymongo import UpdateOne
-from app.core.config import settings
 
-AGMARKNET_URL = settings.AGMARKNET_API_URL
-
-
-async def _fetch_via_httpx(params: dict, timeout: float = 8.0) -> dict:
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.get(AGMARKNET_URL, params=params)
-        response.raise_for_status()
-        return response.json()
+from app.db.database import get_db
+from app.db.models import MARKET_PRICES_COLLECTION
 
 
-async def _fetch_via_curl(params: dict, timeout: int = 20) -> dict:
-    """
-    Runs curl as a plain BLOCKING subprocess call, off the event loop via
-    asyncio.to_thread. We deliberately do NOT use
-    asyncio.create_subprocess_exec here — that async-subprocess API needs
-    Windows' ProactorEventLoop, which uvicorn doesn't use (it uses
-    SelectorEventLoop), so it fails with a bare NotImplementedError on
-    Windows. subprocess.run() has no such restriction and works the same
-    on Windows, Linux, and macOS.
-    """
-    query = urlencode(params)
-    full_url = f"{AGMARKNET_URL}?{query}"
+BASE_URL = "https://mandi-api.onrender.com/v1"
 
-    def _run_curl_blocking() -> str:
-        result = subprocess.run(
-            # -g disables curl's URL "globbing" (it treats [ ] { } as range
-            # patterns by default) — AGMARKNET's filters[State]=... params
-            # contain literal brackets that must NOT be glob-parsed.
-            ["curl", "-4", "-g", "-s", "--max-time", str(timeout), full_url],
-            capture_output=True,
-            text=True,
-            timeout=timeout + 5,
+REQUEST_TIMEOUT = httpx.Timeout(45.0, connect=10.0)
+
+HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "FarmerAssistant/1.0",
+}
+
+SUPPORTED_STATES = {
+    "maharashtra": "Maharashtra",
+    "uttar pradesh": "Uttar Pradesh",
+    "punjab": "Punjab",
+    "madhya pradesh": "Madhya Pradesh",
+    "karnataka": "Karnataka",
+}
+
+
+class AgmarknetError(RuntimeError):
+    """Raised when the market-price provider cannot serve a request."""
+
+
+def _canonical_state(state_name: str) -> str:
+    """Validate the state and return its canonical name."""
+
+    cleaned = " ".join(state_name.strip().split())
+    canonical = SUPPORTED_STATES.get(cleaned.casefold())
+
+    if not canonical:
+        supported = ", ".join(SUPPORTED_STATES.values())
+
+        raise AgmarknetError(
+            f"{state_name!r} is not supported by the Mandi Price API. "
+            f"Supported states: {supported}. "
+            "Andhra Pradesh and Telangana are not available "
+            "from this provider."
         )
-        if result.returncode != 0:
-            raise RuntimeError(f"curl fallback failed (code {result.returncode}): {result.stderr}")
-        return result.stdout
 
-    stdout = await asyncio.to_thread(_run_curl_blocking)
-    return json.loads(stdout)
+    return canonical
+
+
+async def _get_json(
+    path: str,
+    params: dict[str, Any] | None = None,
+) -> dict:
+    """Send an HTTP request and validate the JSON response."""
+
+    url = f"{BASE_URL}/{path.lstrip('/')}"
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=REQUEST_TIMEOUT,
+            headers=HEADERS,
+            follow_redirects=True,
+        ) as client:
+
+            response = await client.get(
+                url,
+                params=params or {},
+            )
+
+            if response.is_error:
+                raise AgmarknetError(
+                    f"Mandi Price API returned HTTP "
+                    f"{response.status_code}: "
+                    f"{response.text[:1000]}"
+                )
+
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise AgmarknetError(
+                    "Mandi Price API returned invalid JSON: "
+                    f"{response.text[:500]}"
+                ) from exc
+
+    except httpx.TimeoutException as exc:
+        raise AgmarknetError(
+            f"Mandi Price API timed out: {exc}"
+        ) from exc
+
+    except httpx.RequestError as exc:
+        raise AgmarknetError(
+            f"Mandi Price API connection failed: {exc}"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise AgmarknetError(
+            "Mandi Price API returned an unexpected response format."
+        )
+
+    return payload
+
+
+def _number(value: Any) -> float:
+    """Convert a price value to float."""
+
+    if value is None or value == "":
+        return 0.0
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    return float(str(value).replace(",", "").strip())
+
+
+def _records_from_payload(payload: dict) -> list[dict]:
+    """Extract records from the API response."""
+
+    if payload.get("success") is not True:
+        raise AgmarknetError(
+            "Mandi Price API reported failure: "
+            f"{str(payload)[:800]}"
+        )
+
+    records = payload.get("data")
+
+    if not isinstance(records, list):
+        raise AgmarknetError(
+            "Mandi Price API response does not contain a valid data list."
+        )
+
+    return [
+        record
+        for record in records
+        if isinstance(record, dict)
+    ]
 
 
 async def fetch_agmarknet_prices(
-    state: str | None = None,
-    commodity: str | None = None,
+    state: str,
     arrival_date: str | None = None,
-    limit: int = 500,
+    commodity: str | None = None,
+    market: str | None = None,
+    variety: str | None = None,
 ) -> list[dict]:
     """
-    Fetch live price records from AGMARKNET.
-    arrival_date, if given, must be "DD-MM-YYYY" (AGMARKNET's own filter
-    format) — without it, the API returns an unsorted mix of records that
-    can span back many years, not today's prices.
-    Returns a list of raw records in AGMARKNET's own field format
-    (Arrival_Date, Commodity, District, Market, Max_Price, Min_Price,
-    Modal_Price, State, Variety, Grade, Commodity_Code) — same shape
-    process_csv() already expects from the manual CSV upload path.
+    Fetch market prices from the Mandi Price API.
+
+    Args:
+        state: Supported state name.
+        arrival_date: Optional date in YYYY-MM-DD format.
+        commodity: Optional commodity filter.
+        market: Optional market filter.
+        variety: Optional variety filter.
+
+    Returns:
+        A list of market-price records.
     """
-    params = {
-        "api-key": settings.AGMARKNET_API_KEY,
-        "format": "json",
-        "limit": limit,
+
+    canonical_state = _canonical_state(state)
+
+    params: dict[str, str] = {
+        "state": canonical_state,
     }
-    if state:
-        params["filters[State]"] = state
-    if commodity:
-        params["filters[Commodity]"] = commodity
+
     if arrival_date:
-        params["filters[Arrival_Date]"] = arrival_date
+        try:
+            date.fromisoformat(arrival_date)
+        except ValueError as exc:
+            raise ValueError(
+                "arrival_date must use YYYY-MM-DD format."
+            ) from exc
 
-    try:
-        data = await _fetch_via_httpx(params)
-    except (httpx.TimeoutException, httpx.ConnectError):
-        # Fast path stalled — fall back to the known-reliable curl path.
-        data = await _fetch_via_curl(params)
+        params["date"] = arrival_date
 
-    return data.get("records", [])
+    if commodity and commodity.strip():
+        params["commodity"] = commodity.strip()
+
+    if market and market.strip():
+        params["market"] = market.strip()
+
+    if variety and variety.strip():
+        params["variety"] = variety.strip()
+
+    payload = await _get_json(
+        "/prices",
+        params=params,
+    )
+
+    records = _records_from_payload(payload)
+
+    meta = payload.get("meta") or {}
+
+    print(
+        f"Mandi Price API | "
+        f"State={canonical_state} | "
+        f"Requested date={arrival_date or 'latest available'} | "
+        f"Records={len(records)} | "
+        f"Latest fetch={meta.get('latest_fetched_at', 'unknown')}"
+    )
+
+    return records
 
 
 async def sync_state_prices(state: str) -> int:
     """
-    Fetches today's live AGMARKNET prices for one state and writes them into
-    MongoDB (market_prices collection) — same document shape process_csv()
-    already writes from the manual CSV upload path, so every existing read
-    route (get_prices_from_db, trending, etc.) keeps working unchanged.
-    Called by the daily scheduler job, once per state that has onboarded
-    farmers. Returns the number of price records written.
+    Fetch available prices and upsert them into MongoDB.
 
-    Tries today's date first; some mandis report a day late, so if today
-    has nothing yet we fall back to yesterday once rather than silently
-    returning unfiltered (potentially years-old) data.
+    The actual arrival_date returned by the API is preserved.
+    Old records are never relabeled as today's prices.
     """
-    from app.db.database import get_db
-    from app.db.models import MARKET_PRICES_COLLECTION
 
-    today = datetime.utcnow()
-    yesterday = today - timedelta(days=1)
+    canonical_state = _canonical_state(state)
 
-    records = await fetch_agmarknet_prices(state=state, arrival_date=today.strftime("%d-%m-%Y"), limit=1000)
-    if not records:
-        records = await fetch_agmarknet_prices(state=state, arrival_date=yesterday.strftime("%d-%m-%Y"), limit=1000)
+    records = await fetch_agmarknet_prices(
+        state=canonical_state,
+    )
 
     if not records:
+        print(
+            f"No market-price records returned for "
+            f"{canonical_state}."
+        )
         return 0
 
     uploaded_at = datetime.utcnow()
-    docs = []
-    for row in records:
-        try:
-            docs.append({
-                "state":          row.get("State", state),
-                "district":       row.get("District", ""),
-                "market":         row.get("Market", ""),
-                "commodity":      row.get("Commodity", "").lower(),
-                "commodity_raw":  row.get("Commodity", ""),
-                "variety":        row.get("Variety", ""),
-                "grade":          row.get("Grade", ""),
-                "commodity_code": row.get("Commodity_Code", ""),
-                "min_price":      float(str(row.get("Min_Price", "0") or "0").replace(",", "")),
-                "max_price":      float(str(row.get("Max_Price", "0") or "0").replace(",", "")),
-                "modal_price":    float(str(row.get("Modal_Price", "0") or "0").replace(",", "")),
-                "arrival_date":   row.get("Arrival_Date", ""),
-                "uploaded_by":    "agmarknet_live",
-                "uploaded_at":    uploaded_at,
-            })
-        except (ValueError, TypeError):
-            continue  # skip malformed rows, don't fail the whole batch
+    documents: list[dict] = []
 
-    if not docs:
+    for record in records:
+
+        commodity_raw = str(
+            record.get("commodity") or ""
+        ).strip()
+
+        market_name = str(
+            record.get("market") or ""
+        ).strip()
+
+        row_state = str(
+            record.get("state") or canonical_state
+        ).strip()
+
+        arrival_date_value = str(
+            record.get("arrival_date") or ""
+        ).strip()
+
+        # Required fields must come from the actual API record.
+        if (
+            not commodity_raw
+            or not market_name
+            or not arrival_date_value
+        ):
+            continue
+
+        try:
+            min_price = _number(
+                record.get("min_price")
+            )
+
+            max_price = _number(
+                record.get("max_price")
+            )
+
+            modal_price = _number(
+                record.get("modal_price")
+            )
+
+        except (TypeError, ValueError):
+            print(
+                f"Skipping malformed price record: {record!r}"
+            )
+            continue
+
+        document = {
+            "state": row_state,
+
+            "district": str(
+                record.get("district") or ""
+            ).strip(),
+
+            "market": market_name,
+
+            "commodity": commodity_raw.lower(),
+
+            "commodity_raw": commodity_raw,
+
+            "variety": str(
+                record.get("variety") or ""
+            ).strip(),
+
+            "grade": str(
+                record.get("grade") or ""
+            ).strip(),
+
+            "commodity_code": str(
+                record.get("commodity_code") or ""
+            ).strip(),
+
+            "min_price": min_price,
+
+            "max_price": max_price,
+
+            "modal_price": modal_price,
+
+            "arrival_date": arrival_date_value,
+
+            "uploaded_by": "mandi_price_api",
+
+            "uploaded_at": uploaded_at,
+
+            "source_fetched_at": record.get(
+                "fetched_at"
+            ),
+        }
+
+        documents.append(document)
+
+    if not documents:
+        print(
+            f"Received {len(records)} records for "
+            f"{canonical_state}, but none contained "
+            "the required commodity, market, and arrival date."
+        )
         return 0
 
     db = get_db()
 
-    # Upsert on the natural identity of a price record (state/district/
-    # market/commodity/variety/arrival_date) instead of insert_many, so
-    # re-running the sync for a day that's already synced UPDATES the
-    # existing record (fresher prices, fresher uploaded_at) rather than
-    # inserting a duplicate copy. Paired with the unique index on this
-    # same key in db/models.py.
-    operations = [
-        UpdateOne(
-            {
-                "state":        doc["state"],
-                "district":     doc["district"],
-                "market":       doc["market"],
-                "commodity":    doc["commodity"],
-                "variety":      doc["variety"],
-                "arrival_date": doc["arrival_date"],
-            },
-            {"$set": doc},
-            upsert=True,
+    operations = []
+
+    for document in documents:
+
+        filter_query = {
+            "state": document["state"],
+            "district": document["district"],
+            "market": document["market"],
+            "commodity": document["commodity"],
+            "variety": document["variety"],
+            "arrival_date": document["arrival_date"],
+        }
+
+        operations.append(
+            UpdateOne(
+                filter_query,
+                {"$set": document},
+                upsert=True,
+            )
         )
-        for doc in docs
-    ]
-    await db[MARKET_PRICES_COLLECTION].bulk_write(operations, ordered=False)
-    return len(docs)
+
+    result = await db[
+        MARKET_PRICES_COLLECTION
+    ].bulk_write(
+        operations,
+        ordered=False,
+    )
+
+    print(
+        f"Market-price sync completed | "
+        f"State={canonical_state} | "
+        f"Received={len(records)} | "
+        f"Valid={len(documents)} | "
+        f"Inserted={result.upserted_count} | "
+        f"Modified={result.modified_count}"
+    )
+
+    return len(documents)
+
+
+async def test_agmarknet_connection() -> bool:
+    """Check whether the provider's states endpoint is accessible."""
+
+    payload = await _get_json("/states")
+
+    if payload.get("success") is not True:
+        raise AgmarknetError(
+            "Mandi Price API states check failed: "
+            f"{str(payload)[:500]}"
+        )
+
+    return True
+
+
+async def test_agmarknet_state(
+    state: str = "Maharashtra",
+) -> dict:
+    """Check whether a state is supported by this provider."""
+
+    canonical_state = _canonical_state(state)
+
+    return {
+        "state": canonical_state,
+        "supported": True,
+    }

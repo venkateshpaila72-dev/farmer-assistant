@@ -4,6 +4,10 @@ from app.db.database import get_db
 from app.db.models import MARKET_PRICES_COLLECTION, FARMER_PROFILES_COLLECTION
 from app.utils.market_utils import get_prices_from_db, get_trending_from_db
 from app.core.security import get_current_user, get_current_admin
+from app.utils.agmarknet_utils import (
+    test_agmarknet_connection,
+    sync_state_prices,
+)
 from app.db.schemas import MarketPriceCreate
 import csv
 import io
@@ -398,3 +402,13 @@ async def get_available_states():
         "total":  len(states),
         "states": sorted(states)
     }
+    
+@router.get("/agmarknet-test")
+async def agmarknet_test():
+    try:
+        return await test_agmarknet_connection()
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=str(e)
+        )
