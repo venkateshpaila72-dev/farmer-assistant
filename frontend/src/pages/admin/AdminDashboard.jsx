@@ -16,10 +16,12 @@ const quickLinks = [
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    setError(false);
     getAnalytics().then(setStats).catch(() => setError(true));
-  }, []);
+  }, [retry]);
 
   return (
     <div className="p-5 md:p-8 flex flex-col gap-5">
@@ -29,7 +31,7 @@ export default function AdminDashboard() {
       </div>
 
       {error ? (
-        <ErrorState message="Couldn't load dashboard stats." />
+        <ErrorState message="Couldn't load dashboard stats." onRetry={() => { setStats(null); setRetry((r) => r + 1); }} />
       ) : !stats ? (
         <div className="grid sm:grid-cols-2 gap-4">
           <Skeleton className="h-24 w-full" />

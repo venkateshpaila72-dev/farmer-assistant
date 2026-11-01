@@ -8,6 +8,7 @@ import { Panel } from "../../components/ui/Panel";
 import { ConfidenceRing } from "../../components/ui/ConfidenceRing";
 import { useAuth } from "../../context/AuthContext";
 import { detectDisease } from "../../api/vision";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 
@@ -40,7 +41,7 @@ export default function DiseaseDetection() {
       const data = await detectDisease(user.username, file);
       setResult(data);
     } catch (err) {
-      setError(err.response?.data?.detail || t("vision.error"));
+      setError(getErrorMessage(err, t("vision.error")));
     } finally {
       setLoading(false);
     }

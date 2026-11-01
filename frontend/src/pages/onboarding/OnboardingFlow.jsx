@@ -8,6 +8,7 @@ import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { saveOnboarding } from "../../api/onboarding";
+import { getErrorMessage } from "../../utils/errors";
 import { OnboardingIllustration } from "../../components/illustrations/OnboardingIllustrations";
 import { LanguageStep } from "./steps/LanguageStep";
 import { SoilTypeStep } from "./steps/SoilTypeStep";
@@ -77,7 +78,7 @@ export default function OnboardingFlow() {
       toast.success(t("onboarding.saved"));
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.detail || t("onboarding.saveError"));
+      setError(getErrorMessage(err, t("onboarding.saveError")));
     } finally {
       setSubmitting(false);
     }

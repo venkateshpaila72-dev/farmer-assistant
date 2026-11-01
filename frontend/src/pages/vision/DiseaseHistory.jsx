@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Bug, CheckCircle2 } from "lucide-react";
 import { Panel } from "../../components/ui/Panel";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
@@ -17,16 +18,18 @@ export default function DiseaseHistory() {
   const { user } = useAuth();
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!user?.username) return;
+    setError(false);
     getDiseaseHistory(user.username, 20)
       .then((data) => setHistory(data.history || []))
       .catch(() => setError(true));
-  }, [user?.username]);
+  }, [user?.username, retry]);
 
   if (error) {
-    return <Panel className="p-8 text-center text-ink-soft">{t("vision.error")}</Panel>;
+    return <ErrorState message={t("vision.error")} onRetry={() => { setHistory(null); setRetry((r) => r + 1); }} />;
   }
 
   if (history === null) {

@@ -20,6 +20,7 @@ import { IrrigationStep } from "../onboarding/steps/IrrigationStep";
 import { ProblemStep } from "../onboarding/steps/ProblemStep";
 import { LocationStep } from "../onboarding/steps/LocationStep";
 import { WhatsAppOptInCard } from "../../components/whatsapp/WhatsAppOptInCard";
+import { getErrorMessage } from "../../utils/errors";
 
 // The soil-image classifier's 5 output classes don't perfectly overlap with
 // onboarding's 7-option list (see backend routes/ml.py for the full story).
@@ -83,6 +84,7 @@ export default function ProfilePage() {
   const [editingField, setEditingField] = useState(null);
   const [detecting, setDetecting] = useState(false);
   const [detection, setDetection] = useState(null);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!user?.username) return;
@@ -105,7 +107,7 @@ export default function ProfilePage() {
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [user?.username]);
+  }, [user?.username, retry]);
 
   function update(field) {
     return (value) => setForm((f) => ({ ...f, [field]: value }));
@@ -131,7 +133,7 @@ export default function ProfilePage() {
       setDetection(null);
       toast.success(t("profile.saved"));
     } catch (err) {
-      toast.error(err.response?.data?.detail || t("profile.saveError"));
+      toast.error(getErrorMessage(err, t("profile.saveError")));
     } finally {
       setSaving(false);
     }
@@ -152,7 +154,7 @@ export default function ProfilePage() {
       setDetection({ raw: result.soil_type, confidence: result.confidence, mapped });
       if (mapped) update("soil_type")(mapped);
     } catch (err) {
-      toast.error(err.response?.data?.detail || t("profile.soilDetectError"));
+      toast.error(getErrorMessage(err, t("profile.soilDetectError")));
     } finally {
       setDetecting(false);
     }
@@ -172,7 +174,7 @@ export default function ProfilePage() {
   if (loadError || !form) {
     return (
       <div className="p-5 md:p-8">
-        <ErrorState message={t("profile.loadError")} />
+        <ErrorState message={t("profile.loadError")} onRetry={() => setRetry((r) => r + 1)} />
       </div>
     );
   }

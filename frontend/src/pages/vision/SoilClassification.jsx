@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { classifySoil } from "../../api/vision";
 import { translateSoilType } from "../../utils/soilTypeLabel";
 import { recommendCrop } from "../../api/ml";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 
@@ -45,7 +46,7 @@ export default function SoilClassification() {
       const crop = await recommendCrop(user.username, soil.soil_type);
       setCropResult(crop);
     } catch (err) {
-      setError(err.response?.data?.detail || t("vision.error"));
+      setError(getErrorMessage(err, t("vision.error")));
     } finally {
       setLoading(false);
       setCropsLoading(false);

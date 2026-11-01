@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -9,6 +9,7 @@ import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { useAuth } from "../../context/AuthContext";
 import { loginAdmin } from "../../api/auth";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 const fieldUp = {
@@ -23,6 +24,7 @@ export default function AdminLogin() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,10 +38,12 @@ export default function AdminLogin() {
       const data = await loginAdmin(form.email, form.password);
       login(data);
       toast.success(`Welcome, ${data.username}`);
-      navigate("/admin", { replace: true });
+      const target = location.state?.from?.pathname?.startsWith("/admin")
+        ? location.state.from.pathname
+        : "/admin";
+      navigate(target, { replace: true });
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      setError(detail || t("adminLogin.error"));
+      setError(getErrorMessage(err, t("adminLogin.error")));
     } finally {
       setLoading(false);
     }

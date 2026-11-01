@@ -10,6 +10,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { getAnnouncements, postAnnouncement, editAnnouncement, draftAnnouncementFromNews } from "../../api/admin";
 import { ingestDocument, getDocuments, deleteDocument } from "../../api/rag";
+import { getErrorMessage } from "../../utils/errors";
 
 // A composer with an image picker — reused for both "post new" (top of the
 // page) and "edit an existing one" (inline, in place of that card in the
@@ -87,7 +88,7 @@ function AnnouncementForm({ initial, submitLabel, onSubmit, onCancel, busy }) {
       setShowDraftPanel(false);
       toast.success("Draft filled in below — review and edit before posting");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Couldn't draft from that article. Try again.");
+      toast.error(getErrorMessage(err, "Couldn't draft from that article. Try again."));
     } finally {
       setDrafting(false);
     }
@@ -253,7 +254,7 @@ function ICARDocumentsPanel() {
       await ingestDocument(f);
       toast.success("Uploading in the background — this can take a couple of minutes before it shows up below.");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Upload failed. Try again.");
+      toast.error(getErrorMessage(err, "Upload failed. Try again."));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -272,7 +273,7 @@ function ICARDocumentsPanel() {
       toast.success("Document removed");
       load();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Couldn't remove that document.");
+      toast.error(getErrorMessage(err, "Couldn't remove that document."));
     } finally {
       setDeletingId(null);
     }
@@ -367,7 +368,7 @@ export default function Announcements() {
       toast.success("Announcement posted");
       load();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Couldn't post the announcement. Try again.");
+      toast.error(getErrorMessage(err, "Couldn't post the announcement. Try again."));
     } finally {
       setPosting(false);
     }
@@ -381,7 +382,7 @@ export default function Announcements() {
       setEditingId(null);
       load();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Couldn't save changes. Try again.");
+      toast.error(getErrorMessage(err, "Couldn't save changes. Try again."));
     } finally {
       setSavingEdit(false);
     }

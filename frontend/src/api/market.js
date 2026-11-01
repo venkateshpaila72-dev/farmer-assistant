@@ -33,6 +33,7 @@ export async function uploadMarketDataset(file, uploadedBy = "admin") {
   formData.append("uploaded_by", uploadedBy);
   const { data } = await client.post("/market/upload-dataset", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 300000,
   });
   return data;
 }
@@ -55,6 +56,8 @@ export async function getMarketRecords({ state, limit = 20, skip = 0 } = {}) {
 // Triggers the same live AGMARKNET sync job the 5 AM scheduler runs
 // automatically — POST /agent/run-market-sync (agent router, not market).
 export async function runMarketSync() {
-  const { data } = await client.post("/agent/run-market-sync");
+  const { data } = await client.post("/agent/run-market-sync", undefined, {
+    timeout: 300000,
+  });
   return data;
 }

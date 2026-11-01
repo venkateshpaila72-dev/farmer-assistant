@@ -21,6 +21,7 @@ export async function transcribeAudio(audioBlob) {
   form.append("file", audioBlob, "voice.webm");
   const { data } = await client.post(`/chat/transcribe`, form, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 120000,
   });
   return data;
 }
@@ -33,7 +34,7 @@ export async function synthesizeSpeech(text) {
   const response = await client.post(
     `/chat/speak`,
     { text },
-    { responseType: "blob" }
+    { responseType: "blob", timeout: 120000 }
   );
   return response.data; // audio/mpeg Blob
 }

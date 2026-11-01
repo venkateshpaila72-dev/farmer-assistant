@@ -8,6 +8,7 @@ export async function ingestDocument(file) {
   formData.append("file", file);
   const { data } = await client.post("/rag/ingest", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 300000,
   });
   return data;
 }

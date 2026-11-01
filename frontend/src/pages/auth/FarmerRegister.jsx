@@ -9,6 +9,7 @@ import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { registerFarmer, loginFarmer } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 const fieldUp = {
@@ -49,13 +50,17 @@ export default function FarmerRegister() {
     setLoading(true);
     try {
       await registerFarmer(form);
-      const tokenData = await loginFarmer(form.username, form.password);
-      login(tokenData);
-      toast.success("Account created — let's set up your farm profile.");
-      navigate("/onboarding", { replace: true });
+      try {
+        const tokenData = await loginFarmer(form.username, form.password);
+        login(tokenData);
+        toast.success("Account created — let's set up your farm profile.");
+        navigate("/onboarding", { replace: true });
+      } catch {
+        toast.success("Account created. Please log in.");
+        navigate("/login", { replace: true });
+      }
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      setError(detail || t("register.error"));
+      setError(getErrorMessage(err, t("register.error")));
     } finally {
       setLoading(false);
     }
