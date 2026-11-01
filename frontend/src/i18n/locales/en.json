@@ -94,7 +94,10 @@
     "refresh": "Refresh",
     "empty": "No farming news right now.",
     "loadError": "Could not load news. Please try again.",
-    "refreshing": "Refreshing…"
+    "refreshing": "Refreshing…",
+    "badge": "Updates",
+    "title": "Farming News & Updates",
+    "subtitle": "Stay informed with the latest agricultural news and advisories."
   },
   "cta": {
     "title": "Set up your farm profile once. Get advice suited to it every day after.",
@@ -269,6 +272,7 @@
   "cropTools": {
     "title": "Crop tools",
     "subtitle": "Recommendations built from your soil, weather, and farm profile.",
+    "bestMatch": "Best Match",
     "tabCrop": "Crop",
     "tabFertilizer": "Fertilizer",
     "tabYield": "Yield",
@@ -351,7 +355,11 @@
     "avgPrice": "Average price",
     "allListings": "All listings ({{count}})",
     "noCommoditiesFound": "No commodities found for this state.",
-    "loadError": "Couldn't load prices. Try again."
+    "loadError": "Couldn't load prices. Try again.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more…",
+    "vsLastWeek": "vs last week",
+    "yourCrops": "Your Crops"
   },
   "chat": {
     "title": "Farm Assistant",

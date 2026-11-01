@@ -67,10 +67,14 @@ export async function editAnnouncement(id, { title, content, benefit, eligibilit
 // object {title, content, benefit, eligibility, where_to_apply,
 // official_link} for the admin to review/edit before actually posting.
 export async function draftAnnouncementFromNews({ title, source_text, url }) {
-  const { data } = await client.post("/admins/announcement/draft-from-news", {
-    title,
-    source_text: source_text || "",
-    url: url || "",
-  });
+  const { data } = await client.post(
+    "/admins/announcement/draft-from-news",
+    {
+      title,
+      source_text: source_text || "",
+      url: url || "",
+    },
+    { timeout: 120000 }
+  );
   return data;
 }

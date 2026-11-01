@@ -156,6 +156,6 @@ async def get_current_location(username: str, current_user: dict = Depends(get_c
 
     return {
         "username": username,
-        "current_location": profile["current_location"],
-        "home_location": profile["home_location"]
+        "current_location": profile.get("current_location") or profile.get("home_location"),
+        "home_location": profile.get("home_location")
     }

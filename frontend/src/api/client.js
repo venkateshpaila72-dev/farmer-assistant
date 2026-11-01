@@ -5,6 +5,7 @@ const client = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:8000",
+  timeout: 60000,
 });
 
 
@@ -72,32 +73,30 @@ client.interceptors.response.use(
   (res) => res,
 
   (err) => {
+    const status = err.response?.status;
+    const token = localStorage.getItem("token");
+    const url = err.config?.url || "";
+    const isLoginUrl = url.includes("/auth/verifyuser") || url.includes("/auth/verifyadmin");
 
-    const status =
-      err.response?.status;
+    if (status === 401 && token && !isLoginUrl) {
+      let role;
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        role = storedUser?.role;
+      } catch {
+        role = undefined;
+      }
 
+      const skipPaths = ["/", "/login", "/register", "/admin/login", "/server-error"];
+      if (!skipPaths.includes(window.location.pathname)) {
+        sessionStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+      }
 
-    if (status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
 
-      localStorage.removeItem(
-        "token"
-      );
-
-      localStorage.removeItem(
-        "user"
-      );
-
-      window.location.href =
-        "/login";
-
-    } else if (
-      status >= 500
-    ) {
-
-      window.location.href =
-        "/server-error";
+      window.dispatchEvent(new CustomEvent("auth:logout", { detail: { role } }));
     }
-
 
     return Promise.reject(err);
   }

@@ -42,6 +42,7 @@ export function BackendWakeGate({ children }) {
   const [messageIndex, setMessageIndex] = useState(0);
   const [longWait, setLongWait] = useState(false);
   const startedAt = useRef(Date.now());
+  const retryTimerRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,11 +55,16 @@ export function BackendWakeGate({ children }) {
         return;
       }
       setAwake(false);
-      setTimeout(() => checkLoop(RETRY_INTERVAL_MS), RETRY_INTERVAL_MS);
+      retryTimerRef.current = setTimeout(() => checkLoop(RETRY_INTERVAL_MS), RETRY_INTERVAL_MS);
     }
 
     checkLoop(INITIAL_CHECK_TIMEOUT_MS);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -70,9 +76,8 @@ export function BackendWakeGate({ children }) {
     return () => clearInterval(rotate);
   }, [awake]);
 
-  // Still doing the very first check, or already confirmed awake — render
-  // the real app immediately, no flash of a loading screen for the common case.
-  if (awake !== false) return children;
+  if (awake === true) return children;
+  if (awake === null) return <div className="min-h-screen bg-bg" />;
 
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center text-center px-6">

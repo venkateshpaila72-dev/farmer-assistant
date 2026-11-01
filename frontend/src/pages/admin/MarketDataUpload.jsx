@@ -5,6 +5,7 @@ import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Select";
 import { uploadMarketDataset, getMarketRecords, getAvailableStates, runMarketSync } from "../../api/market";
+import { getErrorMessage } from "../../utils/errors";
 
 export default function MarketDataUpload() {
   const fileInputRef = useRef(null);
@@ -47,7 +48,7 @@ export default function MarketDataUpload() {
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Upload failed. Try again.");
+      toast.error(getErrorMessage(err, "Upload failed. Try again."));
     } finally {
       setUploading(false);
     }
@@ -64,7 +65,7 @@ export default function MarketDataUpload() {
       toast.success(`Sync complete — ${result.states_synced} state(s) synced.`);
       getAvailableStates().then((d) => setStates(d.states || [])).catch(() => {});
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Sync failed. Try again.");
+      toast.error(getErrorMessage(err, "Sync failed. Try again."));
     } finally {
       setSyncing(false);
     }

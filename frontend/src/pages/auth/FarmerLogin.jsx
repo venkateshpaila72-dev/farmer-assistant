@@ -11,6 +11,7 @@ import { WelcomeOverlay } from "../../components/system/WelcomeOverlay";
 import { useAuth } from "../../context/AuthContext";
 import { usePageTransition } from "../../context/PageTransitionContext";
 import { loginFarmer } from "../../api/auth";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 const fieldUp = {
@@ -49,8 +50,7 @@ export default function FarmerLogin() {
       // acknowledged, then bring in the full-screen welcome moment.
       setTimeout(() => setWelcomeUser(data.username), 450);
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      setError(detail || t("login.error"));
+      setError(getErrorMessage(err, t("login.error")));
       setLoading(false);
     }
   }

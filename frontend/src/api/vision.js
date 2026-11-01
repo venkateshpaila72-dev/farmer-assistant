@@ -7,7 +7,7 @@ export async function classifySoil(username, file, updateProfile = true, logToCh
   const { data } = await client.post(
     `/vision/classify-soil?username=${encodeURIComponent(username)}&update_profile=${updateProfile}&log_to_chat=${logToChat}`,
     form,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    { headers: { "Content-Type": "multipart/form-data" }, timeout: 120000 }
   );
   return data;
 }
@@ -24,7 +24,7 @@ export async function detectDisease(username, file, logToChat = false) {
   const { data } = await client.post(
     `/vision/detect-disease?username=${encodeURIComponent(username)}&log_to_chat=${logToChat}&lang=${i18n.language || "en"}`,
     form,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    { headers: { "Content-Type": "multipart/form-data" }, timeout: 120000 }
   );
   return data;
 }

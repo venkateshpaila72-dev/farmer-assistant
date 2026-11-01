@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { useLocation } from "react-router-dom";
 import { ServerCrash } from "lucide-react";
 
 /**
@@ -10,7 +11,7 @@ import { ServerCrash } from "lucide-react";
  * feels native. Offers a simple "Reload page" button since rendering errors
  * are usually not recoverable without a fresh mount.
  */
-export class ErrorBoundary extends Component {
+class ErrorBoundaryInner extends Component {
     constructor(props) {
         super(props);
         this.state = { hasError: false, errorMessage: null };
@@ -29,6 +30,12 @@ export class ErrorBoundary extends Component {
         console.error("[ErrorBoundary] Uncaught rendering error:", err, info);
     }
 
+    componentDidUpdate(prevProps) {
+        if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+            this.setState({ hasError: false, errorMessage: null });
+        }
+    }
+
     render() {
         if (this.state.hasError) {
             return (
@@ -40,21 +47,28 @@ export class ErrorBoundary extends Component {
                         Something went wrong
                     </h1>
                     <p className="text-ink-soft mt-2 max-w-sm">
-                        The page crashed unexpectedly. This has been logged. Please reload
-                        to continue.
+                        The page crashed unexpectedly. Please reload to continue.
                     </p>
                     {this.state.errorMessage && (
                         <p className="mt-3 text-xs text-ink-soft font-mono max-w-sm truncate">
                             {this.state.errorMessage}
                         </p>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => window.location.reload()}
-                        className="mt-6 inline-flex items-center gap-2 rounded-sm bg-primary text-white px-5 py-2.5 text-sm font-semibold hover:bg-primary-dark transition-all duration-200 ease-out-expo active:scale-[0.97] hover:-translate-y-px"
-                    >
-                        Reload page
-                    </button>
+                    <div className="mt-6 flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="inline-flex items-center gap-2 rounded-sm bg-primary text-white px-5 py-2.5 text-sm font-semibold hover:bg-primary-dark transition-all duration-200 ease-out-expo active:scale-[0.97] hover:-translate-y-px"
+                        >
+                            Reload page
+                        </button>
+                        <a
+                            href="/"
+                            className="inline-flex items-center gap-2 rounded-sm bg-white border border-ink/10 text-ink px-5 py-2.5 text-sm font-semibold hover:bg-bg transition-all duration-200 ease-out-expo active:scale-[0.97] hover:-translate-y-px"
+                        >
+                            Go to home
+                        </a>
+                    </div>
                 </div>
             );
         }
@@ -62,3 +76,9 @@ export class ErrorBoundary extends Component {
         return this.props.children;
     }
 }
+
+export function ErrorBoundary({ children }) {
+    const location = useLocation();
+    return <ErrorBoundaryInner resetKey={location.pathname}>{children}</ErrorBoundaryInner>;
+}
+

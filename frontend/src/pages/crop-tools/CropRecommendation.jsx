@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sprout, ChevronDown, Thermometer, Droplets, CloudRain, FlaskConical, Crown } from "lucide-react";
+import { ChevronDown, Thermometer, Droplets, CloudRain, FlaskConical, Crown } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { ConfidenceRing } from "../../components/ui/ConfidenceRing";
@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { recommendCrop } from "../../api/ml";
 import { translateSoilType } from "../../utils/soilTypeLabel";
 import { translateCropName } from "../../utils/cropNameLabel";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 
@@ -43,7 +44,7 @@ export default function CropRecommendation() {
       setResult(data);
       setExpandedCrop(null);
     } catch (err) {
-      setError(err.response?.data?.detail || t("cropTools.error"));
+      setError(getErrorMessage(err, t("cropTools.error")));
     } finally {
       setLoading(false);
     }

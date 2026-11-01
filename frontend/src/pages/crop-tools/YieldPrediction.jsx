@@ -10,6 +10,7 @@ import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { predictYield, getYieldOptions } from "../../api/ml";
 import { translateCropName } from "../../utils/cropNameLabel";
+import { getErrorMessage } from "../../utils/errors";
 
 const currentYear = new Date().getFullYear();
 
@@ -71,7 +72,7 @@ export default function YieldPrediction() {
       const data = await predictYield({ username: user.username, ...form, area_hectares: parseFloat(form.area_hectares) });
       setResult(data);
     } catch (err) {
-      setError(err.response?.data?.detail || t("cropTools.error"));
+      setError(getErrorMessage(err, t("cropTools.error")));
     } finally {
       setLoading(false);
     }

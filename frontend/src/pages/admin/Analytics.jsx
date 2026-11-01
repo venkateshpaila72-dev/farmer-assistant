@@ -15,15 +15,17 @@ export default function Analytics() {
   const [stats, setStats] = useState(null);
   const [farmers, setFarmers] = useState(null);
   const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    setError(false);
     Promise.all([getAnalytics(), getAllFarmers()])
       .then(([a, f]) => {
         setStats(a);
         setFarmers(f.farmers || []);
       })
       .catch(() => setError(true));
-  }, []);
+  }, [retry]);
 
   const byState = useMemo(() => {
     if (!farmers) return [];
@@ -38,7 +40,7 @@ export default function Analytics() {
   if (error) {
     return (
       <div className="p-5 md:p-8">
-        <ErrorState message="Couldn't load analytics." />
+        <ErrorState message="Couldn't load analytics." onRetry={() => { setStats(null); setFarmers(null); setRetry((r) => r + 1); }} />
       </div>
     );
   }

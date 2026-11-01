@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bug, CheckCircle2, RefreshCw, FlaskConical, ShieldCheck, Stethoscope } from "lucide-react";
+import { Bug, CheckCircle2, FlaskConical, ShieldCheck, Stethoscope } from "lucide-react";
 import { ImageUpload } from "../../components/ui/ImageUpload";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { ConfidenceRing } from "../../components/ui/ConfidenceRing";
 import { useAuth } from "../../context/AuthContext";
 import { detectDisease } from "../../api/vision";
+import { getErrorMessage } from "../../utils/errors";
 
 const easeOut = [0.16, 1, 0.3, 1];
 
@@ -40,7 +41,7 @@ export default function DiseaseDetection() {
       const data = await detectDisease(user.username, file);
       setResult(data);
     } catch (err) {
-      setError(err.response?.data?.detail || t("vision.error"));
+      setError(getErrorMessage(err, t("vision.error")));
     } finally {
       setLoading(false);
     }

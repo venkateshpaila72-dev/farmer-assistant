@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import i18n from "../i18n";
 import { getOnboardingProfile } from "../api/onboarding";
 
@@ -15,8 +16,14 @@ const BACKEND_NAME_TO_CODE = {
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
+    try {
+      const stored = localStorage.getItem("user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
   });
   const syncedForRef = useRef(null); // which username we've already applied the language sync for this session
 
@@ -63,11 +70,16 @@ export function AuthProvider({ children }) {
   // no blowing away component state, and no redirect loops because the
   // interceptor already guards against firing on public pages.
   useEffect(() => {
-    function handleForcedLogout() {
+    function handleForcedLogout(e) {
+      const wasAdmin = e.detail?.role === "admin";
       logout();
-      const dest = sessionStorage.getItem("redirectAfterLogin") || "/login";
+      const dest = sessionStorage.getItem("redirectAfterLogin");
       sessionStorage.removeItem("redirectAfterLogin");
-      navigate("/login", { state: { from: { pathname: dest } }, replace: true });
+      navigate(wasAdmin ? "/admin/login" : "/login", {
+        replace: true,
+        state: dest ? { from: { pathname: dest } } : undefined,
+      });
+      toast.info("Your session expired. Please log in again.");
     }
     window.addEventListener("auth:logout", handleForcedLogout);
     return () => window.removeEventListener("auth:logout", handleForcedLogout);

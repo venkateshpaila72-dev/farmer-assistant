@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ServerCrash, ArrowLeft, LogIn } from "lucide-react";
+import { ServerCrash, ArrowLeft, LogIn, LayoutDashboard } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function ServerError() {
   const navigate = useNavigate();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center text-center px-6">
@@ -21,12 +23,21 @@ export default function ServerError() {
         >
           <ArrowLeft size={16} /> Go back
         </button>
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 rounded-sm bg-primary text-white px-5 py-2.5 text-sm font-semibold hover:bg-primary-dark transition-all duration-200 ease-out-expo active:scale-[0.97] hover:-translate-y-px"
-        >
-          <LogIn size={16} /> Go to login
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            to={isAdmin ? "/admin" : "/dashboard"}
+            className="inline-flex items-center gap-2 rounded-sm bg-primary text-white px-5 py-2.5 text-sm font-semibold hover:bg-primary-dark transition-all duration-200 ease-out-expo active:scale-[0.97] hover:-translate-y-px"
+          >
+            <LayoutDashboard size={16} /> Go to dashboard
+          </Link>
+        ) : (
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary text-white px-5 py-2.5 text-sm font-semibold hover:bg-primary-dark transition-all duration-200 ease-out-expo active:scale-[0.97] hover:-translate-y-px"
+          >
+            <LogIn size={16} /> Go to login
+          </Link>
+        )}
       </div>
     </div>
   );

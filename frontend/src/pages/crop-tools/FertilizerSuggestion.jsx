@@ -9,6 +9,7 @@ import { RevealOnScroll } from "../../components/motion/RevealOnScroll";
 import { useAuth } from "../../context/AuthContext";
 import { recommendFertilizer, getFertilizerTypes } from "../../api/ml";
 import { translateCropName } from "../../utils/cropNameLabel";
+import { getErrorMessage } from "../../utils/errors";
 
 export default function FertilizerSuggestion() {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ export default function FertilizerSuggestion() {
       const data = await recommendFertilizer(user.username, cropType);
       setResult(data);
     } catch (err) {
-      setError(err.response?.data?.detail || t("cropTools.error"));
+      setError(getErrorMessage(err, t("cropTools.error")));
     } finally {
       setLoading(false);
     }

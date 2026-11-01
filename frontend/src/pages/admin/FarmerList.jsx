@@ -6,6 +6,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { getAllFarmers, updateFarmerPhone } from "../../api/admin";
+import { getErrorMessage } from "../../utils/errors";
 
 // Inline phone editor for one row — a plain text field + save/cancel, not
 // a modal (this project's Modal.jsx is an unfinished stub). Mirrors the
@@ -33,7 +34,7 @@ function PhoneCell({ farmer, onSaved }) {
       toast.success(`Phone number updated for ${farmer.username}`);
       setEditing(false);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Couldn't update phone number");
+      toast.error(getErrorMessage(err, "Couldn't update phone number"));
     } finally {
       setSaving(false);
     }
@@ -94,12 +95,14 @@ export default function FarmerList() {
   const [farmers, setFarmers] = useState(null);
   const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    setError(false);
     getAllFarmers()
       .then((data) => setFarmers(data.farmers || []))
       .catch(() => setError(true));
-  }, []);
+  }, [retry]);
 
   const filtered = useMemo(() => {
     if (!farmers) return [];
@@ -134,7 +137,7 @@ export default function FarmerList() {
       </div>
 
       {error ? (
-        <ErrorState message="Couldn't load the farmer list." />
+        <ErrorState message="Couldn't load the farmer list." onRetry={() => { setFarmers(null); setRetry((r) => r + 1); }} />
       ) : !farmers ? (
         <div className="flex flex-col gap-2.5">
           {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
