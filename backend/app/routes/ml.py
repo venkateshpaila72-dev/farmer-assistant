@@ -83,7 +83,7 @@ async def get_farmer_context(username: str) -> dict:
     if not profile:
         raise HTTPException(status_code=404, detail="Farmer profile not found")
 
-    location = profile.get("current_location", profile.get("home_location", {}))
+    location = profile.get("current_location") or profile.get("home_location") or {}
     soil_type = profile.get("soil_type", "default")
 
     # Get live weather — falls back to sensible seasonal-average defaults if
@@ -136,13 +136,13 @@ async def recommend_crop(data: CropRecommendRequest, current_user: dict = Depend
     base_nutrients = resolve_soil_nutrients(data.soil_type) if data.soil_type else ctx["nutrients"]
 
     # Use provided values OR auto-loaded from profile + weather
-    N           = data.N           or base_nutrients["N"]
-    P           = data.P           or base_nutrients["P"]
-    K           = data.K           or base_nutrients["K"]
-    temperature = data.temperature or ctx["temperature"]
-    humidity    = data.humidity    or ctx["humidity"]
-    ph          = data.ph          or base_nutrients["ph"]
-    rainfall    = data.rainfall    or ctx["rainfall"]
+    N           = data.N           if data.N is not None           else base_nutrients["N"]
+    P           = data.P           if data.P is not None           else base_nutrients["P"]
+    K           = data.K           if data.K is not None           else base_nutrients["K"]
+    temperature = data.temperature if data.temperature is not None else ctx["temperature"]
+    humidity    = data.humidity    if data.humidity is not None    else ctx["humidity"]
+    ph          = data.ph          if data.ph is not None          else base_nutrients["ph"]
+    rainfall    = data.rainfall    if data.rainfall is not None    else ctx["rainfall"]
 
     try:
         result = crop_recommender.recommend_crop(
@@ -251,11 +251,15 @@ async def predict_yield(data: YieldPredictRequest, current_user: dict = Depends(
     """
     _check_owner(current_user, data.username)
     ctx      = await get_farmer_context(data.username)
-    rainfall = data.rainfall or ctx["rainfall"] or 1000.0
+    rainfall = data.rainfall if data.rainfall is not None else (ctx.get("rainfall") or 1000.0)
+
+    state = ctx["location"].get("state")
+    if not state:
+        raise HTTPException(status_code=400, detail="Your profile has no state set. Please update your location.")
 
     try:
         result = yield_predictor.predict_yield(
-            state=ctx["location"].get("state", data.username),
+            state=state,
             crop=data.crop,
             season=data.season,
             year=data.year,

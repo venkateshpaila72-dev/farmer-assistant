@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+import httpx
 from datetime import datetime
 from app.utils.weather_utils import get_current_weather, get_season_from_month
 from app.db.database import get_db
@@ -17,6 +18,11 @@ async def current_weather(lat: float, lng: float):
     try:
         weather = await get_current_weather(lat, lng)
         return weather
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=502,
+            detail="Weather service is temporarily unavailable. Please try again shortly."
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Weather fetch failed: {str(e)}")
 
@@ -36,7 +42,10 @@ async def farmer_weather(username: str, current_user: dict = Depends(get_current
     if not profile:
         raise HTTPException(status_code=404, detail="Farmer profile not found")
 
-    location = profile.get("current_location", profile.get("home_location"))
+    location = profile.get("current_location") or profile.get("home_location")
+    if not location or location.get("lat") is None or location.get("lng") is None:
+        raise HTTPException(status_code=404, detail="Farmer location not set. Please complete onboarding.")
+
     lat = location["lat"]
     lng = location["lng"]
 
@@ -53,6 +62,11 @@ async def farmer_weather(username: str, current_user: dict = Depends(get_current
         weather["season"] = get_season_from_month(datetime.now().month)
 
         return weather
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=502,
+            detail="Weather service is temporarily unavailable. Please try again shortly."
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Weather fetch failed: {str(e)}")
 

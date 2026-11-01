@@ -285,8 +285,11 @@ async def get_farmer_prices(username: str, current_user: dict = Depends(get_curr
     if not profile:
         raise HTTPException(status_code=404, detail="Farmer profile not found")
 
-    state           = profile["current_location"]["state"]
-    district        = profile["current_location"].get("district", "")
+    loc             = profile.get("current_location") or profile.get("home_location") or {}
+    state           = loc.get("state")
+    if not state:
+        raise HTTPException(status_code=400, detail="Farmer location not set. Please complete onboarding.")
+    district        = loc.get("district", "")
     preferred_crops = profile.get("preferred_crops", [])
 
     results = {}
