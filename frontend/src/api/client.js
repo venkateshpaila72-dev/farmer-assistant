@@ -92,6 +92,9 @@ client.interceptors.response.use(
         sessionStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
       }
 
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
       window.dispatchEvent(new CustomEvent("auth:logout", { detail: { role } }));
     }
 
