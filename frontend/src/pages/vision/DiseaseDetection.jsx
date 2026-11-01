@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bug, CheckCircle2, RefreshCw, FlaskConical, ShieldCheck, Stethoscope } from "lucide-react";
+import { Bug, CheckCircle2, FlaskConical, ShieldCheck, Stethoscope } from "lucide-react";
 import { ImageUpload } from "../../components/ui/ImageUpload";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";

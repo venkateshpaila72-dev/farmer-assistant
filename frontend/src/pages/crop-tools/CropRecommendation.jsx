@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sprout, ChevronDown, Thermometer, Droplets, CloudRain, FlaskConical, Crown } from "lucide-react";
+import { ChevronDown, Thermometer, Droplets, CloudRain, FlaskConical, Crown } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { ConfidenceRing } from "../../components/ui/ConfidenceRing";
